@@ -1,0 +1,37 @@
+---
+description: Notion-inspired UI tokens and component rules (warm paper notebook)
+globs: apps/web/**/*.{tsx,css}
+alwaysApply: false
+---
+
+# UI style
+
+詳細は `docs/design-system.md`。値の正本は `apps/web/src/index.css`。色や余白を新規に発明しない。
+
+## Do
+
+- ページは `bg-background`。ライトは Paper Warmth、ダークは Charcoal。カードは `bg-card rounded-xl border border-border p-6`。影は付けない
+- ダークで Midnight Ink をページ全面に使わない。`text-stone` / `text-graphite` / `bg-sky-tint` は `.dark` で差し替わるのでコンポーネント側に dark: 用の色を足さない
+- 主アクションは画面に1つ。`Button` の default（Notion Blue `#0075de`）。次点は `secondary`（Sky Tint）、その他は `ghost`
+- 文字は `text-foreground` / `text-foreground/95` / `text-stone` / `text-graphite`。本文は `text-body` か `text-body-sm`
+- タグ・状態は `rounded-full`。ボタンは `rounded-lg`。遷移は `duration-200`
+- LP では `text-display` / `bg-marigold` など既存トークンを使う。serif は編集者的な一文だけ
+
+## Don't
+
+- ページ背景を `#ffffff` にしない。カードに `shadow-*` を付けない。グラデーションを使わない
+- hex をコンポーネントに直書きしない（`bg-[#0075de]` など）。`bg-primary` / `bg-marigold` を使う
+- `@theme` に `--spacing-*` を足さない。`p-4` が壊れる
+- 製品 UI に 72px 見出し・ヒーロー pill・キャラクターマークを置かない
+
+```tsx
+// ❌
+<div className="bg-white shadow-md rounded-2xl">
+  <button className="bg-[#0075de] rounded-full">保存</button>
+</div>
+
+// ✅
+<div className="rounded-xl border border-border bg-card p-6">
+  <Button>保存</Button>
+</div>
+```

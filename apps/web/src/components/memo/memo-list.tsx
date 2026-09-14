@@ -5,10 +5,11 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { createMemo, deleteMemo, fetchMemos } from "@/lib/api";
-import { TAG_META, TAG_ORDER } from "@/lib/tag-meta";
+import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/lib/tag-meta";
+import { cn } from "@/lib/utils";
 import { MemoCard } from "./memo-card";
+import { MemoListSkeleton } from "./memo-card-skeleton";
 import { MemoComposer } from "./memo-composer";
-import { TagIcon } from "./tag-icon";
 
 type FilterTag = MemoTag | "all";
 const EMPTY_MEMOS: Memo[] = [];
@@ -69,27 +70,24 @@ export function MemoList() {
     setComposing(false);
   }
 
-  const chipBase =
-    "rounded-md px-2.5 py-1.5 text-[12px] transition-colors duration-150";
-
   return (
-    <div className="p-4 md:p-7">
-      <div className="mb-5 flex flex-col gap-3">
+    <div className="mx-auto max-w-[1440px] p-4 md:p-8">
+      <div className="mb-6 flex flex-col gap-4">
         <div className="flex items-center gap-2">
           <div className="relative max-w-md flex-1">
-            <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-stone" />
             <input
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="メモを検索..."
-              className="w-full rounded-md border border-border bg-card py-2 pr-8 pl-9 text-body-sm text-foreground outline-none transition-colors duration-150 placeholder:text-muted-foreground focus:border-foreground"
+              placeholder="メモを検索"
+              className="w-full rounded-lg border border-border bg-card py-2 pr-8 pl-9 text-body-sm text-foreground outline-none transition-colors duration-200 placeholder:text-stone focus:border-primary"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                className="absolute top-1/2 right-2.5 -translate-y-1/2 text-stone transition-colors duration-200 hover:text-foreground"
                 aria-label="検索をクリア"
               >
                 <X className="size-4" />
@@ -98,12 +96,14 @@ export function MemoList() {
           </div>
           <Button
             type="button"
-            size="sm"
+            variant="ghost"
+            size="icon-lg"
             disabled={busy || composing}
             onClick={() => setComposing(true)}
+            aria-label="追加"
+            className="size-10  text-foreground hover:bg-foreground/8"
           >
-            <Plus className="size-3.5" />
-            追加
+            <Plus className="size-6" />
           </Button>
         </div>
 
@@ -111,14 +111,13 @@ export function MemoList() {
           <button
             type="button"
             onClick={() => setFilter("all")}
-            className={`${chipBase} ${
-              filter === "all"
-                ? "bg-foreground text-background"
-                : "border border-border bg-card text-muted-foreground hover:text-foreground"
-            }`}
+            className={cn(
+              PILL_BASE,
+              filter === "all" ? "bg-foreground text-background" : PILL_IDLE,
+            )}
           >
-            すべて{" "}
-            <span className="ml-0.5 text-[11px] tabular-nums opacity-60">
+            すべて
+            <span className="text-caption tabular-nums opacity-60">
               {memos.length}
             </span>
           </button>
@@ -130,15 +129,10 @@ export function MemoList() {
                 key={tag}
                 type="button"
                 onClick={() => setFilter(tag)}
-                className={`${chipBase} flex items-center gap-1.5 ${
-                  active
-                    ? "bg-foreground text-background"
-                    : "border border-border bg-card text-muted-foreground hover:text-foreground"
-                }`}
+                className={cn(PILL_BASE, active ? meta.className : PILL_IDLE)}
               >
-                <TagIcon name={meta.icon} className="size-3.5" />
                 {meta.label}
-                <span className="text-[11px] tabular-nums opacity-60">
+                <span className="text-caption tabular-nums opacity-60">
                   {tagCounts[tag]}
                 </span>
               </button>
@@ -155,22 +149,18 @@ export function MemoList() {
         />
       )}
 
-      {memosQuery.isPending && (
-        <p className="py-16 text-center text-body-sm text-muted-foreground">
-          読み込み中...
-        </p>
-      )}
+      {memosQuery.isPending && <MemoListSkeleton />}
 
       {memosQuery.isError && (
-        <p className="py-16 text-center text-body-sm text-destructive">
+        <p className="py-20 text-center text-body-sm text-destructive">
           メモの取得に失敗しました
         </p>
       )}
 
       {memosQuery.isSuccess && filtered.length === 0 && (
-        <div className="py-16 text-center">
-          <Inbox className="mx-auto mb-3 size-5 text-muted-foreground" />
-          <p className="text-body-sm text-muted-foreground">
+        <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
+          <Inbox className="mx-auto mb-3 size-5 text-stone" />
+          <p className="text-body-sm text-stone">
             {search ? "検索結果が見つかりません" : "まだメモがありません"}
           </p>
         </div>

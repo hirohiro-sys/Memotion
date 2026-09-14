@@ -1,4 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { BrandLockup } from "@/components/layout/brand-lockup";
+import { Button } from "@/components/ui/button";
 import { fetchMe } from "@/lib/api";
 
 const LOGIN_ERRORS: Record<string, string> = {
@@ -29,28 +31,17 @@ function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-[360px]">
-        <div className="mb-8">
-          <h1 className="text-[22px] font-semibold tracking-tight text-foreground">
-            MemoHub
-          </h1>
-          <p className="mt-1 text-body-sm text-muted-foreground">
-            LINE連動メモ
-          </p>
-        </div>
+      <div className="w-full max-w-[360px] rounded-xl border border-border bg-card p-6">
+        <BrandLockup as="h1" />
 
-        <div className="space-y-4">
+        <div className="mt-6 space-y-4">
           {message && (
             <p className="text-caption text-destructive">{message}</p>
           )}
 
-          <button
-            type="button"
-            onClick={handleLineLogin}
-            className="w-full rounded-md bg-primary px-3 py-2 text-body-sm font-medium text-primary-foreground transition-opacity duration-150 hover:opacity-90"
-          >
+          <Button type="button" className="w-full" onClick={handleLineLogin}>
             LINEでログイン
-          </button>
+          </Button>
         </div>
       </div>
     </div>

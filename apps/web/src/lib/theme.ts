@@ -1,4 +1,4 @@
-const STORAGE_KEY = "memohub_theme";
+const STORAGE_KEY = "memotion_theme";
 
 export function getStoredTheme(): "light" | "dark" {
   return localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";

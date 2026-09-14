@@ -1,6 +1,6 @@
 import type { MemoTag } from "@repo/shared";
 import { TAG_META } from "@/lib/tag-meta";
-import { TagIcon } from "./tag-icon";
+import { cn } from "@/lib/utils";
 
 export function TagBadge({
   tag,
@@ -14,13 +14,12 @@ export function TagBadge({
 
   return (
     <span
-      className={`inline-flex items-center rounded-md border border-border bg-muted font-medium text-foreground/70 ${
-        compact
-          ? "gap-1 px-1.5 py-0.5 text-[10px]"
-          : "gap-1 px-2 py-0.5 text-caption"
-      }`}
+      className={cn(
+        "inline-flex items-center rounded-full font-medium",
+        meta.className,
+        compact ? "px-2 py-0.5 text-[10px]" : "px-3 py-1 text-caption",
+      )}
     >
-      <TagIcon name={meta.icon} className={compact ? "size-2.5" : "size-3"} />
       {meta.label}
     </span>
   );

@@ -1,8 +1,9 @@
 import type { CreateMemoRequest, MemoTag } from "@repo/shared";
+import { SendHorizontal } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { TAG_META, TAG_ORDER } from "@/lib/tag-meta";
-import { TagIcon } from "./tag-icon";
+import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/lib/tag-meta";
+import { cn } from "@/lib/utils";
 
 export function MemoComposer({
   busy,
@@ -23,15 +24,12 @@ export function MemoComposer({
     await onSubmit({ tag, content });
   }
 
-  const chipBase =
-    "rounded-md px-2.5 py-1.5 text-[12px] transition-colors duration-150";
-
   return (
     <form
       onSubmit={handleSubmit}
-      className="mb-5 rounded-lg border border-border bg-card p-4"
+      className="mb-6 rounded-xl border border-border bg-card p-6"
     >
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         {TAG_ORDER.map((option) => {
           const meta = TAG_META[option];
           const active = tag === option;
@@ -41,13 +39,8 @@ export function MemoComposer({
               type="button"
               disabled={busy}
               onClick={() => setTag(option)}
-              className={`${chipBase} flex items-center gap-1.5 ${
-                active
-                  ? "bg-foreground text-background"
-                  : "border border-border bg-card text-muted-foreground hover:text-foreground"
-              }`}
+              className={cn(PILL_BASE, active ? meta.className : PILL_IDLE)}
             >
-              <TagIcon name={meta.icon} className="size-3.5" />
               {meta.label}
             </button>
           );
@@ -59,15 +52,22 @@ export function MemoComposer({
         onChange={(event) => setContent(event.target.value)}
         placeholder="メモを入力..."
         rows={3}
-        className="mb-3 w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-body-sm text-foreground outline-none transition-colors duration-150 placeholder:text-muted-foreground focus:border-foreground"
+        className="mb-4 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-body-sm text-foreground outline-none transition-colors duration-200 placeholder:text-stone focus:border-primary"
       />
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+        <Button type="button" variant="ghost" onClick={onCancel}>
           キャンセル
         </Button>
-        <Button type="submit" size="sm" disabled={!canSubmit}>
-          追加
+        <Button
+          type="submit"
+          variant="outline"
+          size="icon"
+          disabled={!canSubmit}
+          aria-label="送信"
+          className="border-foreground bg-foreground text-background hover:bg-foreground/90 hover:text-background"
+        >
+          <SendHorizontal className="size-4" />
         </Button>
       </div>
     </form>
