@@ -21,14 +21,12 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppLayout() {
-  const { user } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
-        user={user}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
       />

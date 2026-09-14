@@ -178,56 +178,60 @@
 }
 
 .dark {
-  --background: var(--color-charcoal);
+  --background: color-mix(
+    in srgb,
+    var(--color-pure-white) 4%,
+    var(--color-charcoal)
+  );
   --foreground: var(--color-pure-white);
-  --card: color-mix(in srgb, var(--color-pure-white) 8%, var(--color-charcoal));
+  --card: color-mix(in srgb, var(--color-pure-white) 13%, var(--color-charcoal));
   --card-foreground: var(--color-pure-white);
-  --popover: color-mix(in srgb, var(--color-pure-white) 8%, var(--color-charcoal));
+  --popover: color-mix(in srgb, var(--color-pure-white) 13%, var(--color-charcoal));
   --popover-foreground: var(--color-pure-white);
   --primary: var(--color-notion-blue);
   --primary-foreground: var(--color-pure-white);
   --secondary: color-mix(
     in srgb,
-    var(--color-notion-blue) 20%,
+    var(--color-notion-blue) 28%,
     var(--color-charcoal)
   );
   --secondary-foreground: var(--color-sky-wash);
-  --muted: color-mix(in srgb, var(--color-pure-white) 14%, var(--color-charcoal));
-  --muted-foreground: rgb(255 255 255 / 0.55);
+  --muted: color-mix(in srgb, var(--color-pure-white) 20%, var(--color-charcoal));
+  --muted-foreground: rgb(255 255 255 / 0.62);
   --accent: color-mix(
     in srgb,
-    var(--color-notion-blue) 20%,
+    var(--color-notion-blue) 28%,
     var(--color-charcoal)
   );
   --accent-foreground: var(--color-sky-wash);
   --destructive: var(--color-coral);
-  --border: rgb(255 255 255 / 0.1);
-  --input: rgb(255 255 255 / 0.12);
+  --border: rgb(255 255 255 / 0.14);
+  --input: rgb(255 255 255 / 0.16);
   --ring: var(--color-sky-wash);
   --chart-1: var(--color-sky-wash);
   --chart-2: var(--color-marigold);
   --chart-3: var(--color-coral);
   --chart-4: var(--color-signal-blue);
   --chart-5: var(--color-mocha);
-  --sidebar: color-mix(in srgb, var(--color-pure-white) 8%, var(--color-charcoal));
+  --sidebar: color-mix(in srgb, var(--color-pure-white) 13%, var(--color-charcoal));
   --sidebar-foreground: var(--color-pure-white);
   --sidebar-primary: var(--color-notion-blue);
   --sidebar-primary-foreground: var(--color-pure-white);
   --sidebar-accent: color-mix(
     in srgb,
-    var(--color-pure-white) 14%,
+    var(--color-pure-white) 20%,
     var(--color-charcoal)
   );
   --sidebar-accent-foreground: var(--color-pure-white);
-  --sidebar-border: rgb(255 255 255 / 0.1);
+  --sidebar-border: rgb(255 255 255 / 0.14);
   --sidebar-ring: var(--color-sky-wash);
 
-  --color-stone: rgb(255 255 255 / 0.55);
-  --color-graphite: rgb(255 255 255 / 0.72);
-  --color-slate: rgb(255 255 255 / 0.5);
+  --color-stone: rgb(255 255 255 / 0.62);
+  --color-graphite: rgb(255 255 255 / 0.78);
+  --color-slate: rgb(255 255 255 / 0.55);
   --color-sky-tint: color-mix(
     in srgb,
-    var(--color-notion-blue) 22%,
+    var(--color-notion-blue) 38%,
     var(--color-charcoal)
   );
 }

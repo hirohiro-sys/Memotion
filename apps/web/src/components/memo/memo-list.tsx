@@ -80,7 +80,7 @@ export function MemoList() {
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="メモを検索..."
+              placeholder="メモを検索"
               className="w-full rounded-lg border border-border bg-card py-2 pr-8 pl-9 text-body-sm text-foreground outline-none transition-colors duration-200 placeholder:text-stone focus:border-primary"
             />
             {search && (

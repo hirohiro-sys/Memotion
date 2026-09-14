@@ -64,7 +64,6 @@ export function MemoCard({
         </span>
         {confirming ? (
           <div className="flex items-center gap-2">
-            <span className="text-caption text-stone">削除しますか？</span>
             <Button
               type="button"
               variant="ghost"

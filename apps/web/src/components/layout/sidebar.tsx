@@ -1,7 +1,6 @@
-import type { User } from "@repo/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Inbox, LogOut, Settings2, X } from "lucide-react";
+import { Bell, BellOff, Inbox, LogOut, Settings2, User, X } from "lucide-react";
 import { BrandLockup } from "@/components/layout/brand-lockup";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchMemos, fetchNotifications, logout } from "@/lib/api";
@@ -13,11 +12,9 @@ const NAV_ITEMS = [
 ] as const;
 
 export function Sidebar({
-  user,
   mobileOpen,
   onCloseMobile,
 }: {
-  user: User;
   mobileOpen: boolean;
   onCloseMobile: () => void;
 }) {
@@ -84,26 +81,44 @@ export function Sidebar({
             );
           })}
         </div>
-
-        <div className="mt-8 px-4">
-          <p className="mb-2 text-caption text-stone">今週の技術</p>
-          {memos.isPending || notifications.isPending ? (
-            <Skeleton className="h-4 w-24" />
-          ) : (
-            <p className="text-body-sm text-foreground">
-              {techCount}件
-              <span className="ml-1.5 text-stone">
-                {notifyOn ? "通知オン" : "通知オフ"}
-              </span>
-            </p>
-          )}
-        </div>
       </nav>
+
+      <div className="px-3 pb-3">
+        <Link
+          to="/settings"
+          onClick={onCloseMobile}
+          className="block rounded-xl border border-border bg-sky-tint p-3 no-underline transition-colors duration-200 hover:bg-sky-tint/80"
+        >
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <p className="text-caption font-medium text-primary">今週の技術</p>
+            {notifyOn ? (
+              <Bell className="size-3.5 text-primary" />
+            ) : (
+              <BellOff className="size-3.5 text-stone" />
+            )}
+          </div>
+          {memos.isPending || notifications.isPending ? (
+            <Skeleton className="h-5 w-12" />
+          ) : (
+            <>
+              <p className="text-body font-semibold tabular-nums text-foreground">
+                {techCount}
+                <span className="ml-0.5 text-caption font-medium text-stone">
+                  件
+                </span>
+              </p>
+              <p className="mt-1 text-caption text-graphite">
+                {notifyOn ? "週次通知オン" : "週次通知オフ"}
+              </p>
+            </>
+          )}
+        </Link>
+      </div>
 
       <div className="border-t border-border px-3 py-3">
         <div className="flex items-center gap-2 px-1.5 py-1">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-sky-tint text-caption font-medium text-primary">
-            {user.id.charAt(0).toUpperCase()}
+          <div className="flex size-8 items-center justify-center rounded-lg bg-sky-tint text-primary">
+            <User className="size-4" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-caption text-foreground/95">
