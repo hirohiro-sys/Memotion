@@ -178,42 +178,69 @@
 }
 
 .dark {
-  --background: #02093a;
-  --foreground: #ffffff;
-  --card: #111111;
-  --card-foreground: #ffffff;
-  --popover: #111111;
-  --popover-foreground: #ffffff;
-  --primary: #0075de;
-  --primary-foreground: #ffffff;
-  --secondary: #097fe8;
-  --secondary-foreground: #ffffff;
-  --muted: #111111;
-  --muted-foreground: rgb(255 255 255 / 0.6);
-  --accent: #097fe8;
-  --accent-foreground: #ffffff;
-  --destructive: #f64932;
+  --background: var(--color-charcoal);
+  --foreground: var(--color-pure-white);
+  --card: color-mix(in srgb, var(--color-pure-white) 8%, var(--color-charcoal));
+  --card-foreground: var(--color-pure-white);
+  --popover: color-mix(in srgb, var(--color-pure-white) 8%, var(--color-charcoal));
+  --popover-foreground: var(--color-pure-white);
+  --primary: var(--color-notion-blue);
+  --primary-foreground: var(--color-pure-white);
+  --secondary: color-mix(
+    in srgb,
+    var(--color-notion-blue) 20%,
+    var(--color-charcoal)
+  );
+  --secondary-foreground: var(--color-sky-wash);
+  --muted: color-mix(in srgb, var(--color-pure-white) 14%, var(--color-charcoal));
+  --muted-foreground: rgb(255 255 255 / 0.55);
+  --accent: color-mix(
+    in srgb,
+    var(--color-notion-blue) 20%,
+    var(--color-charcoal)
+  );
+  --accent-foreground: var(--color-sky-wash);
+  --destructive: var(--color-coral);
   --border: rgb(255 255 255 / 0.1);
-  --input: rgb(255 255 255 / 0.1);
-  --ring: #62aef0;
-  --chart-1: #62aef0;
-  --chart-2: #ffb110;
-  --chart-3: #f64932;
-  --chart-4: #097fe8;
-  --chart-5: #b18164;
-  --sidebar: #111111;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #0075de;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #097fe8;
-  --sidebar-accent-foreground: #ffffff;
+  --input: rgb(255 255 255 / 0.12);
+  --ring: var(--color-sky-wash);
+  --chart-1: var(--color-sky-wash);
+  --chart-2: var(--color-marigold);
+  --chart-3: var(--color-coral);
+  --chart-4: var(--color-signal-blue);
+  --chart-5: var(--color-mocha);
+  --sidebar: color-mix(in srgb, var(--color-pure-white) 8%, var(--color-charcoal));
+  --sidebar-foreground: var(--color-pure-white);
+  --sidebar-primary: var(--color-notion-blue);
+  --sidebar-primary-foreground: var(--color-pure-white);
+  --sidebar-accent: color-mix(
+    in srgb,
+    var(--color-pure-white) 14%,
+    var(--color-charcoal)
+  );
+  --sidebar-accent-foreground: var(--color-pure-white);
   --sidebar-border: rgb(255 255 255 / 0.1);
-  --sidebar-ring: #62aef0;
+  --sidebar-ring: var(--color-sky-wash);
+
+  --color-stone: rgb(255 255 255 / 0.55);
+  --color-graphite: rgb(255 255 255 / 0.72);
+  --color-slate: rgb(255 255 255 / 0.5);
+  --color-sky-tint: color-mix(
+    in srgb,
+    var(--color-notion-blue) 22%,
+    var(--color-charcoal)
+  );
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
   }
   body {
     @apply bg-background text-foreground;

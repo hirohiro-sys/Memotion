@@ -15,7 +15,7 @@ export function TopBar({
   const title = PAGE_TITLES[pathname] ?? PAGE_TITLES["/"];
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-background px-4 shadow-[0px_0.7px_1.462px_0px_rgb(0_0_0/0.015),0px_3px_9px_0px_rgb(0_0_0/0.03)] md:px-8">
+    <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-background px-4 shadow-[0px_0.7px_1.462px_0px_rgb(0_0_0/0.015),0px_3px_9px_0px_rgb(0_0_0/0.03)] dark:shadow-none md:px-8">
       <button
         type="button"
         onClick={onMenuClick}

@@ -4,7 +4,7 @@ export function BrandLockup({ as: Tag = "p" }: { as?: "p" | "h1" }) {
       <img
         src="/memotion-mark.png"
         alt=""
-        className="size-9 shrink-0 object-contain"
+        className="size-9 shrink-0 object-contain dark:invert"
       />
       <span className="text-[32px] leading-none font-bold tracking-tight">
         Memotion

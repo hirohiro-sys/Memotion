@@ -4,11 +4,10 @@ import {
   redirect,
   useRouterState,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { fetchMe } from "@/lib/api";
-import { applyTheme, getStoredTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async () => {
@@ -25,10 +24,6 @@ function AppLayout() {
   const { user } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    applyTheme(getStoredTheme());
-  }, []);
 
   return (
     <div className="flex min-h-screen bg-background">

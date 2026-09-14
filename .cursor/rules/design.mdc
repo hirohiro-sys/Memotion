@@ -10,7 +10,8 @@ alwaysApply: false
 
 ## Do
 
-- ページは `bg-background`（Paper Warmth `#f6f5f4`）。カードは `bg-card rounded-xl border border-border p-6`。影は付けない
+- ページは `bg-background`。ライトは Paper Warmth、ダークは Charcoal。カードは `bg-card rounded-xl border border-border p-6`。影は付けない
+- ダークで Midnight Ink をページ全面に使わない。`text-stone` / `text-graphite` / `bg-sky-tint` は `.dark` で差し替わるのでコンポーネント側に dark: 用の色を足さない
 - 主アクションは画面に1つ。`Button` の default（Notion Blue `#0075de`）。次点は `secondary`（Sky Tint）、その他は `ghost`
 - 文字は `text-foreground` / `text-foreground/95` / `text-stone` / `text-graphite`。本文は `text-body` か `text-body-sm`
 - タグ・状態は `rounded-full`。ボタンは `rounded-lg`。遷移は `duration-200`
