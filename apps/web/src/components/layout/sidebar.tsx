@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Inbox, LogOut, Settings2, X } from "lucide-react";
 import { BrandLockup } from "@/components/layout/brand-lockup";
+import { Skeleton } from "@/components/ui/skeleton";
 import { fetchMemos, fetchNotifications, logout } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -70,10 +71,14 @@ export function Sidebar({
               >
                 <Icon className="size-4" />
                 <span className="flex-1 text-left">{item.label}</span>
-                {badge > 0 && (
-                  <span className="text-caption tabular-nums text-stone">
-                    {badge}
-                  </span>
+                {item.to === "/" && memos.isPending ? (
+                  <Skeleton className="h-3 w-4" />
+                ) : (
+                  badge > 0 && (
+                    <span className="text-caption tabular-nums text-stone">
+                      {badge}
+                    </span>
+                  )
                 )}
               </Link>
             );
@@ -82,12 +87,16 @@ export function Sidebar({
 
         <div className="mt-8 px-4">
           <p className="mb-2 text-caption text-stone">今週の技術</p>
-          <p className="text-body-sm text-foreground">
-            {techCount}件
-            <span className="ml-1.5 text-stone">
-              {notifyOn ? "通知オン" : "通知オフ"}
-            </span>
-          </p>
+          {memos.isPending || notifications.isPending ? (
+            <Skeleton className="h-4 w-24" />
+          ) : (
+            <p className="text-body-sm text-foreground">
+              {techCount}件
+              <span className="ml-1.5 text-stone">
+                {notifyOn ? "通知オン" : "通知オフ"}
+              </span>
+            </p>
+          )}
         </div>
       </nav>
 

@@ -8,6 +8,7 @@ import { createMemo, deleteMemo, fetchMemos } from "@/lib/api";
 import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/lib/tag-meta";
 import { cn } from "@/lib/utils";
 import { MemoCard } from "./memo-card";
+import { MemoListSkeleton } from "./memo-card-skeleton";
 import { MemoComposer } from "./memo-composer";
 
 type FilterTag = MemoTag | "all";
@@ -148,11 +149,7 @@ export function MemoList() {
         />
       )}
 
-      {memosQuery.isPending && (
-        <p className="py-20 text-center text-body-sm text-stone">
-          読み込み中...
-        </p>
-      )}
+      {memosQuery.isPending && <MemoListSkeleton />}
 
       {memosQuery.isError && (
         <p className="py-20 text-center text-body-sm text-destructive">

@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { useState } from "react";
 import { ToggleSwitch } from "@/components/toggle-switch";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchMemos,
   fetchNotifications,
@@ -54,6 +55,22 @@ export function SettingsView() {
         <p className="mb-4 text-body-sm text-graphite">
           その週に保存した技術タグのメモをLINEでまとめて通知します。
         </p>
+
+        {notificationsQuery.isPending && (
+          <div
+            className="space-y-4 border-t border-border pt-4"
+            role="status"
+            aria-label="読み込み中"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-52" />
+              </div>
+              <Skeleton className="h-5 w-9 rounded-full" />
+            </div>
+          </div>
+        )}
 
         {notifications && (
           <div className="border-t border-border">
@@ -153,9 +170,13 @@ export function SettingsView() {
         <div className="border-t border-border">
           <div className="flex items-center justify-between py-3">
             <span className="text-body-sm text-stone">メモ総数</span>
-            <span className="text-body-sm tabular-nums text-foreground">
-              {memos.length}件
-            </span>
+            {memosQuery.isPending ? (
+              <Skeleton className="h-4 w-8" />
+            ) : (
+              <span className="text-body-sm tabular-nums text-foreground">
+                {memos.length}件
+              </span>
+            )}
           </div>
         </div>
         <div className="mt-2 flex justify-end pt-2">
@@ -193,9 +214,13 @@ export function SettingsView() {
                   </p>
                   <p className="text-caption text-stone">{meta.description}</p>
                 </div>
-                <span className="text-caption tabular-nums text-stone">
-                  {count}件
-                </span>
+                {memosQuery.isPending ? (
+                  <Skeleton className="h-3 w-6" />
+                ) : (
+                  <span className="text-caption tabular-nums text-stone">
+                    {count}件
+                  </span>
+                )}
               </div>
             );
           })}
