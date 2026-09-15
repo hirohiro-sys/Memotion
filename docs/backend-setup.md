@@ -1,6 +1,6 @@
 # バックエンド環境
 
-`apps/api` は Cloudflare Workers（Hono + Drizzle + D1 + R2）です。公開 API は health、LINE Login、`POST /api/line/webhook`、ログイン必須のメモ閲覧です。開発時 MSW は通知だけを傍受し、`/api/memos` は Worker に届きます。
+`apps/api` は Cloudflare Workers（Hono + Drizzle + D1 + R2）です。公開 API は health、LINE Login、`POST /api/line/webhook`、ログイン必須のメモ閲覧、`GET` / `PATCH /api/notifications` です。開発時に MSW は使いません。`/api` は Worker に届きます。
 
 ## 前提
 
@@ -37,7 +37,7 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 | `LINE_CHANNEL_ID` | 認可 URL と IDトークン検証の audience |
 | `LINE_CHANNEL_SECRET` | 認可コードの交換。ブラウザに出さない |
 | `LINE_MESSAGING_CHANNEL_SECRET` | Webhook 署名。Login の `LINE_CHANNEL_SECRET` と混ぜない |
-| `LINE_CHANNEL_ACCESS_TOKEN` | Reply と画像取得 |
+| `LINE_CHANNEL_ACCESS_TOKEN` | Reply、画像取得、週次の Push |
 | `SESSION_SECRET` | JWT 署名。十分長いランダム値 |
 | `APP_URL` | ログイン後の戻り先。ローカルは `http://127.0.0.1:5173` |
 
@@ -60,10 +60,10 @@ pnpm --filter @repo/api db:migrate:local
 pnpm dev
 ```
 
-- Web: `http://127.0.0.1:5173`（通知だけ MSW）
+- Web: `http://127.0.0.1:5173`
 - API: `http://127.0.0.1:8787`
 
-`vite.config.ts` は `/api` を `:8787` にプロキシします。メモ一覧は Worker に届きます。
+`vite.config.ts` は `/api` を `:8787` にプロキシします。メモも通知設定も Worker に届きます。
 
 LINE で残した行をローカル Web で見るには、[`apps/api/wrangler.toml`](../apps/api/wrangler.toml) の `DB` と `MEDIA` に `remote = true` を付ける。`pnpm dev` のコマンドはそのまま（Vite → `:8787`）。秘密は `.dev.vars`（`APP_URL=http://127.0.0.1:5173`）。Cookie は今と同じ `127.0.0.1`。許可ユーザーはリモート D1 に入っていること。
 
@@ -129,6 +129,14 @@ Login チャネルと**同じプロバイダー**の下に Messaging API チャ�
 パスは `POST /api/line/webhook`。
 
 許可ユーザーの追加は従来どおり、D1 の `users` への INSERT。友だち追加だけでは Web に入れない。Bot は `users` を自動作成しない。
+
+## 通知
+
+`GET` / `PATCH /api/notifications` はセッション必須です。件数（次の通に入る `#tech`）と自動オフ理由はサーバが返します。MSW で傍受しません。
+
+Cron は [`apps/api/wrangler.toml`](../apps/api/wrangler.toml) の `* * * * *`（毎分、UTC）です。壁時計は `Asia/Tokyo` です。発火はデプロイ済み Worker だけです。ローカルの `wrangler dev` には頼らないでください。
+
+Push は既存の `LINE_CHANNEL_ACCESS_TOKEN` を使います。Login チャネルの秘密では送れません。溢れ時の逃げ場は `APP_URL` のトップです。
 
 ## リモート（初回のみ）
 

@@ -27,7 +27,6 @@ export function SettingsView() {
 
   const memos = memosQuery.data?.items ?? [];
   const notifications = notificationsQuery.data;
-  const techCount = memos.filter((memo) => memo.tag === "tech").length;
 
   const notifyMutation = useMutation({
     mutationFn: updateNotifications,
@@ -53,7 +52,7 @@ export function SettingsView() {
       <section className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-1 text-body-sm font-medium text-foreground">通知</h3>
         <p className="mb-4 text-body-sm text-graphite">
-          その週に保存した技術タグのメモをLINEでまとめて通知します。
+          対象がある週だけ、その時刻に届く
         </p>
 
         {notificationsQuery.isPending && (
@@ -80,7 +79,7 @@ export function SettingsView() {
                   技術の週次通知
                 </p>
                 <p className="mt-0.5 text-caption text-stone">
-                  今週保存した{techCount}件の技術メモをまとめて通知
+                  次の通知に含まれるTech {notifications.pendingCount}件
                 </p>
               </div>
               <ToggleSwitch
@@ -90,6 +89,12 @@ export function SettingsView() {
                 }
               />
             </div>
+
+            {notifications.disabledReason && (
+              <p className="border-t border-border py-3 text-caption text-stone">
+                {notifications.disabledReason}
+              </p>
+            )}
 
             {notifications.techWeeklyEnabled && (
               <div className="flex items-center gap-3 border-t border-border py-4">
@@ -139,8 +144,8 @@ export function SettingsView() {
 
             {notifications.techWeeklyEnabled && (
               <p className="border-t border-border py-3 text-caption text-stone">
-                毎週{WEEKDAYS[notifications.techWeeklyDay]}曜日{" "}
-                {notifications.techWeeklyTime} にLINEへ通知されます
+                対象がある週だけ、毎週{WEEKDAYS[notifications.techWeeklyDay]}
+                曜日 {notifications.techWeeklyTime} に届く
               </p>
             )}
           </div>

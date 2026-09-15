@@ -40,6 +40,7 @@ export const techWeeklySettings = sqliteTable("tech_weekly_settings", {
   weekday: integer("weekday").notNull(),
   time: text("time").notNull(),
   lastSentAt: text("last_sent_at"),
+  disabledReason: text("disabled_reason"),
 });
 
 export const usersRelations = relations(users, ({ many, one }) => ({
