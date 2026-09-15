@@ -75,9 +75,7 @@ export function SettingsView() {
           <div className="border-t border-border">
             <div className="flex items-start justify-between gap-3 py-4">
               <div>
-                <p className="text-body-sm text-foreground">
-                  技術の週次通知
-                </p>
+                <p className="text-body-sm text-foreground">技術の週次通知</p>
                 <p className="mt-0.5 text-caption text-stone">
                   次の通知に含まれるTech {notifications.pendingCount}件
                 </p>
@@ -208,7 +206,10 @@ export function SettingsView() {
             return (
               <div key={tag} className="flex items-center gap-3 py-3">
                 <span
-                  className={cn("size-2.5 shrink-0 rounded-full", meta.className)}
+                  className={cn(
+                    "size-2.5 shrink-0 rounded-full",
+                    meta.className,
+                  )}
                 />
                 <div className="flex-1">
                   <p className="text-body-sm text-foreground">

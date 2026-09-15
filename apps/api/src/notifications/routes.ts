@@ -43,7 +43,8 @@ notificationRoutes.get("/api/notifications", async (c) => {
 
   const db = createDb(c.env.DB);
   const now = new Date();
-  const settings = (await readStoredSettings(db, userId)) ?? DEFAULT_TECH_WEEKLY;
+  const settings =
+    (await readStoredSettings(db, userId)) ?? DEFAULT_TECH_WEEKLY;
   const pendingCount = await pendingCountFor(db, userId, settings, now);
   return c.json(toNotificationSettings(settings, pendingCount));
 });

@@ -21,7 +21,9 @@ function excerptText(content: string): string {
 
 function formatMemoLine(memo: DigestMemo): string {
   const date = formatJstMd(new Date(memo.createdAt));
-  const body = isUrlMemo(memo) ? (memo.url ?? memo.content) : excerptText(memo.content);
+  const body = isUrlMemo(memo)
+    ? (memo.url ?? memo.content)
+    : excerptText(memo.content);
   return `${date} ${body}`;
 }
 
@@ -64,7 +66,10 @@ export function buildDigestMessages(input: {
       packed += 1;
       continue;
     }
-    if (messages.length >= MAX_DIGEST_MESSAGES || line.length > DIGEST_TEXT_LIMIT) {
+    if (
+      messages.length >= MAX_DIGEST_MESSAGES ||
+      line.length > DIGEST_TEXT_LIMIT
+    ) {
       break;
     }
     messages.push([line]);

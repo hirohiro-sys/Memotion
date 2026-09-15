@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { applySettingsPatch, DEFAULT_TECH_WEEKLY, toNotificationSettings } from "./settings";
+import {
+  applySettingsPatch,
+  DEFAULT_TECH_WEEKLY,
+  toNotificationSettings,
+} from "./settings";
 
 const now = new Date("2026-09-15T08:00:00.000Z");
 const nowIso = now.toISOString();
@@ -16,7 +20,8 @@ describe("applySettingsPatch", () => {
           ...DEFAULT_TECH_WEEKLY,
           enabled: false,
           lastSentAt: "2026-09-06T11:00:00.000Z",
-          disabledReason: "LINEに送れなかったためオフにしました。友達追加を確認して、再度オンにしてください",
+          disabledReason:
+            "LINEに送れなかったためオフにしました。友達追加を確認して、再度オンにしてください",
         },
         { techWeeklyEnabled: true },
         now,
@@ -34,7 +39,8 @@ describe("applySettingsPatch", () => {
       applySettingsPatch(
         {
           ...DEFAULT_TECH_WEEKLY,
-          disabledReason: "LINEに送れなかったためオフにしました。友達追加を確認して、再度オンにしてください",
+          disabledReason:
+            "LINEに送れなかったためオフにしました。友達追加を確認して、再度オンにしてください",
         },
         { techWeeklyEnabled: false },
         now,
@@ -49,7 +55,8 @@ describe("applySettingsPatch", () => {
 
   it("advances last_sent_at when the weekday or time changes", () => {
     expect(
-      applySettingsPatch(DEFAULT_TECH_WEEKLY, { techWeeklyDay: 3 }, now).lastSentAt,
+      applySettingsPatch(DEFAULT_TECH_WEEKLY, { techWeeklyDay: 3 }, now)
+        .lastSentAt,
     ).toBe(nowIso);
     expect(
       applySettingsPatch(DEFAULT_TECH_WEEKLY, { techWeeklyTime: "21:00" }, now)
@@ -77,7 +84,8 @@ describe("toNotificationSettings", () => {
           weekday: 3,
           time: "21:00",
           lastSentAt: nowIso,
-          disabledReason: "LINEに送れなかったためオフにしました。友達追加を確認して、再度オンにしてください",
+          disabledReason:
+            "LINEに送れなかったためオフにしました。友達追加を確認して、再度オンにしてください",
         },
         4,
       ),

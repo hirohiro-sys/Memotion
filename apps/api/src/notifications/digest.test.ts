@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decideUserDigest, settingsAfterPush } from "./digest";
 import type { DigestMemo } from "./message";
-import {
-  DEFAULT_TECH_WEEKLY,
-  UNREACHABLE_DISABLED_REASON,
-} from "./settings";
+import { DEFAULT_TECH_WEEKLY, UNREACHABLE_DISABLED_REASON } from "./settings";
 
 function jst(
   year: number,
