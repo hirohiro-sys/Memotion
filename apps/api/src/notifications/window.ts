@@ -26,7 +26,9 @@ export function latestDueAt(now: Date, slot: WeeklySlot): Date {
   const parts = jstParts(now);
   const daysBack = (parts.weekday - slot.weekday + 7) % 7;
   const sameDay = fromJst(parts.year, parts.month, parts.day, hour, minute);
-  const candidate = new Date(sameDay.getTime() - daysBack * 24 * 60 * 60 * 1000);
+  const candidate = new Date(
+    sameDay.getTime() - daysBack * 24 * 60 * 60 * 1000,
+  );
   if (candidate.getTime() > now.getTime()) {
     return new Date(candidate.getTime() - WEEK_MS);
   }

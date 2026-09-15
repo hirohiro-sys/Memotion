@@ -62,9 +62,7 @@ export async function upsertSettings(
 export async function listAllowedUsers(
   db: Database,
 ): Promise<{ id: string; lineUserId: string }[]> {
-  return db
-    .select({ id: users.id, lineUserId: users.lineUserId })
-    .from(users);
+  return db.select({ id: users.id, lineUserId: users.lineUserId }).from(users);
 }
 
 export async function listTechMemos(

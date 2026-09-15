@@ -1,6 +1,6 @@
 # バックエンド環境
 
-`apps/api` は Cloudflare Workers（Hono + Drizzle + D1 + R2）です。公開 API は health、LINE Login、`POST /api/line/webhook`、ログイン必須のメモ閲覧、`GET` / `PATCH /api/notifications` です。開発時に MSW は使いません。`/api` は Worker に届きます。
+`apps/api` は Cloudflare Workers（Hono + Drizzle + D1 + R2）です。本番は同じ Worker が `/` に Vite の dist、`/api/*` に API を出します。公開 API は health、LINE Login、`POST /api/line/webhook`、ログイン必須のメモ閲覧、`GET` / `PATCH /api/notifications` です。開発時に MSW は使いません。ローカルの `/api` は Vite 経由で Worker に届きます。
 
 ## 前提
 
@@ -39,7 +39,7 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 | `LINE_MESSAGING_CHANNEL_SECRET` | Webhook 署名。Login の `LINE_CHANNEL_SECRET` と混ぜない |
 | `LINE_CHANNEL_ACCESS_TOKEN` | Reply、画像取得、週次の Push |
 | `SESSION_SECRET` | JWT 署名。十分長いランダム値 |
-| `APP_URL` | ログイン後の戻り先。ローカルは `http://127.0.0.1:5173` |
+| `APP_URL` | ログイン後の戻り先。ローカルは `http://127.0.0.1:5173`。本番は `https://line-memo-orchestrator.hirohiro-sys.workers.dev` |
 
 本番は同じ名前を `wrangler secret` で入れる。開発用バイパス用の変数は作らない。Messaging 用と Login 用を取り違えると、署名がすべて 400 になり何も残らない。
 
@@ -130,6 +130,15 @@ Login チャネルと**同じプロバイダー**の下に Messaging API チャ�
 
 許可ユーザーの追加は従来どおり、D1 の `users` への INSERT。友だち追加だけでは Web に入れない。Bot は `users` を自動作成しない。
 
+## LINE Login
+
+コンソールの Callback URL に次を**両方**置く。片方だけだと、ローカルか本番のログインが落ちる。
+
+- ローカル: `http://127.0.0.1:8787/api/auth/line/callback`
+- 本番: `https://line-memo-orchestrator.hirohiro-sys.workers.dev/api/auth/line/callback`
+
+成功後の画面は `APP_URL`。本番の `APP_URL` が `5173` のままだと、Callback のあとローカルへ戻る。Webhook URL は触らない。
+
 ## 通知
 
 `GET` / `PATCH /api/notifications` はセッション必須です。件数（次の通に入る `#tech`）と自動オフ理由はサーバが返します。MSW で傍受しません。
@@ -161,10 +170,10 @@ pnpm --filter @repo/api exec wrangler r2 bucket create line-memo-orchestrator-me
 
 ```bash
 pnpm --filter @repo/api db:migrate:remote
-pnpm --filter @repo/api run deploy
+pnpm run deploy
 ```
 
-`pnpm --filter @repo/api deploy` は使わないでください。pnpm 本体の `deploy` が走ります。必ず `run deploy` です。
+`pnpm deploy` と `pnpm --filter @repo/api deploy` は使わないでください。pnpm 本体の `deploy` が走ります。手元の再デプロイもルートの `pnpm run deploy` です（先に web を build する）。`pnpm --filter @repo/api run deploy` だけだと、古い dist か空のスタブが載ります。
 
 初回デプロイでは `workers.dev` サブドメイン登録を聞かれます。`Y` で、アカウント用の短い名前（例: `hirohiro-sys`）を付けます。Worker 名とは別です。
 
@@ -174,14 +183,29 @@ pnpm --filter @repo/api run deploy
 https://line-memo-orchestrator.hirohiro-sys.workers.dev/api/health
 ```
 
+本番 Web は同じオリジンの `/` です。Pages には分けません。別ホストだと `sid` Cookie が付きません。
+
 macOS 付属の `curl` で SSL handshake failure になることがあります。ブラウザで確認してください。
 
 ```bash
 pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --remote --command "SELECT id, slug, name FROM tags ORDER BY slug"
 ```
 
+## CI/CD
+
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) が PR と `main` への push で lint、typecheck、API テスト、web build を走らせます。`main` への push だけ、check のあと `pnpm run deploy` します。D1 マイグレーションは CI では走りません。スキーマを変えたら、デプロイより先に手元で `db:migrate:remote` します。
+
+GitHub Secrets（Actions）に入れるのは次だけです。LINE 系・`SESSION_SECRET`・`APP_URL` は今どおり Cloudflare の `wrangler secret` です。取り違えると、デプロイは通ってもログインが切れます。
+
+| 名前 | 用途 |
+|------|------|
+| `CLOUDFLARE_API_TOKEN` | ダッシュボードの API Tokens で発行。テンプレート「Edit Cloudflare Workers」。手元の wrangler OAuth は使わない |
+| `CLOUDFLARE_ACCOUNT_ID` | `wrangler whoami` の Account ID |
+
+Token に D1 編集は付けない。CI は migrate しない。漏れたときの被害を広げるだけです。デプロイが D1 権限不足で落ちてから足します。
+
 ## 再デプロイ
 
 ```bash
-pnpm --filter @repo/api run deploy
+pnpm run deploy
 ```

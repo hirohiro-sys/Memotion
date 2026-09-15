@@ -128,18 +128,18 @@ describe("classifyPushFailure", () => {
         "The user is not a friend of this bot or has blocked the bot.",
       ),
     ).toBe("unreachable");
-    expect(classifyPushFailure(403, "You cannot send a message to this user.")).toBe(
-      "unreachable",
-    );
+    expect(
+      classifyPushFailure(403, "You cannot send a message to this user."),
+    ).toBe("unreachable");
     expect(classifyPushFailure(400, "The userId is not a valid user ID")).toBe(
       "unreachable",
     );
   });
 
   it("treats a malformed 400, 401, 429, and 5xx as transient", () => {
-    expect(
-      classifyPushFailure(400, "The request body has 2 error(s)"),
-    ).toBe("transient");
+    expect(classifyPushFailure(400, "The request body has 2 error(s)")).toBe(
+      "transient",
+    );
     expect(classifyPushFailure(401, "Authentication failed. Confirm...")).toBe(
       "transient",
     );

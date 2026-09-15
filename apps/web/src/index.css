@@ -184,9 +184,17 @@
     var(--color-charcoal)
   );
   --foreground: var(--color-pure-white);
-  --card: color-mix(in srgb, var(--color-pure-white) 13%, var(--color-charcoal));
+  --card: color-mix(
+    in srgb,
+    var(--color-pure-white) 13%,
+    var(--color-charcoal)
+  );
   --card-foreground: var(--color-pure-white);
-  --popover: color-mix(in srgb, var(--color-pure-white) 13%, var(--color-charcoal));
+  --popover: color-mix(
+    in srgb,
+    var(--color-pure-white) 13%,
+    var(--color-charcoal)
+  );
   --popover-foreground: var(--color-pure-white);
   --primary: var(--color-notion-blue);
   --primary-foreground: var(--color-pure-white);
@@ -196,7 +204,11 @@
     var(--color-charcoal)
   );
   --secondary-foreground: var(--color-sky-wash);
-  --muted: color-mix(in srgb, var(--color-pure-white) 20%, var(--color-charcoal));
+  --muted: color-mix(
+    in srgb,
+    var(--color-pure-white) 20%,
+    var(--color-charcoal)
+  );
   --muted-foreground: rgb(255 255 255 / 0.62);
   --accent: color-mix(
     in srgb,
@@ -213,7 +225,11 @@
   --chart-3: var(--color-coral);
   --chart-4: var(--color-signal-blue);
   --chart-5: var(--color-mocha);
-  --sidebar: color-mix(in srgb, var(--color-pure-white) 13%, var(--color-charcoal));
+  --sidebar: color-mix(
+    in srgb,
+    var(--color-pure-white) 13%,
+    var(--color-charcoal)
+  );
   --sidebar-foreground: var(--color-pure-white);
   --sidebar-primary: var(--color-notion-blue);
   --sidebar-primary-foreground: var(--color-pure-white);

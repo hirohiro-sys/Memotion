@@ -28,7 +28,8 @@ export function MemoListSkeleton({ count = 6 }: { count?: number }) {
       aria-label="読み込み中"
     >
       {Array.from({ length: count }, (_, index) => (
-        <MemoCardSkeleton key={index} />
+        // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
+        <MemoCardSkeleton key={`memo-skeleton-${index}`} />
       ))}
     </div>
   );

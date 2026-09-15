@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDigestMessages,
-  type DigestMemo,
   DIGEST_TEXT_LIMIT,
-  TEXT_EXCERPT_LENGTH,
+  type DigestMemo,
 } from "./message";
 
 const APP_URL = "https://memo.example";
 const windowStart = new Date("2026-09-06T11:00:00.000Z");
 const windowEnd = new Date("2026-09-13T11:00:00.000Z");
 
-function memo(input: Partial<DigestMemo> & Pick<DigestMemo, "content">): DigestMemo {
+function memo(
+  input: Partial<DigestMemo> & Pick<DigestMemo, "content">,
+): DigestMemo {
   return {
     createdAt: "2026-09-08T00:00:00.000Z",
     mediaType: "text",
@@ -39,10 +40,11 @@ describe("buildDigestMessages: empty and order", () => {
       memo({ content: "古い", createdAt: "2026-09-07T00:00:00.000Z" }),
     ]);
     expect(messages).toHaveLength(1);
-    expect(messages[0]).toContain("9/7 古い");
-    expect(messages[0]).toContain("9/10 新しい");
-    expect(messages[0]!.indexOf("9/7 古い")).toBeLessThan(
-      messages[0]!.indexOf("9/10 新しい"),
+    const headline = messages[0] ?? "";
+    expect(headline).toContain("9/7 古い");
+    expect(headline).toContain("9/10 新しい");
+    expect(headline.indexOf("9/7 古い")).toBeLessThan(
+      headline.indexOf("9/10 新しい"),
     );
   });
 });
@@ -105,9 +107,7 @@ describe("buildDigestMessages: URL vs text", () => {
   });
 
   it("treats an image memo as text excerpt", () => {
-    const messages = build([
-      memo({ content: "（画像）", mediaType: "image" }),
-    ]);
+    const messages = build([memo({ content: "（画像）", mediaType: "image" })]);
     expect(messages[0]).toContain("9/8 （画像）");
   });
 });
@@ -119,16 +119,22 @@ describe("buildDigestMessages: overflow", () => {
       memo({
         content: longUrl,
         mediaType: "url",
-        createdAt: new Date(Date.parse("2026-09-07T00:00:00.000Z") + index * 60_000).toISOString(),
+        createdAt: new Date(
+          Date.parse("2026-09-07T00:00:00.000Z") + index * 60_000,
+        ).toISOString(),
       }),
     );
 
     const messages = build(memos);
     expect(messages).toHaveLength(5);
-    expect(messages.every((text) => text.length <= DIGEST_TEXT_LIMIT)).toBe(true);
-    expect(messages[0]!.startsWith("今週のTech 12件（9/6 20:00 〜 9/13 20:00）")).toBe(
+    expect(messages.every((text) => text.length <= DIGEST_TEXT_LIMIT)).toBe(
       true,
     );
+    expect(
+      (messages[0] ?? "").startsWith(
+        "今週のTech 12件（9/6 20:00 〜 9/13 20:00）",
+      ),
+    ).toBe(true);
     expect(messages.join("\n")).toContain("他2件は Web で");
     expect(messages[4]).toContain(APP_URL);
     expect(messages.slice(0, 4).join("\n")).not.toContain(APP_URL);
@@ -147,6 +153,8 @@ describe("buildDigestMessages: overflow", () => {
     expect(messages).toHaveLength(2);
     expect(messages[0]).toContain(url);
     expect(messages[1]).toBe(`9/9 ${url}`);
-    expect(messages.every((text) => text.length <= DIGEST_TEXT_LIMIT)).toBe(true);
+    expect(messages.every((text) => text.length <= DIGEST_TEXT_LIMIT)).toBe(
+      true,
+    );
   });
 });

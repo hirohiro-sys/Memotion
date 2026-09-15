@@ -1,7 +1,7 @@
 import {
   type NotificationSettings,
-  type UpdateNotificationSettingsRequest,
   notificationSettingsSchema,
+  type UpdateNotificationSettingsRequest,
 } from "@repo/shared";
 
 export type StoredSettings = {
@@ -39,8 +39,7 @@ export function applySettingsPatch(
     enabled: patch.techWeeklyEnabled ?? base.enabled,
     weekday: patch.techWeeklyDay ?? base.weekday,
     time: patch.techWeeklyTime ?? base.time,
-    lastSentAt:
-      turningOn || slotChanged ? now.toISOString() : base.lastSentAt,
+    lastSentAt: turningOn || slotChanged ? now.toISOString() : base.lastSentAt,
     disabledReason:
       patch.techWeeklyEnabled !== undefined ? null : base.disabledReason,
   };
