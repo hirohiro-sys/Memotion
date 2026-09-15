@@ -20,6 +20,9 @@ export const DEFAULT_TECH_WEEKLY: StoredSettings = {
   disabledReason: null,
 };
 
+export const UNREACHABLE_DISABLED_REASON =
+  "LINEに送れなかったためオフにしました。友達追加を確認して、再度オンにしてください";
+
 export function applySettingsPatch(
   current: StoredSettings | null,
   patch: UpdateNotificationSettingsRequest,

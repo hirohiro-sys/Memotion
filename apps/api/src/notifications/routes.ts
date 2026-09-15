@@ -1,9 +1,8 @@
 import { updateNotificationSettingsRequestSchema } from "@repo/shared";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { nanoid } from "nanoid";
-import { createDb, type Database } from "../db";
-import { memos, tags, techWeeklySettings } from "../db/schema";
+import { createDb } from "../db";
+import { memos, tags } from "../db/schema";
 import type { Env } from "../env";
 import { readSessionUserId } from "../session";
 import {
@@ -12,46 +11,13 @@ import {
   type StoredSettings,
   toNotificationSettings,
 } from "./settings";
+import { readStoredSettings, upsertSettings } from "./store";
 import { isInstantInWindow, nextDigestWindow } from "./window";
 
 export const notificationRoutes = new Hono<{ Bindings: Env }>();
 
-function rowToStored(row: {
-  enabled: boolean;
-  weekday: number;
-  time: string;
-  lastSentAt: string | null;
-  disabledReason: string | null;
-}): StoredSettings {
-  return {
-    enabled: row.enabled,
-    weekday: row.weekday,
-    time: row.time,
-    lastSentAt: row.lastSentAt,
-    disabledReason: row.disabledReason,
-  };
-}
-
-async function readStoredSettings(
-  db: Database,
-  userId: string,
-): Promise<StoredSettings | null> {
-  const [row] = await db
-    .select({
-      enabled: techWeeklySettings.enabled,
-      weekday: techWeeklySettings.weekday,
-      time: techWeeklySettings.time,
-      lastSentAt: techWeeklySettings.lastSentAt,
-      disabledReason: techWeeklySettings.disabledReason,
-    })
-    .from(techWeeklySettings)
-    .where(eq(techWeeklySettings.userId, userId))
-    .limit(1);
-  return row ? rowToStored(row) : null;
-}
-
 async function pendingCountFor(
-  db: Database,
+  db: ReturnType<typeof createDb>,
   userId: string,
   settings: StoredSettings,
   now: Date,
@@ -67,42 +33,6 @@ async function pendingCountFor(
     .innerJoin(tags, eq(memos.tagId, tags.id))
     .where(and(eq(memos.userId, userId), eq(tags.slug, "tech")));
   return rows.filter((row) => isInstantInWindow(row.createdAt, window)).length;
-}
-
-async function upsertSettings(
-  db: Database,
-  userId: string,
-  settings: StoredSettings,
-): Promise<void> {
-  const [existing] = await db
-    .select({ id: techWeeklySettings.id })
-    .from(techWeeklySettings)
-    .where(eq(techWeeklySettings.userId, userId))
-    .limit(1);
-
-  if (existing) {
-    await db
-      .update(techWeeklySettings)
-      .set({
-        enabled: settings.enabled,
-        weekday: settings.weekday,
-        time: settings.time,
-        lastSentAt: settings.lastSentAt,
-        disabledReason: settings.disabledReason,
-      })
-      .where(eq(techWeeklySettings.userId, userId));
-    return;
-  }
-
-  await db.insert(techWeeklySettings).values({
-    id: nanoid(),
-    userId,
-    enabled: settings.enabled,
-    weekday: settings.weekday,
-    time: settings.time,
-    lastSentAt: settings.lastSentAt,
-    disabledReason: settings.disabledReason,
-  });
 }
 
 notificationRoutes.get("/api/notifications", async (c) => {

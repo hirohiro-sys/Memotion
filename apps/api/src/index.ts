@@ -5,6 +5,7 @@ import type { Env } from "./env";
 import { lineWebhook } from "./line/webhook";
 import { memoRoutes } from "./memos";
 import { notificationRoutes } from "./notifications/routes";
+import { scheduled } from "./notifications/scheduled";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -18,4 +19,7 @@ app.route("/", lineWebhook);
 app.route("/", memoRoutes);
 app.route("/", notificationRoutes);
 
-export default app;
+export default {
+  fetch: app.fetch,
+  scheduled,
+};
