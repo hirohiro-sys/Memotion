@@ -1,6 +1,20 @@
 import type { LineFailReason } from "./classify";
 
 const REPLY_URL = "https://api.line.me/v2/bot/message/reply";
+const PUSH_URL = "https://api.line.me/v2/bot/message/push";
+const MAX_PUSH_MESSAGES = 5;
+
+export type PushResult = "success" | "unreachable" | "transient";
+
+const UNREACHABLE_BODY =
+  /not a friend|blocked|cannot send|user not found|not a valid user|invalid user(?:$|[^a-z])|destination user/i;
+
+export function classifyPushFailure(status: number, body: string): PushResult {
+  if ((status === 400 || status === 403) && UNREACHABLE_BODY.test(body)) {
+    return "unreachable";
+  }
+  return "transient";
+}
 
 export const REPLY_TEXT = {
   unsupported:
@@ -63,5 +77,32 @@ export async function fetchMessageContent(input: {
     };
   } catch {
     return null;
+  }
+}
+
+export async function pushTextMessages(input: {
+  accessToken: string;
+  to: string;
+  texts: readonly string[];
+}): Promise<PushResult> {
+  const texts = input.texts.slice(0, MAX_PUSH_MESSAGES);
+  if (texts.length === 0) return "transient";
+
+  try {
+    const response = await fetch(PUSH_URL, {
+      method: "POST",
+      headers: {
+        ...bearerHeaders(input.accessToken),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        to: input.to,
+        messages: texts.map((text) => ({ type: "text", text })),
+      }),
+    });
+    if (response.ok) return "success";
+    return classifyPushFailure(response.status, await response.text());
+  } catch {
+    return "transient";
   }
 }
