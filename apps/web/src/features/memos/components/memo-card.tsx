@@ -2,7 +2,7 @@ import type { Memo } from "@repo/shared";
 import { Clock, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/utils/format";
 import { TagBadge } from "./tag-badge";
 
 export function MemoCard({

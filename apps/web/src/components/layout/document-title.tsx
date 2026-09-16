@@ -1,6 +1,6 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useLayoutEffect } from "react";
-import { documentTitleForPath } from "@/lib/page-title";
+import { documentTitleForPath } from "@/config/page-title";
 
 export function DocumentTitle() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });

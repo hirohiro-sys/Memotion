@@ -1,10 +1,8 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { Bell, BellOff, Inbox, LogOut, Settings2, User, X } from "lucide-react";
 import { BrandLockup } from "@/components/layout/brand-lockup";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchMemos, fetchNotifications, logout } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 
 const NAV_ITEMS = [
   { to: "/", label: "メモ一覧", icon: Inbox, exact: true },
@@ -14,29 +12,27 @@ const NAV_ITEMS = [
 export function Sidebar({
   mobileOpen,
   onCloseMobile,
+  memoCount,
+  techCount,
+  memosPending,
+  notifyOn,
+  notificationsPending,
+  onLogout,
 }: {
   mobileOpen: boolean;
   onCloseMobile: () => void;
+  memoCount: number;
+  techCount: number;
+  memosPending: boolean;
+  notifyOn: boolean;
+  notificationsPending: boolean;
+  onLogout: () => Promise<void>;
 }) {
-  const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const queryClient = useQueryClient();
-  const memos = useQuery({ queryKey: ["memos"], queryFn: fetchMemos });
-  const notifications = useQuery({
-    queryKey: ["notifications"],
-    queryFn: fetchNotifications,
-  });
-
-  const memoCount = memos.data?.items.length ?? 0;
-  const techCount =
-    memos.data?.items.filter((memo) => memo.tag === "tech").length ?? 0;
-  const notifyOn = notifications.data?.techWeeklyEnabled ?? false;
 
   async function handleLogout() {
-    await logout();
-    await queryClient.clear();
     onCloseMobile();
-    await navigate({ to: "/login" });
+    await onLogout();
   }
 
   const nav = (
@@ -68,7 +64,7 @@ export function Sidebar({
               >
                 <Icon className="size-4" />
                 <span className="flex-1 text-left">{item.label}</span>
-                {item.to === "/" && memos.isPending ? (
+                {item.to === "/" && memosPending ? (
                   <Skeleton className="h-3 w-4" />
                 ) : (
                   badge > 0 && (
@@ -97,7 +93,7 @@ export function Sidebar({
               <BellOff className="size-3.5 text-stone" />
             )}
           </div>
-          {memos.isPending || notifications.isPending ? (
+          {memosPending || notificationsPending ? (
             <Skeleton className="h-5 w-12" />
           ) : (
             <>

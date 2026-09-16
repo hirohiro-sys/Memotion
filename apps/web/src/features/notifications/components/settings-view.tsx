@@ -1,31 +1,34 @@
+import type { MemoTag } from "@repo/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
 import { ToggleSwitch } from "@/components/toggle-switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  fetchMemos,
-  fetchNotifications,
-  logout,
-  updateNotifications,
-} from "@/lib/api";
-import { PILL_IDLE, TAG_META, TAG_ORDER, WEEKDAYS } from "@/lib/tag-meta";
-import { applyTheme, getStoredTheme } from "@/lib/theme";
-import { cn } from "@/lib/utils";
+import { PILL_IDLE, TAG_META, TAG_ORDER, WEEKDAYS } from "@/config/tag-meta";
+import { applyTheme, getStoredTheme } from "@/config/theme";
+import { cn } from "@/utils/cn";
+import { fetchNotifications } from "../api/get-notifications";
+import { updateNotifications } from "../api/update-notifications";
 
-export function SettingsView() {
-  const navigate = useNavigate();
+export function SettingsView({
+  memoCount,
+  memosPending,
+  tagCounts,
+  onLogout,
+}: {
+  memoCount: number;
+  memosPending: boolean;
+  tagCounts: Record<MemoTag, number>;
+  onLogout: () => Promise<void>;
+}) {
   const queryClient = useQueryClient();
-  const memosQuery = useQuery({ queryKey: ["memos"], queryFn: fetchMemos });
   const notificationsQuery = useQuery({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
   });
   const [theme, setTheme] = useState<"light" | "dark">(getStoredTheme);
 
-  const memos = memosQuery.data?.items ?? [];
   const notifications = notificationsQuery.data;
 
   const notifyMutation = useMutation({
@@ -39,12 +42,6 @@ export function SettingsView() {
     const value = next ? "dark" : "light";
     setTheme(value);
     applyTheme(value);
-  }
-
-  async function handleLogout() {
-    await logout();
-    await queryClient.clear();
-    await navigate({ to: "/login" });
   }
 
   return (
@@ -173,11 +170,11 @@ export function SettingsView() {
         <div className="border-t border-border">
           <div className="flex items-center justify-between py-3">
             <span className="text-body-sm text-stone">メモ総数</span>
-            {memosQuery.isPending ? (
+            {memosPending ? (
               <Skeleton className="h-4 w-8" />
             ) : (
               <span className="text-body-sm tabular-nums text-foreground">
-                {memos.length}件
+                {memoCount}件
               </span>
             )}
           </div>
@@ -186,7 +183,7 @@ export function SettingsView() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => void handleLogout()}
+            onClick={() => void onLogout()}
             className="text-stone hover:text-destructive"
           >
             <LogOut className="size-3.5" /> ログアウト
@@ -202,7 +199,7 @@ export function SettingsView() {
         <div className="divide-y divide-border border-t border-border">
           {TAG_ORDER.map((tag) => {
             const meta = TAG_META[tag];
-            const count = memos.filter((memo) => memo.tag === tag).length;
+            const count = tagCounts[tag];
             return (
               <div key={tag} className="flex items-center gap-3 py-3">
                 <span
@@ -220,7 +217,7 @@ export function SettingsView() {
                   </p>
                   <p className="text-caption text-stone">{meta.description}</p>
                 </div>
-                {memosQuery.isPending ? (
+                {memosPending ? (
                   <Skeleton className="h-3 w-6" />
                 ) : (
                   <span className="text-caption tabular-nums text-stone">

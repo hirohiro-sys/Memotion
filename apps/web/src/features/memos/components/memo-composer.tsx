@@ -2,8 +2,8 @@ import type { CreateMemoRequest, MemoTag } from "@repo/shared";
 import { SendHorizontal } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/lib/tag-meta";
-import { cn } from "@/lib/utils";
+import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/config/tag-meta";
+import { cn } from "@/utils/cn";
 
 export function MemoComposer({
   busy,

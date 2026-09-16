@@ -1,6 +1,6 @@
 import type { MemoTag } from "@repo/shared";
-import { TAG_META } from "@/lib/tag-meta";
-import { cn } from "@/lib/utils";
+import { TAG_META } from "@/config/tag-meta";
+import { cn } from "@/utils/cn";
 
 export function TagBadge({
   tag,
