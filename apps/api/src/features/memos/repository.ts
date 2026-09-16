@@ -1,7 +1,16 @@
 import { desc, eq } from "drizzle-orm";
 import type { Database } from "../../db";
 import { memos, tags } from "../../db/schema";
-import type { MemoRow } from "./schema";
+
+export type MemoRow = {
+  id: string;
+  tag: string;
+  content: string;
+  url: string | null;
+  mediaType: string;
+  source: string;
+  createdAt: string;
+};
 
 export function memoImageKey(userId: string, memoId: string): string {
   return `${userId}/${memoId}`;

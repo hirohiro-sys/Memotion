@@ -1,10 +1,10 @@
+import type { UpdateNotificationSettingsRequest } from "@repo/shared";
 import type { Database } from "../../db";
 import {
   listTechMemos,
   readStoredSettings,
   upsertSettings,
 } from "./repository";
-import type { UpdateNotificationSettingsRequest } from "./schema";
 import {
   applySettingsPatch,
   DEFAULT_TECH_WEEKLY,

@@ -1,8 +1,8 @@
+import { updateNotificationSettingsRequestSchema } from "@repo/shared";
 import { Hono } from "hono";
 import { createDb } from "../../db";
 import type { Env } from "../../env";
 import { readSessionUserId } from "../../lib/session";
-import { updateNotificationSettingsRequestSchema } from "./schema";
 import { getNotificationSettings, updateNotificationSettings } from "./service";
 
 export const notificationRoutes = new Hono<{ Bindings: Env }>();

@@ -1,8 +1,8 @@
+import { createMemoRequestSchema } from "@repo/shared";
 import { Hono } from "hono";
 import { createDb } from "../../db";
 import type { Env } from "../../env";
 import { readSessionUserId } from "../../lib/session";
-import { createMemoRequestSchema } from "./schema";
 import {
   createForUser,
   deleteForUser,

@@ -1,3 +1,4 @@
+import { userSchema } from "@repo/shared";
 import { Hono } from "hono";
 import { createDb } from "../../db";
 import type { Env } from "../../env";
@@ -9,7 +10,6 @@ import {
   readSessionUserId,
 } from "../../lib/session";
 import { findUserIdByLineUserId } from "./repository";
-import { userSchema } from "./schema";
 import { callbackUrl, exchangeCodeForLineUserId, frontendUrl } from "./service";
 
 const LINE_AUTHORIZE = "https://access.line.me/oauth2/v2.1/authorize";

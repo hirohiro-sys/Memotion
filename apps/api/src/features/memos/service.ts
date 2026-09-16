@@ -1,3 +1,9 @@
+import {
+  type CreateMemoRequest,
+  type Memo,
+  memoListResponseSchema,
+  memoSchema,
+} from "@repo/shared";
 import { nanoid } from "nanoid";
 import { createDb, type Database } from "../../db";
 import type { Env } from "../../env";
@@ -14,17 +20,15 @@ import {
   insertMemo,
   isUniqueConstraintError,
   listMemos,
+  type MemoRow,
   memoImageKey,
   putMedia,
 } from "./repository";
-import {
-  type CreateMemoRequest,
-  type Memo,
-  type MemoRow,
-  memoListResponseSchema,
-  memoSchema,
-  type PersistResult,
-} from "./schema";
+
+export type PersistResult =
+  | { status: "inserted" }
+  | { status: "duplicate" }
+  | { status: "failed"; reason: "save_failed" };
 
 export function toMemoResponse(row: MemoRow): Memo {
   return memoSchema.parse({
