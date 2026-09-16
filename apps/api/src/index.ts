@@ -1,11 +1,11 @@
 import { healthResponseSchema } from "@repo/shared";
 import { Hono } from "hono";
-import { auth } from "./auth";
 import type { Env } from "./env";
-import { lineWebhook } from "./line/webhook";
-import { memoRoutes } from "./memos";
-import { notificationRoutes } from "./notifications/routes";
-import { scheduled } from "./notifications/scheduled";
+import { auth } from "./features/auth";
+import { lineWebhook } from "./features/line";
+import { memoRoutes } from "./features/memos";
+import { notificationRoutes } from "./features/notifications";
+import { scheduled } from "./features/notifications/scheduled";
 
 const app = new Hono<{ Bindings: Env }>();
 

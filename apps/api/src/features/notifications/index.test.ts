@@ -1,6 +1,6 @@
 import { Jwt } from "hono/utils/jwt";
 import { describe, expect, it } from "vitest";
-import { notificationRoutes } from "./routes";
+import { notificationRoutes } from "./index";
 
 const SESSION_SECRET = "test-secret";
 

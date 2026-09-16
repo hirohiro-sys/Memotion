@@ -1,4 +1,4 @@
-import type { PushResult } from "../line/client";
+import type { PushResult } from "../../lib/line/client";
 import { buildDigestMessages, type DigestMemo } from "./message";
 import { type StoredSettings, UNREACHABLE_DISABLED_REASON } from "./settings";
 import {

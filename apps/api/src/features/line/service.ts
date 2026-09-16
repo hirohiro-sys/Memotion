@@ -1,14 +1,9 @@
-import { eq } from "drizzle-orm";
-import { Hono } from "hono";
-import { createDb } from "../db";
-import { users } from "../db/schema";
-import type { Env } from "../env";
-import { classify } from "./classify";
-import { replyFailure } from "./client";
-import { persistLineMemo } from "./persist";
-import { verifyLineSignature } from "./signature";
-
-export const lineWebhook = new Hono<{ Bindings: Env }>();
+import { createDb } from "../../db";
+import type { Env } from "../../env";
+import { replyFailure } from "../../lib/line/client";
+import { findUserIdByLineUserId } from "../auth/repository";
+import { classify, type LineFailReason, replyTextFor } from "../memos/classify";
+import { createFromLine } from "../memos/service";
 
 export type LineEventDecision =
   | { action: "ignore"; type: string }
@@ -104,29 +99,16 @@ export function decideLineEvent(event: unknown): LineEventDecision {
   };
 }
 
-async function findUserId(
-  env: Env,
-  lineUserId: string,
-): Promise<string | null> {
-  const db = createDb(env.DB);
-  const [user] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.lineUserId, lineUserId))
-    .limit(1);
-  return user?.id ?? null;
-}
-
 async function replyIfPossible(
   env: Env,
   replyToken: string | undefined,
-  reason: Parameters<typeof replyFailure>[0]["reason"],
+  reason: LineFailReason,
 ) {
   if (!replyToken) return;
   await replyFailure({
     accessToken: env.LINE_CHANNEL_ACCESS_TOKEN,
     replyToken,
-    reason,
+    text: replyTextFor(reason),
   });
 }
 
@@ -151,7 +133,10 @@ async function handleEvent(env: Env, event: unknown): Promise<void> {
   }
 
   try {
-    const userId = await findUserId(env, decision.lineUserId);
+    const userId = await findUserIdByLineUserId(
+      createDb(env.DB),
+      decision.lineUserId,
+    );
     if (!userId) {
       logJson({
         event: "line.event",
@@ -196,7 +181,7 @@ async function handleEvent(env: Env, event: unknown): Promise<void> {
       return;
     }
 
-    const persisted = await persistLineMemo(env, {
+    const persisted = await createFromLine(env, {
       userId,
       lineMessageId: decision.messageId,
       classified,
@@ -245,19 +230,3 @@ export async function processWebhook(
     logJson({ event: "line.webhook", status: "invalid_json" });
   }
 }
-
-lineWebhook.post("/api/line/webhook", async (c) => {
-  const rawBody = await c.req.arrayBuffer();
-  const valid = await verifyLineSignature(
-    rawBody,
-    c.req.header("x-line-signature"),
-    c.env.LINE_MESSAGING_CHANNEL_SECRET,
-  );
-  if (!valid) {
-    logJson({ event: "line.webhook", status: "invalid_signature" });
-    return c.body(null, 400);
-  }
-
-  c.executionCtx.waitUntil(processWebhook(c.env, rawBody));
-  return c.body(null, 200);
-});

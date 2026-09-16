@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify, IMAGE_CONTENT } from "./classify";
+import { classify, IMAGE_CONTENT, replyTextFor } from "./classify";
 
 describe("classify: leading permitted tags", () => {
   it("splits #tweet followed by Japanese into tweet and body", () => {
@@ -168,5 +168,25 @@ describe("classify: untagged text, URLs, and images", () => {
       mediaType: "image",
       content: IMAGE_CONTENT,
     });
+  });
+});
+
+describe("replyTextFor", () => {
+  it("maps each fail reason to the fixed LINE reply", () => {
+    expect(replyTextFor("unsupported")).toBe(
+      "この形式は保存できません。テキスト（URL含む）か画像を送信してください。",
+    );
+    expect(replyTextFor("unknown_tag")).toBe(
+      "使えるタグは #tweet #tech #other です。",
+    );
+    expect(replyTextFor("empty_after_tag")).toBe(
+      "本文が空です。タグのあとにテキスト（URL含む）か画像を送ってください。",
+    );
+    expect(replyTextFor("empty")).toBe(
+      "本文が空です。テキスト（URL含む）か画像を送ってください。",
+    );
+    expect(replyTextFor("save_failed")).toBe(
+      "保存できませんでした。もう一度送ってください。",
+    );
   });
 });

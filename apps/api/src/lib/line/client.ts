@@ -1,10 +1,8 @@
-import type { LineFailReason } from "./classify";
+export type PushResult = "success" | "unreachable" | "transient";
 
 const REPLY_URL = "https://api.line.me/v2/bot/message/reply";
 const PUSH_URL = "https://api.line.me/v2/bot/message/push";
 const MAX_PUSH_MESSAGES = 5;
-
-export type PushResult = "success" | "unreachable" | "transient";
 
 const UNREACHABLE_BODY =
   /not a friend|blocked|cannot send|user not found|not a valid user|invalid user(?:$|[^a-z])|destination user/i;
@@ -14,20 +12,6 @@ export function classifyPushFailure(status: number, body: string): PushResult {
     return "unreachable";
   }
   return "transient";
-}
-
-export const REPLY_TEXT = {
-  unsupported:
-    "この形式は保存できません。テキスト（URL含む）か画像を送信してください。",
-  unknown_tag: "使えるタグは #tweet #tech #other です。",
-  empty_after_tag:
-    "本文が空です。タグのあとにテキスト（URL含む）か画像を送ってください。",
-  empty: "本文が空です。テキスト（URL含む）か画像を送ってください。",
-  save_failed: "保存できませんでした。もう一度送ってください。",
-} as const satisfies Record<LineFailReason, string>;
-
-export function replyTextFor(reason: LineFailReason): string {
-  return REPLY_TEXT[reason];
 }
 
 function contentUrl(messageId: string): string {
@@ -41,7 +25,7 @@ function bearerHeaders(accessToken: string): HeadersInit {
 export async function replyFailure(input: {
   accessToken: string;
   replyToken: string;
-  reason: LineFailReason;
+  text: string;
 }): Promise<boolean> {
   try {
     const response = await fetch(REPLY_URL, {
@@ -52,7 +36,7 @@ export async function replyFailure(input: {
       },
       body: JSON.stringify({
         replyToken: input.replyToken,
-        messages: [{ type: "text", text: replyTextFor(input.reason) }],
+        messages: [{ type: "text", text: input.text }],
       }),
     });
     return response.ok;

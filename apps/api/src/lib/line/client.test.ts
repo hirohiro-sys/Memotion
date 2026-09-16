@@ -4,32 +4,11 @@ import {
   fetchMessageContent,
   pushTextMessages,
   replyFailure,
-  replyTextFor,
 } from "./client";
 
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
-});
-
-describe("replyTextFor", () => {
-  it("maps each fail reason to the fixed LINE reply", () => {
-    expect(replyTextFor("unsupported")).toBe(
-      "この形式は保存できません。テキスト（URL含む）か画像を送信してください。",
-    );
-    expect(replyTextFor("unknown_tag")).toBe(
-      "使えるタグは #tweet #tech #other です。",
-    );
-    expect(replyTextFor("empty_after_tag")).toBe(
-      "本文が空です。タグのあとにテキスト（URL含む）か画像を送ってください。",
-    );
-    expect(replyTextFor("empty")).toBe(
-      "本文が空です。テキスト（URL含む）か画像を送ってください。",
-    );
-    expect(replyTextFor("save_failed")).toBe(
-      "保存できませんでした。もう一度送ってください。",
-    );
-  });
 });
 
 describe("replyFailure", () => {
@@ -43,7 +22,7 @@ describe("replyFailure", () => {
       replyFailure({
         accessToken: "token",
         replyToken: "reply-1",
-        reason: "unknown_tag",
+        text: "使えるタグは #tweet #tech #other です。",
       }),
     ).resolves.toBe(true);
 
@@ -78,7 +57,7 @@ describe("replyFailure", () => {
       replyFailure({
         accessToken: "token",
         replyToken: "reply-1",
-        reason: "save_failed",
+        text: "保存できませんでした。もう一度送ってください。",
       }),
     ).resolves.toBe(false);
   });

@@ -1,7 +1,7 @@
 import { createMemoRequestSchema } from "@repo/shared";
 import { describe, expect, it } from "vitest";
-import { detectMediaType } from "./line/classify";
-import { memoRoutes, toMemoResponse } from "./memos";
+import { detectMediaType } from "./classify";
+import { memoRoutes, toMemoResponse } from "./index";
 
 const base = {
   id: "memo_1",

@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import type { Database } from "../db";
-import { memos, tags, techWeeklySettings, users } from "../db/schema";
+import type { Database } from "../../db";
+import { memos, tags, techWeeklySettings, users } from "../../db/schema";
 import type { DigestMemo } from "./message";
 import type { StoredSettings } from "./settings";
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decideLineEvent } from "./webhook";
+import { decideLineEvent } from "./service";
 
 describe("decideLineEvent", () => {
   it("ignores follow, unfollow, unsend, and postback", () => {

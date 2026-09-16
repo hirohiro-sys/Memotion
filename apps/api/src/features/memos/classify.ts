@@ -23,6 +23,20 @@ export type ClassifyFailure = {
 
 export type ClassifyResult = ClassifySuccess | ClassifyFailure;
 
+export const REPLY_TEXT = {
+  unsupported:
+    "この形式は保存できません。テキスト（URL含む）か画像を送信してください。",
+  unknown_tag: "使えるタグは #tweet #tech #other です。",
+  empty_after_tag:
+    "本文が空です。タグのあとにテキスト（URL含む）か画像を送ってください。",
+  empty: "本文が空です。テキスト（URL含む）か画像を送ってください。",
+  save_failed: "保存できませんでした。もう一度送ってください。",
+} as const satisfies Record<LineFailReason, string>;
+
+export function replyTextFor(reason: LineFailReason): string {
+  return REPLY_TEXT[reason];
+}
+
 const URL_PATTERN = /^https?:\/\/\S+$/i;
 const LEADING_PERMITTED_TAG = /^(?:[#＃])(tweet|tech|other)(?![0-9A-Za-z])/i;
 const LEADING_HASH = /^[#＃]/;

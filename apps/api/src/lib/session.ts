@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { Jwt } from "hono/utils/jwt";
-import type { Env } from "./env";
+import type { Env } from "../env";
 
 export const SID_COOKIE = "sid";
 export const OAUTH_STATE_COOKIE = "oauth_state";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { memoImageKey } from "./persist";
+import { memoImageKey } from "./repository";
 
 describe("memoImageKey", () => {
   it("uses {userId}/{memoId} and does not store a public URL", () => {
