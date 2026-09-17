@@ -1,5 +1,5 @@
 import { Menu } from "lucide-react";
-import { headingForPath } from "@/lib/page-title";
+import { headingForPath } from "@/config/page-title";
 
 export function TopBar({
   pathname,
