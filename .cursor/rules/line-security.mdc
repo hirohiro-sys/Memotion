@@ -1,0 +1,15 @@
+---
+description: 認証・LINE webhook・画像・ダイジェストのセキュリティ境界
+globs: apps/api/src/{features,lib}/**/*.ts
+alwaysApply: false
+---
+
+# LINE / auth
+
+- webhook は署名検証前に本文を解釈・永続化しない
+- 無効署名は 400。受理は 200 + `waitUntil`
+- 画像キーは `{userId}/{memoId}`。取得・削除は `row.userId === sessionUserId`
+- `lineMessageId` 重複は挿入せず `duplicate`
+- LINE 失敗理由を増やしたら `REPLY_TEXT` / `replyTextFor` とテストを同時更新
+- Cookie の `secure` / `sameSite` / path を緩めない
+- 週次ダイジェストは allowlist。JST 窓と `lastSentAt` を壊さない
