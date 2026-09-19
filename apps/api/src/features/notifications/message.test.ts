@@ -3,6 +3,7 @@ import {
   buildDigestMessages,
   DIGEST_TEXT_LIMIT,
   type DigestMemo,
+  MAX_URL_PREVIEWS_PER_MESSAGE,
 } from "./message";
 
 const APP_URL = "https://memo.example";
@@ -156,5 +157,63 @@ describe("buildDigestMessages: overflow", () => {
     expect(messages.every((text) => text.length <= DIGEST_TEXT_LIMIT)).toBe(
       true,
     );
+  });
+});
+
+function urlMemos(count: number): DigestMemo[] {
+  return Array.from({ length: count }, (_, index) =>
+    memo({
+      content: `https://example.com/${index}`,
+      mediaType: "url",
+      createdAt: new Date(
+        Date.parse("2026-09-07T00:00:00.000Z") + index * 60_000,
+      ).toISOString(),
+    }),
+  );
+}
+
+function httpUrls(text: string): string[] {
+  return text.match(/https?:\/\/\S+/g) ?? [];
+}
+
+describe("buildDigestMessages: URL preview packing", () => {
+  it("starts a new message after 5 URL previews", () => {
+    const messages = build(urlMemos(6));
+    expect(messages).toHaveLength(2);
+    expect(httpUrls(messages[0] ?? "")).toHaveLength(
+      MAX_URL_PREVIEWS_PER_MESSAGE,
+    );
+    expect(httpUrls(messages[1] ?? "")).toHaveLength(1);
+    expect(messages.join("\n")).not.toContain("Web");
+    expect(messages.join("\n")).toContain("https://example.com/0");
+    expect(messages.join("\n")).toContain("https://example.com/5");
+  });
+
+  it("does not split text-only memos on the preview limit", () => {
+    const memos = Array.from({ length: 8 }, (_, index) =>
+      memo({
+        content: `メモ${index}`,
+        createdAt: new Date(
+          Date.parse("2026-09-07T00:00:00.000Z") + index * 60_000,
+        ).toISOString(),
+      }),
+    );
+    const messages = build(memos);
+    expect(messages).toHaveLength(1);
+    expect(messages.join("\n")).not.toContain("Web");
+  });
+
+  it("keeps the overflow Web URL within the preview budget", () => {
+    const messages = build(urlMemos(26));
+    expect(messages).toHaveLength(5);
+    expect(
+      messages.every(
+        (text) => httpUrls(text).length <= MAX_URL_PREVIEWS_PER_MESSAGE,
+      ),
+    ).toBe(true);
+    expect(messages.join("\n")).toContain("他2件は Web で");
+    expect(messages[4]).toContain(APP_URL);
+    expect(messages.slice(0, 4).join("\n")).not.toContain(APP_URL);
+    expect(httpUrls(messages[4] ?? "")).toContain(APP_URL);
   });
 });

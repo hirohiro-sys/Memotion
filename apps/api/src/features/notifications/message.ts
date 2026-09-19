@@ -1,6 +1,7 @@
 import { formatJstMd, formatJstMdHm } from "./jst";
 
 export const MAX_DIGEST_MESSAGES = 5;
+export const MAX_URL_PREVIEWS_PER_MESSAGE = 5;
 export const DIGEST_TEXT_LIMIT = 5000;
 export const TEXT_EXCERPT_LENGTH = 200;
 
@@ -9,6 +10,11 @@ export type DigestMemo = {
   content: string;
   mediaType: string;
   url?: string | null;
+};
+
+type DigestLine = {
+  text: string;
+  previewCount: number;
 };
 
 function isUrlMemo(memo: DigestMemo): boolean {
@@ -27,20 +33,38 @@ function formatMemoLine(memo: DigestMemo): string {
   return `${date} ${body}`;
 }
 
+function formatMemoEntry(memo: DigestMemo): DigestLine {
+  return {
+    text: formatMemoLine(memo),
+    previewCount: isUrlMemo(memo) ? 1 : 0,
+  };
+}
+
 function headline(count: number, start: Date, end: Date): string {
   return `今週のTech ${count}件（${formatJstMdHm(start)} 〜 ${formatJstMdHm(end)}）`;
 }
 
-function overflowFooter(count: number, appUrl: string): string {
-  return `他${count}件は Web で\n${appUrl}`;
+function overflowFooter(count: number, appUrl: string): DigestLine {
+  return {
+    text: `他${count}件は Web で\n${appUrl}`,
+    previewCount: 1,
+  };
 }
 
-function joinLines(lines: string[]): string {
-  return lines.join("\n");
+function joinLineTexts(lines: DigestLine[]): string {
+  return lines.map((line) => line.text).join("\n");
 }
 
-function fits(lines: string[], extra: string): boolean {
-  return joinLines([...lines, extra]).length <= DIGEST_TEXT_LIMIT;
+function previewCountOf(lines: DigestLine[]): number {
+  return lines.reduce((sum, line) => sum + line.previewCount, 0);
+}
+
+function canAppend(lines: DigestLine[], extra: DigestLine): boolean {
+  const next = joinLineTexts([...lines, extra]);
+  return (
+    next.length <= DIGEST_TEXT_LIMIT &&
+    previewCountOf(lines) + extra.previewCount <= MAX_URL_PREVIEWS_PER_MESSAGE
+  );
 }
 
 export function buildDigestMessages(input: {
@@ -54,42 +78,48 @@ export function buildDigestMessages(input: {
   const sorted = [...input.memos].sort((a, b) =>
     a.createdAt.localeCompare(b.createdAt),
   );
-  const itemLines = sorted.map(formatMemoLine);
-  const head = headline(sorted.length, input.windowStart, input.windowEnd);
-  const messages: string[][] = [[head]];
+  const items = sorted.map(formatMemoEntry);
+  const messages: DigestLine[][] = [
+    [
+      {
+        text: headline(sorted.length, input.windowStart, input.windowEnd),
+        previewCount: 0,
+      },
+    ],
+  ];
   let packed = 0;
 
-  for (const line of itemLines) {
+  for (const item of items) {
     const last = messages[messages.length - 1];
-    if (last && fits(last, line)) {
-      last.push(line);
+    if (last && canAppend(last, item)) {
+      last.push(item);
       packed += 1;
       continue;
     }
     if (
       messages.length >= MAX_DIGEST_MESSAGES ||
-      line.length > DIGEST_TEXT_LIMIT
+      item.text.length > DIGEST_TEXT_LIMIT
     ) {
       break;
     }
-    messages.push([line]);
+    messages.push([item]);
     packed += 1;
   }
 
-  const leftover = itemLines.length - packed;
+  const leftover = items.length - packed;
   if (leftover === 0) {
-    return messages.map(joinLines);
+    return messages.map(joinLineTexts);
   }
 
   let remaining = leftover;
   const last = messages[messages.length - 1];
-  if (!last) return messages.map(joinLines);
+  if (!last) return messages.map(joinLineTexts);
 
-  while (!fits(last, overflowFooter(remaining, input.appUrl))) {
+  while (!canAppend(last, overflowFooter(remaining, input.appUrl))) {
     if (last.length <= 1) {
       if (messages.length < MAX_DIGEST_MESSAGES) {
         messages.push([overflowFooter(remaining, input.appUrl)]);
-        return messages.map(joinLines);
+        return messages.map(joinLineTexts);
       }
       break;
     }
@@ -98,5 +128,5 @@ export function buildDigestMessages(input: {
   }
 
   last.push(overflowFooter(remaining, input.appUrl));
-  return messages.map(joinLines);
+  return messages.map(joinLineTexts);
 }
