@@ -48,7 +48,12 @@ export function MemoList() {
   const busy = createMutation.isPending || deleteMutation.isPending;
 
   const tagCounts = useMemo(() => {
-    const acc: Record<MemoTag, number> = { tweet: 0, tech: 0, other: 0 };
+    const acc: Record<MemoTag, number> = {
+      tweet: 0,
+      tech: 0,
+      other: 0,
+      todo: 0,
+    };
     for (const memo of memos) acc[memo.tag] += 1;
     return acc;
   }, [memos]);

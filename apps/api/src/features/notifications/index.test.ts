@@ -66,4 +66,20 @@ describe("PATCH /api/notifications validation", () => {
     );
     expect(invalidJson.status).toBe(400);
   });
+
+  it("rejects an invalid todo daily time with 400", async () => {
+    const cookie = await sessionCookie();
+    const env = { SESSION_SECRET };
+
+    const time = await notificationRoutes.request(
+      "/api/notifications",
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: cookie },
+        body: JSON.stringify({ todoDailyTime: "20:00:00" }),
+      },
+      env,
+    );
+    expect(time.status).toBe(400);
+  });
 });

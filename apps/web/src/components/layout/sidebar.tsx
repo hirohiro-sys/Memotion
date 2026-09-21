@@ -1,7 +1,18 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, BellOff, Inbox, LogOut, Settings2, User, X } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  Inbox,
+  Moon,
+  Settings2,
+  Sun,
+  User,
+  X,
+} from "lucide-react";
+import { useState } from "react";
 import { BrandLockup } from "@/components/layout/brand-lockup";
 import { Skeleton } from "@/components/ui/skeleton";
+import { applyTheme, getStoredTheme } from "@/config/theme";
 import { cn } from "@/utils/cn";
 
 const NAV_ITEMS = [
@@ -9,30 +20,103 @@ const NAV_ITEMS = [
   { to: "/settings", label: "設定", icon: Settings2, exact: false },
 ] as const;
 
+const NOTIFY_TONE = {
+  tech: {
+    wash: "bg-sky-tint hover:bg-sky-tint/80",
+    title: "text-primary",
+    bellOn: "text-primary",
+  },
+  todo: {
+    wash: "bg-marigold/20 hover:bg-marigold/30",
+    title: "text-saffron",
+    bellOn: "text-saffron",
+  },
+} as const;
+
+function NotifyWidget({
+  tone,
+  title,
+  count,
+  notifyOn,
+  cadence,
+  pending,
+  onNavigate,
+}: {
+  tone: keyof typeof NOTIFY_TONE;
+  title: string;
+  count: number;
+  notifyOn: boolean;
+  cadence: string;
+  pending: boolean;
+  onNavigate: () => void;
+}) {
+  const colors = NOTIFY_TONE[tone];
+
+  return (
+    <Link
+      to="/settings"
+      onClick={onNavigate}
+      className={cn(
+        "block p-3 no-underline transition-colors duration-200",
+        colors.wash,
+      )}
+    >
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <p className={cn("text-caption font-medium", colors.title)}>{title}</p>
+        {notifyOn ? (
+          <Bell className={cn("size-3.5", colors.bellOn)} />
+        ) : (
+          <BellOff className="size-3.5 text-stone" />
+        )}
+      </div>
+      {pending ? (
+        <Skeleton className="h-5 w-12" />
+      ) : (
+        <>
+          <p className="text-body font-semibold tabular-nums text-foreground">
+            {count}
+            <span className="ml-0.5 text-caption font-medium text-stone">
+              件
+            </span>
+          </p>
+          <p className="mt-1 text-caption text-graphite">
+            {notifyOn ? `${cadence}オン` : `${cadence}オフ`}
+          </p>
+        </>
+      )}
+    </Link>
+  );
+}
+
 export function Sidebar({
   mobileOpen,
   onCloseMobile,
   memoCount,
   techCount,
+  todoCount,
   memosPending,
   notifyOn,
+  todoNotifyOn,
   notificationsPending,
-  onLogout,
 }: {
   mobileOpen: boolean;
   onCloseMobile: () => void;
   memoCount: number;
   techCount: number;
+  todoCount: number;
   memosPending: boolean;
   notifyOn: boolean;
+  todoNotifyOn: boolean;
   notificationsPending: boolean;
-  onLogout: () => Promise<void>;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [theme, setTheme] = useState<"light" | "dark">(getStoredTheme);
+  const dark = theme === "dark";
 
-  async function handleLogout() {
-    onCloseMobile();
-    await onLogout();
+  function handleTheme() {
+    const next = dark ? "light" : "dark";
+    setTheme(next);
+    applyTheme(next);
   }
 
   const nav = (
@@ -79,36 +163,25 @@ export function Sidebar({
         </div>
       </nav>
 
-      <div className="px-3 pb-3">
-        <Link
-          to="/settings"
-          onClick={onCloseMobile}
-          className="block rounded-xl border border-border bg-sky-tint p-3 no-underline transition-colors duration-200 hover:bg-sky-tint/80"
-        >
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <p className="text-caption font-medium text-primary">今週の技術</p>
-            {notifyOn ? (
-              <Bell className="size-3.5 text-primary" />
-            ) : (
-              <BellOff className="size-3.5 text-stone" />
-            )}
-          </div>
-          {memosPending || notificationsPending ? (
-            <Skeleton className="h-5 w-12" />
-          ) : (
-            <>
-              <p className="text-body font-semibold tabular-nums text-foreground">
-                {techCount}
-                <span className="ml-0.5 text-caption font-medium text-stone">
-                  件
-                </span>
-              </p>
-              <p className="mt-1 text-caption text-graphite">
-                {notifyOn ? "週次通知オン" : "週次通知オフ"}
-              </p>
-            </>
-          )}
-        </Link>
+      <div className="mx-3 mb-3 overflow-hidden rounded-xl border border-border">
+        <NotifyWidget
+          tone="tech"
+          title="今週の技術"
+          count={techCount}
+          notifyOn={notifyOn}
+          cadence="週次通知"
+          pending={memosPending || notificationsPending}
+          onNavigate={onCloseMobile}
+        />
+        <NotifyWidget
+          tone="todo"
+          title="やること"
+          count={todoCount}
+          notifyOn={todoNotifyOn}
+          cadence="毎日通知"
+          pending={memosPending || notificationsPending}
+          onNavigate={onCloseMobile}
+        />
       </div>
 
       <div className="border-t border-border px-3 py-3">
@@ -123,11 +196,14 @@ export function Sidebar({
           </div>
           <button
             type="button"
-            onClick={() => void handleLogout()}
+            onClick={handleTheme}
+            aria-pressed={dark}
+            aria-label={
+              dark ? "ライトモードに切り替える" : "ダークモードに切り替える"
+            }
             className="rounded-lg p-1.5 text-stone transition-colors duration-200 hover:bg-muted hover:text-foreground"
-            aria-label="ログアウト"
           >
-            <LogOut className="size-4" />
+            {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </button>
         </div>
       </div>

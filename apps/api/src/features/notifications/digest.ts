@@ -1,6 +1,14 @@
 import type { PushResult } from "../../lib/line/client";
-import { buildDigestMessages, type DigestMemo } from "./message";
-import { type StoredSettings, UNREACHABLE_DISABLED_REASON } from "./settings";
+import {
+  buildDigestMessages,
+  buildTodoDigestMessages,
+  type DigestMemo,
+} from "./message";
+import {
+  type StoredDailySettings,
+  type StoredSettings,
+  UNREACHABLE_DISABLED_REASON,
+} from "./settings";
 import {
   type DigestWindow,
   isDueToSend,
@@ -12,6 +20,12 @@ import {
 export type DigestDecision =
   | { action: "skip"; reason: "disabled" | "not_due" | "empty" }
   | { action: "push"; texts: string[]; window: DigestWindow };
+
+export type TodoDailySettings = StoredDailySettings;
+
+export type TodoDigestDecision =
+  | { action: "skip"; reason: "disabled" | "not_due" | "empty" }
+  | { action: "push"; texts: string[] };
 
 export function decideUserDigest(input: {
   settings: StoredSettings;
@@ -52,11 +66,47 @@ export function decideUserDigest(input: {
   return { action: "push", texts, window };
 }
 
-export function settingsAfterPush(
-  settings: StoredSettings,
+export function decideTodoDailyDigest(input: {
+  settings: TodoDailySettings;
+  now: Date;
+  memos: DigestMemo[];
+  appUrl: string;
+}): TodoDigestDecision {
+  if (!input.settings.enabled) {
+    return { action: "skip", reason: "disabled" };
+  }
+
+  const slot = { time: input.settings.time };
+  if (!isDueToSend(input.now, slot, input.settings.lastSentAt)) {
+    return { action: "skip", reason: "not_due" };
+  }
+
+  if (input.memos.length === 0) {
+    return { action: "skip", reason: "empty" };
+  }
+
+  const texts = buildTodoDigestMessages({
+    memos: input.memos,
+    appUrl: input.appUrl,
+  });
+  if (texts.length === 0) {
+    return { action: "skip", reason: "empty" };
+  }
+
+  return { action: "push", texts };
+}
+
+type AfterPushSettings = {
+  lastSentAt: string | null;
+  enabled: boolean;
+  disabledReason: string | null;
+};
+
+export function settingsAfterPush<T extends AfterPushSettings>(
+  settings: T,
   result: PushResult,
   now: Date,
-): StoredSettings | null {
+): T | null {
   if (result === "success") {
     return { ...settings, lastSentAt: now.toISOString() };
   }

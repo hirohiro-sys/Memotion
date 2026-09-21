@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const memoTagSchema = z.enum(["tweet", "tech", "other"]);
+export const memoTagSchema = z.enum(["tweet", "tech", "other", "todo"]);
 export const memoMediaTypeSchema = z.enum(["text", "url", "image"]);
 export const memoSourceSchema = z.enum(["line", "web"]);
 

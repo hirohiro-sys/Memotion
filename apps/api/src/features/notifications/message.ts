@@ -67,26 +67,18 @@ function canAppend(lines: DigestLine[], extra: DigestLine): boolean {
   );
 }
 
-export function buildDigestMessages(input: {
-  memos: DigestMemo[];
-  windowStart: Date;
-  windowEnd: Date;
-  appUrl: string;
-}): string[] {
-  if (input.memos.length === 0) return [];
+function packDigestMessages(
+  memos: DigestMemo[],
+  title: string,
+  appUrl: string,
+): string[] {
+  if (memos.length === 0) return [];
 
-  const sorted = [...input.memos].sort((a, b) =>
+  const sorted = [...memos].sort((a, b) =>
     a.createdAt.localeCompare(b.createdAt),
   );
   const items = sorted.map(formatMemoEntry);
-  const messages: DigestLine[][] = [
-    [
-      {
-        text: headline(sorted.length, input.windowStart, input.windowEnd),
-        previewCount: 0,
-      },
-    ],
-  ];
+  const messages: DigestLine[][] = [[{ text: title, previewCount: 0 }]];
   let packed = 0;
 
   for (const item of items) {
@@ -115,10 +107,10 @@ export function buildDigestMessages(input: {
   const last = messages[messages.length - 1];
   if (!last) return messages.map(joinLineTexts);
 
-  while (!canAppend(last, overflowFooter(remaining, input.appUrl))) {
+  while (!canAppend(last, overflowFooter(remaining, appUrl))) {
     if (last.length <= 1) {
       if (messages.length < MAX_DIGEST_MESSAGES) {
-        messages.push([overflowFooter(remaining, input.appUrl)]);
+        messages.push([overflowFooter(remaining, appUrl)]);
         return messages.map(joinLineTexts);
       }
       break;
@@ -127,6 +119,30 @@ export function buildDigestMessages(input: {
     remaining += 1;
   }
 
-  last.push(overflowFooter(remaining, input.appUrl));
+  last.push(overflowFooter(remaining, appUrl));
   return messages.map(joinLineTexts);
+}
+
+export function buildDigestMessages(input: {
+  memos: DigestMemo[];
+  windowStart: Date;
+  windowEnd: Date;
+  appUrl: string;
+}): string[] {
+  return packDigestMessages(
+    input.memos,
+    headline(input.memos.length, input.windowStart, input.windowEnd),
+    input.appUrl,
+  );
+}
+
+export function buildTodoDigestMessages(input: {
+  memos: DigestMemo[];
+  appUrl: string;
+}): string[] {
+  return packDigestMessages(
+    input.memos,
+    `未完了のTODO ${input.memos.length}件`,
+    input.appUrl,
+  );
 }

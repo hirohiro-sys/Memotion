@@ -1,6 +1,6 @@
 import type { MemoTag } from "@repo/shared";
 
-export const TAG_ORDER: MemoTag[] = ["tweet", "tech", "other"];
+export const TAG_ORDER: MemoTag[] = ["tweet", "tech", "todo", "other"];
 
 export const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
@@ -25,7 +25,7 @@ export const TAG_META: Record<
     label: "つぶやき",
     hashtag: "#tweet",
     description: "思ったこと・つぶやき・テキストメモ",
-    className: "bg-marigold/20 text-foreground",
+    className: "bg-coral/20 text-foreground",
   },
   tech: {
     id: "tech",
@@ -40,5 +40,12 @@ export const TAG_META: Record<
     hashtag: "#other",
     description: "画像メモ・その他",
     className: "bg-mocha/25 text-foreground",
+  },
+  todo: {
+    id: "todo",
+    label: "やること",
+    hashtag: "#todo",
+    description: "やるべきこと・タスク",
+    className: "bg-marigold/20 text-foreground",
   },
 };

@@ -1,9 +1,15 @@
 import { and, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { Database } from "../../db";
-import { memos, tags, techWeeklySettings, users } from "../../db/schema";
+import {
+  memos,
+  tags,
+  techWeeklySettings,
+  todoDailySettings,
+  users,
+} from "../../db/schema";
 import type { DigestMemo } from "./message";
-import type { StoredSettings } from "./settings";
+import type { StoredDailySettings, StoredSettings } from "./settings";
 
 export async function readStoredSettings(
   db: Database,
@@ -59,15 +65,67 @@ export async function upsertSettings(
   });
 }
 
+export async function readStoredDailySettings(
+  db: Database,
+  userId: string,
+): Promise<StoredDailySettings | null> {
+  const [row] = await db
+    .select({
+      enabled: todoDailySettings.enabled,
+      time: todoDailySettings.time,
+      lastSentAt: todoDailySettings.lastSentAt,
+      disabledReason: todoDailySettings.disabledReason,
+    })
+    .from(todoDailySettings)
+    .where(eq(todoDailySettings.userId, userId))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function upsertDailySettings(
+  db: Database,
+  userId: string,
+  settings: StoredDailySettings,
+): Promise<void> {
+  const [existing] = await db
+    .select({ id: todoDailySettings.id })
+    .from(todoDailySettings)
+    .where(eq(todoDailySettings.userId, userId))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(todoDailySettings)
+      .set({
+        enabled: settings.enabled,
+        time: settings.time,
+        lastSentAt: settings.lastSentAt,
+        disabledReason: settings.disabledReason,
+      })
+      .where(eq(todoDailySettings.userId, userId));
+    return;
+  }
+
+  await db.insert(todoDailySettings).values({
+    id: nanoid(),
+    userId,
+    enabled: settings.enabled,
+    time: settings.time,
+    lastSentAt: settings.lastSentAt,
+    disabledReason: settings.disabledReason,
+  });
+}
+
 export async function listAllowedUsers(
   db: Database,
 ): Promise<{ id: string; lineUserId: string }[]> {
   return db.select({ id: users.id, lineUserId: users.lineUserId }).from(users);
 }
 
-export async function listTechMemos(
+async function listMemosBySlug(
   db: Database,
   userId: string,
+  slug: string,
 ): Promise<DigestMemo[]> {
   return db
     .select({
@@ -78,5 +136,19 @@ export async function listTechMemos(
     })
     .from(memos)
     .innerJoin(tags, eq(memos.tagId, tags.id))
-    .where(and(eq(memos.userId, userId), eq(tags.slug, "tech")));
+    .where(and(eq(memos.userId, userId), eq(tags.slug, slug)));
+}
+
+export async function listTechMemos(
+  db: Database,
+  userId: string,
+): Promise<DigestMemo[]> {
+  return listMemosBySlug(db, userId, "tech");
+}
+
+export async function listTodoMemos(
+  db: Database,
+  userId: string,
+): Promise<DigestMemo[]> {
+  return listMemosBySlug(db, userId, "todo");
 }

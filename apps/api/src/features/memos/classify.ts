@@ -26,7 +26,7 @@ export type ClassifyResult = ClassifySuccess | ClassifyFailure;
 export const REPLY_TEXT = {
   unsupported:
     "この形式は保存できません。テキスト（URL含む）か画像を送信してください。",
-  unknown_tag: "使えるタグは #tweet #tech #other です。",
+  unknown_tag: "使えるタグは #tweet #tech #todo #other です。",
   empty_after_tag:
     "本文が空です。タグのあとにテキスト（URL含む）か画像を送ってください。",
   empty: "本文が空です。テキスト（URL含む）か画像を送ってください。",
@@ -38,7 +38,8 @@ export function replyTextFor(reason: LineFailReason): string {
 }
 
 const URL_PATTERN = /^https?:\/\/\S+$/i;
-const LEADING_PERMITTED_TAG = /^(?:[#＃])(tweet|tech|other)(?![0-9A-Za-z])/i;
+const LEADING_PERMITTED_TAG =
+  /^(?:[#＃])(tweet|tech|other|todo)(?![0-9A-Za-z])/i;
 const LEADING_HASH = /^[#＃]/;
 
 export function detectMediaType(text: string): Exclude<MemoMediaType, "image"> {

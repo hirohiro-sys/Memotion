@@ -47,6 +47,15 @@ describe("classify: leading permitted tags", () => {
     });
   });
 
+  it("saves #todo plus prose as todo/text", () => {
+    expect(classify({ text: "#todo 買う" })).toEqual({
+      save: true,
+      tag: "todo",
+      mediaType: "text",
+      content: "買う",
+    });
+  });
+
   it("treats a mid-text or trailing #tech as body, not a tag", () => {
     expect(classify({ text: "今日のメモ #tech" })).toEqual({
       save: true,
@@ -73,7 +82,7 @@ describe("classify: unknown tags and collisions", () => {
   });
 
   it("rejects an unknown leading hashtag", () => {
-    expect(classify({ text: "#todo 買う" })).toEqual({
+    expect(classify({ text: "#work 買う" })).toEqual({
       save: false,
       reason: "unknown_tag",
     });
@@ -177,7 +186,7 @@ describe("replyTextFor", () => {
       "この形式は保存できません。テキスト（URL含む）か画像を送信してください。",
     );
     expect(replyTextFor("unknown_tag")).toBe(
-      "使えるタグは #tweet #tech #other です。",
+      "使えるタグは #tweet #tech #todo #other です。",
     );
     expect(replyTextFor("empty_after_tag")).toBe(
       "本文が空です。タグのあとにテキスト（URL含む）か画像を送ってください。",

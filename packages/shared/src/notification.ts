@@ -1,20 +1,26 @@
 import { z } from "zod";
 
-const techWeeklyTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+const clockTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
 export const notificationSettingsSchema = z.object({
   techWeeklyEnabled: z.boolean(),
   techWeeklyDay: z.number().int().min(0).max(6),
-  techWeeklyTime: techWeeklyTimeSchema,
+  techWeeklyTime: clockTimeSchema,
   pendingCount: z.number().int().min(0),
   disabledReason: z.string().nullable(),
+  todoDailyEnabled: z.boolean(),
+  todoDailyTime: clockTimeSchema,
+  todoPendingCount: z.number().int().min(0),
+  todoDisabledReason: z.string().nullable(),
 });
 
 export const updateNotificationSettingsRequestSchema = z
   .object({
     techWeeklyEnabled: z.boolean(),
     techWeeklyDay: z.number().int().min(0).max(6),
-    techWeeklyTime: techWeeklyTimeSchema,
+    techWeeklyTime: clockTimeSchema,
+    todoDailyEnabled: z.boolean(),
+    todoDailyTime: clockTimeSchema,
   })
   .partial();
 
