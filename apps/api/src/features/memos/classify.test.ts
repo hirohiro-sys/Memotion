@@ -186,7 +186,7 @@ describe("replyTextFor", () => {
       "この形式は保存できません。テキスト（URL含む）か画像を送信してください。",
     );
     expect(replyTextFor("unknown_tag")).toBe(
-      "使えるタグは #tweet #tech #other #todo です。",
+      "使えるタグは #tweet #tech #todo #other です。",
     );
     expect(replyTextFor("empty_after_tag")).toBe(
       "本文が空です。タグのあとにテキスト（URL含む）か画像を送ってください。",

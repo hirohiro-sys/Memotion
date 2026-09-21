@@ -51,8 +51,12 @@ function AppLayout() {
         techCount={
           memos.data?.items.filter((memo) => memo.tag === "tech").length ?? 0
         }
+        todoCount={
+          memos.data?.items.filter((memo) => memo.tag === "todo").length ?? 0
+        }
         memosPending={memos.isPending}
         notifyOn={notifications.data?.techWeeklyEnabled ?? false}
+        todoNotifyOn={notifications.data?.todoDailyEnabled ?? false}
         notificationsPending={notifications.isPending}
         onLogout={handleLogout}
       />
