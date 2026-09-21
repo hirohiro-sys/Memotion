@@ -85,9 +85,15 @@ describe("createMemoRequestSchema", () => {
     ).toThrow();
   });
 
+  it("accepts the todo tag", () => {
+    expect(
+      createMemoRequestSchema.parse({ tag: "todo", content: "買う" }),
+    ).toEqual({ tag: "todo", content: "買う" });
+  });
+
   it("rejects an unknown tag", () => {
     expect(() =>
-      createMemoRequestSchema.parse({ tag: "todo", content: "買う" }),
+      createMemoRequestSchema.parse({ tag: "work", content: "買う" }),
     ).toThrow();
   });
 });

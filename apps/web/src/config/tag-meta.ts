@@ -41,4 +41,11 @@ export const TAG_META: Record<
     description: "画像メモ・その他",
     className: "bg-mocha/25 text-foreground",
   },
+  todo: {
+    id: "todo",
+    label: "TODO",
+    hashtag: "#todo",
+    description: "やること",
+    className: "bg-coral/20 text-foreground",
+  },
 };

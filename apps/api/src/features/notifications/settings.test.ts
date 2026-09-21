@@ -96,6 +96,10 @@ describe("toNotificationSettings", () => {
       pendingCount: 4,
       disabledReason:
         "LINEに送れなかったためオフにしました。友達追加を確認して、再度オンにしてください",
+      todoDailyEnabled: true,
+      todoDailyTime: "08:00",
+      todoPendingCount: 0,
+      todoDisabledReason: null,
     });
   });
 });

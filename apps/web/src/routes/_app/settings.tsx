@@ -19,6 +19,7 @@ function SettingsPage() {
     tweet: 0,
     tech: 0,
     other: 0,
+    todo: 0,
   };
   for (const memo of memos) tagCounts[memo.tag] += 1;
 

@@ -55,5 +55,9 @@ export function toNotificationSettings(
     techWeeklyTime: settings.time,
     pendingCount,
     disabledReason: settings.disabledReason,
+    todoDailyEnabled: true,
+    todoDailyTime: "08:00",
+    todoPendingCount: 0,
+    todoDisabledReason: null,
   });
 }
