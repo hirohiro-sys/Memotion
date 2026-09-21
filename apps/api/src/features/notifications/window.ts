@@ -5,6 +5,12 @@ export type WeeklySlot = {
   time: string;
 };
 
+export type DailySlot = {
+  time: string;
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 export type DigestWindow = {
   start: Date;
   end: Date;
@@ -26,11 +32,19 @@ export function latestDueAt(now: Date, slot: WeeklySlot): Date {
   const parts = jstParts(now);
   const daysBack = (parts.weekday - slot.weekday + 7) % 7;
   const sameDay = fromJst(parts.year, parts.month, parts.day, hour, minute);
-  const candidate = new Date(
-    sameDay.getTime() - daysBack * 24 * 60 * 60 * 1000,
-  );
+  const candidate = new Date(sameDay.getTime() - daysBack * DAY_MS);
   if (candidate.getTime() > now.getTime()) {
     return new Date(candidate.getTime() - WEEK_MS);
+  }
+  return candidate;
+}
+
+export function latestDailyDueAt(now: Date, slot: DailySlot): Date {
+  const { hour, minute } = parseHm(slot.time);
+  const parts = jstParts(now);
+  const candidate = fromJst(parts.year, parts.month, parts.day, hour, minute);
+  if (candidate.getTime() > now.getTime()) {
+    return new Date(candidate.getTime() - DAY_MS);
   }
   return candidate;
 }
@@ -44,10 +58,13 @@ export function windowEndingAt(due: Date): DigestWindow {
 
 export function isDueToSend(
   now: Date,
-  slot: WeeklySlot,
+  slot: WeeklySlot | DailySlot,
   lastSentAt: string | null,
 ): boolean {
-  const due = latestDueAt(now, slot).getTime();
+  const due =
+    "weekday" in slot
+      ? latestDueAt(now, slot).getTime()
+      : latestDailyDueAt(now, slot).getTime();
   const sent = sentAtMs(lastSentAt);
   return sent == null || sent < due;
 }
