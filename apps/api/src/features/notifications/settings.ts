@@ -92,6 +92,7 @@ export function applySettingsPatch(
 export function toNotificationSettings(
   settings: StoredNotificationSettings,
   pendingCount: number,
+  todoPendingCount = 0,
 ): NotificationSettings {
   return notificationSettingsSchema.parse({
     techWeeklyEnabled: settings.techWeekly.enabled,
@@ -101,7 +102,7 @@ export function toNotificationSettings(
     disabledReason: settings.techWeekly.disabledReason,
     todoDailyEnabled: settings.todoDaily.enabled,
     todoDailyTime: settings.todoDaily.time,
-    todoPendingCount: 0,
+    todoPendingCount,
     todoDisabledReason: settings.todoDaily.disabledReason,
   });
 }

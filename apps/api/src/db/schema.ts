@@ -43,11 +43,27 @@ export const techWeeklySettings = sqliteTable("tech_weekly_settings", {
   disabledReason: text("disabled_reason"),
 });
 
+export const todoDailySettings = sqliteTable("todo_daily_settings", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "restrict" }),
+  enabled: integer("enabled", { mode: "boolean" }).notNull(),
+  time: text("time").notNull(),
+  lastSentAt: text("last_sent_at"),
+  disabledReason: text("disabled_reason"),
+});
+
 export const usersRelations = relations(users, ({ many, one }) => ({
   memos: many(memos),
   techWeeklySettings: one(techWeeklySettings, {
     fields: [users.id],
     references: [techWeeklySettings.userId],
+  }),
+  todoDailySettings: one(todoDailySettings, {
+    fields: [users.id],
+    references: [todoDailySettings.userId],
   }),
 }));
 
@@ -71,6 +87,16 @@ export const techWeeklySettingsRelations = relations(
   ({ one }) => ({
     user: one(users, {
       fields: [techWeeklySettings.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const todoDailySettingsRelations = relations(
+  todoDailySettings,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [todoDailySettings.userId],
       references: [users.id],
     }),
   }),

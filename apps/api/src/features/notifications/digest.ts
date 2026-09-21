@@ -96,11 +96,17 @@ export function decideTodoDailyDigest(input: {
   return { action: "push", texts };
 }
 
-export function settingsAfterPush(
-  settings: StoredSettings,
+type AfterPushSettings = {
+  lastSentAt: string | null;
+  enabled: boolean;
+  disabledReason: string | null;
+};
+
+export function settingsAfterPush<T extends AfterPushSettings>(
+  settings: T,
   result: PushResult,
   now: Date,
-): StoredSettings | null {
+): T | null {
   if (result === "success") {
     return { ...settings, lastSentAt: now.toISOString() };
   }

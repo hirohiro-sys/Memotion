@@ -190,6 +190,7 @@ describe("toNotificationSettings", () => {
           },
         },
         4,
+        3,
       ),
     ).toEqual({
       techWeeklyEnabled: true,
@@ -199,7 +200,7 @@ describe("toNotificationSettings", () => {
       disabledReason: null,
       todoDailyEnabled: false,
       todoDailyTime: "09:00",
-      todoPendingCount: 0,
+      todoPendingCount: 3,
       todoDisabledReason:
         "LINEに送れなかったためオフにしました。友達追加を確認して、再度オンにしてください",
     });
