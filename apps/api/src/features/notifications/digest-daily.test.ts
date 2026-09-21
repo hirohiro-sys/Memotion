@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decideTodoDailyDigest } from "./digest";
 import type { DigestMemo } from "./message";
+import { DEFAULT_TODO_DAILY } from "./settings";
 
 function jst(
   year: number,
@@ -16,12 +17,6 @@ function jst(
 
 const now = jst(2026, 9, 15, 8, 7);
 const appUrl = "https://memo.example";
-
-const DEFAULT_TODO_DAILY = {
-  enabled: true,
-  time: "08:00",
-  lastSentAt: null,
-};
 
 function memo(createdAt: string, content: string): DigestMemo {
   return { createdAt, content, mediaType: "text", url: null };

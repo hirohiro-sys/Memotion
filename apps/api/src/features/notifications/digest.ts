@@ -4,7 +4,11 @@ import {
   buildTodoDigestMessages,
   type DigestMemo,
 } from "./message";
-import { type StoredSettings, UNREACHABLE_DISABLED_REASON } from "./settings";
+import {
+  type StoredDailySettings,
+  type StoredSettings,
+  UNREACHABLE_DISABLED_REASON,
+} from "./settings";
 import {
   type DigestWindow,
   isDueToSend,
@@ -17,11 +21,7 @@ export type DigestDecision =
   | { action: "skip"; reason: "disabled" | "not_due" | "empty" }
   | { action: "push"; texts: string[]; window: DigestWindow };
 
-export type TodoDailySettings = {
-  enabled: boolean;
-  time: string;
-  lastSentAt: string | null;
-};
+export type TodoDailySettings = StoredDailySettings;
 
 export type TodoDigestDecision =
   | { action: "skip"; reason: "disabled" | "not_due" | "empty" }

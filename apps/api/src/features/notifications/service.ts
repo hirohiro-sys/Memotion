@@ -7,6 +7,7 @@ import {
 } from "./repository";
 import {
   applySettingsPatch,
+  DEFAULT_NOTIFICATION_SETTINGS,
   DEFAULT_TECH_WEEKLY,
   type StoredSettings,
   toNotificationSettings,
@@ -33,9 +34,13 @@ export async function getNotificationSettings(
   userId: string,
   now: Date,
 ) {
-  const settings =
+  const techWeekly =
     (await readStoredSettings(db, userId)) ?? DEFAULT_TECH_WEEKLY;
-  const pendingCount = await pendingCountFor(db, userId, settings, now);
+  const settings = {
+    ...DEFAULT_NOTIFICATION_SETTINGS,
+    techWeekly,
+  };
+  const pendingCount = await pendingCountFor(db, userId, techWeekly, now);
   return toNotificationSettings(settings, pendingCount);
 }
 
@@ -45,9 +50,13 @@ export async function updateNotificationSettings(
   patch: UpdateNotificationSettingsRequest,
   now: Date,
 ) {
-  const current = await readStoredSettings(db, userId);
-  const next = applySettingsPatch(current, patch, now);
-  await upsertSettings(db, userId, next);
-  const pendingCount = await pendingCountFor(db, userId, next, now);
+  const techWeekly = await readStoredSettings(db, userId);
+  const next = applySettingsPatch(
+    techWeekly ? { ...DEFAULT_NOTIFICATION_SETTINGS, techWeekly } : null,
+    patch,
+    now,
+  );
+  await upsertSettings(db, userId, next.techWeekly);
+  const pendingCount = await pendingCountFor(db, userId, next.techWeekly, now);
   return toNotificationSettings(next, pendingCount);
 }
