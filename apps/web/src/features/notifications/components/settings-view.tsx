@@ -64,9 +64,7 @@ export function SettingsView({ onLogout }: { onLogout: () => Promise<void> }) {
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4 md:p-8">
       <section className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-6 text-subheading font-bold text-foreground">
-          通知
-        </h3>
+        <h3 className="mb-6 text-subheading font-bold text-foreground">通知</h3>
 
         {notificationsQuery.isPending && (
           <div className="space-y-6" role="status" aria-label="読み込み中">
