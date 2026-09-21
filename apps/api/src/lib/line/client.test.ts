@@ -22,7 +22,7 @@ describe("replyFailure", () => {
       replyFailure({
         accessToken: "token",
         replyToken: "reply-1",
-        text: "使えるタグは #tweet #tech #other です。",
+        text: "使えるタグは #tweet #tech #other #todo です。",
       }),
     ).resolves.toBe(true);
 
@@ -39,7 +39,7 @@ describe("replyFailure", () => {
           messages: [
             {
               type: "text",
-              text: "使えるタグは #tweet #tech #other です。",
+              text: "使えるタグは #tweet #tech #other #todo です。",
             },
           ],
         }),
