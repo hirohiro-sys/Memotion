@@ -25,7 +25,7 @@ export const TAG_META: Record<
     label: "つぶやき",
     hashtag: "#tweet",
     description: "思ったこと・つぶやき・テキストメモ",
-    className: "bg-sage/20 text-foreground",
+    className: "bg-coral/20 text-foreground",
   },
   tech: {
     id: "tech",
