@@ -49,7 +49,7 @@ export function SettingsView({
       <section className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-1 text-body-sm font-medium text-foreground">通知</h3>
         <p className="mb-4 text-body-sm text-graphite">
-          対象がある週だけ、その時刻に届く
+          対象があるときだけ、その時刻に届く
         </p>
 
         {notificationsQuery.isPending && (
@@ -62,6 +62,13 @@ export function SettingsView({
               <div className="space-y-2">
                 <Skeleton className="h-4 w-28" />
                 <Skeleton className="h-3 w-52" />
+              </div>
+              <Skeleton className="h-5 w-9 rounded-full" />
+            </div>
+            <div className="flex items-start justify-between gap-3 border-t border-border pt-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-48" />
               </div>
               <Skeleton className="h-5 w-9 rounded-full" />
             </div>
@@ -143,6 +150,55 @@ export function SettingsView({
                 曜日 {notifications.techWeeklyTime} に届く
               </p>
             )}
+
+            <div className="flex items-start justify-between gap-3 border-t border-border py-4">
+              <div>
+                <p className="text-body-sm text-foreground">TODOの毎日通知</p>
+                <p className="mt-0.5 text-caption text-stone">
+                  次の通知に含まれるTODO {notifications.todoPendingCount}件
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={notifications.todoDailyEnabled}
+                onChange={(enabled) =>
+                  notifyMutation.mutate({ todoDailyEnabled: enabled })
+                }
+              />
+            </div>
+
+            {notifications.todoDisabledReason && (
+              <p className="border-t border-border py-3 text-caption text-stone">
+                {notifications.todoDisabledReason}
+              </p>
+            )}
+
+            {notifications.todoDailyEnabled && (
+              <div className="border-t border-border py-4">
+                <label
+                  htmlFor="todo-notify-time"
+                  className="mb-1.5 block text-caption text-stone"
+                >
+                  時刻
+                </label>
+                <input
+                  id="todo-notify-time"
+                  type="time"
+                  value={notifications.todoDailyTime}
+                  onChange={(event) =>
+                    notifyMutation.mutate({
+                      todoDailyTime: event.target.value,
+                    })
+                  }
+                  className="w-28 rounded-lg border border-border bg-background px-2.5 py-1.5 text-center font-mono text-body-sm outline-none transition-colors duration-200 focus:border-primary"
+                />
+              </div>
+            )}
+
+            {notifications.todoDailyEnabled && (
+              <p className="border-t border-border py-3 text-caption text-stone">
+                {`残っているTODOがある日だけ、毎日 ${notifications.todoDailyTime} に届く`}
+              </p>
+            )}
           </div>
         )}
       </section>
@@ -194,7 +250,7 @@ export function SettingsView({
       <section className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-1 text-body-sm font-medium text-foreground">タグ</h3>
         <p className="mb-4 text-body-sm text-graphite">
-          LINE Botで使用する3つのタグです。
+          LINE Botで使用するタグです。
         </p>
         <div className="divide-y divide-border border-t border-border">
           {TAG_ORDER.map((tag) => {

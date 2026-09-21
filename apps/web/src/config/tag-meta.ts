@@ -1,6 +1,6 @@
 import type { MemoTag } from "@repo/shared";
 
-export const TAG_ORDER: MemoTag[] = ["tweet", "tech", "other"];
+export const TAG_ORDER: MemoTag[] = ["tweet", "tech", "other", "todo"];
 
 export const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
