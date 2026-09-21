@@ -1,7 +1,18 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, BellOff, Inbox, LogOut, Settings2, User, X } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  Inbox,
+  Moon,
+  Settings2,
+  Sun,
+  User,
+  X,
+} from "lucide-react";
+import { useState } from "react";
 import { BrandLockup } from "@/components/layout/brand-lockup";
 import { Skeleton } from "@/components/ui/skeleton";
+import { applyTheme, getStoredTheme } from "@/config/theme";
 import { cn } from "@/utils/cn";
 
 const NAV_ITEMS = [
@@ -87,7 +98,6 @@ export function Sidebar({
   notifyOn,
   todoNotifyOn,
   notificationsPending,
-  onLogout,
 }: {
   mobileOpen: boolean;
   onCloseMobile: () => void;
@@ -98,13 +108,15 @@ export function Sidebar({
   notifyOn: boolean;
   todoNotifyOn: boolean;
   notificationsPending: boolean;
-  onLogout: () => Promise<void>;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [theme, setTheme] = useState<"light" | "dark">(getStoredTheme);
+  const dark = theme === "dark";
 
-  async function handleLogout() {
-    onCloseMobile();
-    await onLogout();
+  function handleTheme() {
+    const next = dark ? "light" : "dark";
+    setTheme(next);
+    applyTheme(next);
   }
 
   const nav = (
@@ -184,11 +196,14 @@ export function Sidebar({
           </div>
           <button
             type="button"
-            onClick={() => void handleLogout()}
+            onClick={handleTheme}
+            aria-pressed={dark}
+            aria-label={
+              dark ? "ライトモードに切り替える" : "ダークモードに切り替える"
+            }
             className="rounded-lg p-1.5 text-stone transition-colors duration-200 hover:bg-muted hover:text-foreground"
-            aria-label="ログアウト"
           >
-            <LogOut className="size-4" />
+            {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </button>
         </div>
       </div>
