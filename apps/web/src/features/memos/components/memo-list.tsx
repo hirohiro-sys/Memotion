@@ -174,7 +174,7 @@ export function MemoList() {
       )}
 
       {memosQuery.isSuccess && filtered.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((memo) => (
             <MemoCard
               key={memo.id}

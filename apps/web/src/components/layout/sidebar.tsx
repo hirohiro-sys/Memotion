@@ -1,14 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  Bell,
-  BellOff,
-  Inbox,
-  Moon,
-  Settings2,
-  Sun,
-  User,
-  X,
-} from "lucide-react";
+import { Inbox, Moon, Settings2, Sun, User, X } from "lucide-react";
 import { useState } from "react";
 import { BrandLockup } from "@/components/layout/brand-lockup";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,21 +11,7 @@ const NAV_ITEMS = [
   { to: "/settings", label: "設定", icon: Settings2, exact: false },
 ] as const;
 
-const NOTIFY_TONE = {
-  tech: {
-    wash: "bg-sky-tint hover:bg-sky-tint/80",
-    title: "text-primary",
-    bellOn: "text-primary",
-  },
-  todo: {
-    wash: "bg-marigold/20 hover:bg-marigold/30",
-    title: "text-saffron",
-    bellOn: "text-saffron",
-  },
-} as const;
-
 function NotifyWidget({
-  tone,
   title,
   count,
   notifyOn,
@@ -42,7 +19,6 @@ function NotifyWidget({
   pending,
   onNavigate,
 }: {
-  tone: keyof typeof NOTIFY_TONE;
   title: string;
   count: number;
   notifyOn: boolean;
@@ -50,39 +26,26 @@ function NotifyWidget({
   pending: boolean;
   onNavigate: () => void;
 }) {
-  const colors = NOTIFY_TONE[tone];
-
   return (
     <Link
       to="/settings"
       onClick={onNavigate}
-      className={cn(
-        "block p-3 no-underline transition-colors duration-200",
-        colors.wash,
-      )}
+      className="block px-3 py-3 no-underline transition-colors duration-200 hover:bg-muted"
     >
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <p className={cn("text-caption font-medium", colors.title)}>{title}</p>
-        {notifyOn ? (
-          <Bell className={cn("size-3.5", colors.bellOn)} />
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-body-sm font-medium text-foreground">{title}</p>
+        {pending ? (
+          <Skeleton className="h-4 w-8" />
         ) : (
-          <BellOff className="size-3.5 text-stone" />
+          <p className="text-body-sm font-medium tabular-nums text-foreground">
+            {count}件
+          </p>
         )}
       </div>
-      {pending ? (
-        <Skeleton className="h-5 w-12" />
-      ) : (
-        <>
-          <p className="text-body font-semibold tabular-nums text-foreground">
-            {count}
-            <span className="ml-0.5 text-caption font-medium text-stone">
-              件
-            </span>
-          </p>
-          <p className="mt-1 text-caption text-graphite">
-            {notifyOn ? `${cadence}オン` : `${cadence}オフ`}
-          </p>
-        </>
+      {pending ? null : (
+        <p className="mt-0.5 text-caption text-stone">
+          {notifyOn ? `${cadence}オン` : `${cadence}オフ`}
+        </p>
       )}
     </Link>
   );
@@ -163,9 +126,8 @@ export function Sidebar({
         </div>
       </nav>
 
-      <div className="mx-3 mb-3 overflow-hidden rounded-xl border border-border">
+      <div className="mx-3 mb-3 divide-y divide-border overflow-hidden rounded-xl border border-border">
         <NotifyWidget
-          tone="tech"
           title="今週の技術"
           count={techCount}
           notifyOn={notifyOn}
@@ -174,7 +136,6 @@ export function Sidebar({
           onNavigate={onCloseMobile}
         />
         <NotifyWidget
-          tone="todo"
           title="やること"
           count={todoCount}
           notifyOn={todoNotifyOn}
