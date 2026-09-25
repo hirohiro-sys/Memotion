@@ -28,6 +28,8 @@ export const memos = sqliteTable("memos", {
   mediaType: text("media_type").notNull(),
   lineMessageId: text("line_message_id").unique(),
   createdAt: text("created_at").notNull(),
+  ogpState: text("ogp_state"),
+  ogpClaimedAt: text("ogp_claimed_at"),
 });
 
 export const techWeeklySettings = sqliteTable("tech_weekly_settings", {

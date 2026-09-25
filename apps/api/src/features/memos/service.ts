@@ -39,7 +39,7 @@ export function toMemoResponse(row: MemoRow): Memo {
     source: row.source,
     createdAt: row.createdAt,
     ...(row.url ? { url: row.url } : {}),
-    ...(row.mediaType === "image"
+    ...(row.mediaType === "image" || (row.mediaType === "url" && row.imageKey)
       ? { thumbnailUrl: `/api/memos/${row.id}/image` }
       : {}),
   });
@@ -88,6 +88,7 @@ export async function createForUser(
       tag: tag.slug,
       content: input.content,
       url: null,
+      imageKey: null,
       mediaType,
       source: "web",
       createdAt,

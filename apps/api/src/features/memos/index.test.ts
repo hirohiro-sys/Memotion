@@ -8,6 +8,7 @@ const base = {
   tag: "tweet",
   content: "眠い",
   url: null,
+  imageKey: null,
   mediaType: "text",
   source: "line",
   createdAt: "2026-09-11T00:00:00.000Z",

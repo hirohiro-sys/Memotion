@@ -7,6 +7,7 @@ export type MemoRow = {
   tag: string;
   content: string;
   url: string | null;
+  imageKey: string | null;
   mediaType: string;
   source: string;
   createdAt: string;
@@ -31,6 +32,7 @@ export async function listMemos(
       tag: tags.slug,
       content: memos.content,
       url: memos.url,
+      imageKey: memos.imageKey,
       mediaType: memos.mediaType,
       source: memos.source,
       createdAt: memos.createdAt,

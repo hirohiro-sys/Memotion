@@ -22,6 +22,13 @@
       "when": 1789979217187,
       "tag": "0002_tiny_deathbird",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790298997107,
+      "tag": "0003_kind_molly_hayes",
+      "breakpoints": true
     }
   ]
 }
