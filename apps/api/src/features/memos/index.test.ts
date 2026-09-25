@@ -64,6 +64,26 @@ describe("toMemoResponse", () => {
       createdAt: "2026-09-11T00:00:00.000Z",
     });
   });
+
+  it("adds a relative image path for url memos once an OGP image is stored", () => {
+    expect(
+      toMemoResponse({
+        ...base,
+        tag: "tech",
+        content: "https://example.com",
+        imageKey: "user_1/memo_1",
+        mediaType: "url",
+      }),
+    ).toEqual({
+      id: "memo_1",
+      tag: "tech",
+      content: "https://example.com",
+      mediaType: "url",
+      source: "line",
+      createdAt: "2026-09-11T00:00:00.000Z",
+      thumbnailUrl: "/api/memos/memo_1/image",
+    });
+  });
 });
 
 describe("createMemoRequestSchema", () => {
