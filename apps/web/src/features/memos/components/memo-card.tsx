@@ -87,13 +87,28 @@ export function MemoCard({
         </a>
       )}
 
-      {memo.thumbnailUrl && (
-        <img
-          src={memo.thumbnailUrl}
-          alt=""
-          className="mb-2 h-20 w-full rounded-lg object-cover"
-        />
-      )}
+      {memo.thumbnailUrl &&
+        (memo.mediaType === "url" ? (
+          <a
+            href={memo.content}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={memo.content}
+            className="mb-2 block overflow-hidden rounded-lg"
+          >
+            <img
+              src={memo.thumbnailUrl}
+              alt=""
+              className="h-32 w-full object-cover"
+            />
+          </a>
+        ) : (
+          <img
+            src={memo.thumbnailUrl}
+            alt=""
+            className="mb-2 h-20 w-full rounded-lg object-cover"
+          />
+        ))}
 
       <div className="mt-auto flex items-center justify-end gap-3">
         {confirming ? (

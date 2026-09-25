@@ -141,12 +141,38 @@ async function readLimited(
   return { bytes, truncated };
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+};
+
+function decodeHtmlEntities(value: string): string {
+  return value.replace(
+    /&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,
+    (entity, body: string) => {
+      if (body[0] === "#") {
+        const code =
+          body[1]?.toLowerCase() === "x"
+            ? Number.parseInt(body.slice(2), 16)
+            : Number.parseInt(body.slice(1), 10);
+        return Number.isFinite(code) && code <= 0x10ffff
+          ? String.fromCodePoint(code)
+          : entity;
+      }
+      return NAMED_ENTITIES[body.toLowerCase()] ?? entity;
+    },
+  );
+}
+
 async function extractOgImages(html: Uint8Array<ArrayBuffer>) {
   const found: string[] = [];
   const collect = {
     element(element: Element) {
       const content = element.getAttribute("content")?.trim();
-      if (content) found.push(content);
+      if (content) found.push(decodeHtmlEntities(content));
     },
   };
   await new HTMLRewriter()
