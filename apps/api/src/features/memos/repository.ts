@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull, lt, or } from "drizzle-orm";
 import type { Database } from "../../db";
 import { memos, tags } from "../../db/schema";
 
@@ -82,6 +82,59 @@ export async function findMemoMedia(
     .from(memos)
     .where(eq(memos.id, id))
     .limit(1);
+  return row ?? null;
+}
+
+export type OgpState = "pending" | "ready" | "failed" | "skipped";
+
+export async function updateMemoOgp(
+  db: Database,
+  id: string,
+  values: { ogpState: OgpState; imageKey?: string },
+) {
+  await db.update(memos).set(values).where(eq(memos.id, id));
+}
+
+export type OgpTarget = { id: string; userId: string; content: string };
+
+function claimableOgp(staleBefore: string) {
+  return and(
+    eq(memos.mediaType, "url"),
+    or(
+      isNull(memos.ogpState),
+      and(eq(memos.ogpState, "pending"), lt(memos.ogpClaimedAt, staleBefore)),
+    ),
+  );
+}
+
+export async function listClaimableOgpIds(
+  db: Database,
+  userId: string,
+  staleBefore: string,
+): Promise<string[]> {
+  const rows = await db
+    .select({ id: memos.id })
+    .from(memos)
+    .where(and(eq(memos.userId, userId), claimableOgp(staleBefore)))
+    .orderBy(desc(memos.createdAt));
+  return rows.map((row) => row.id);
+}
+
+export async function claimOgp(
+  db: Database,
+  id: string,
+  now: string,
+  staleBefore: string,
+): Promise<OgpTarget | null> {
+  const [row] = await db
+    .update(memos)
+    .set({ ogpState: "pending", ogpClaimedAt: now })
+    .where(and(eq(memos.id, id), claimableOgp(staleBefore)))
+    .returning({
+      id: memos.id,
+      userId: memos.userId,
+      content: memos.content,
+    });
   return row ?? null;
 }
 
