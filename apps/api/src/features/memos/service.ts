@@ -10,7 +10,9 @@ import type { Env } from "../../env";
 import { fetchMessageContent } from "../../lib/line/client";
 import type { ClassifySuccess } from "./classify";
 import { detectMediaType } from "./classify";
+import { fetchOgpImage, isHttpsUrl } from "./ogp";
 import {
+  claimOgp,
   deleteMedia,
   deleteMemoById,
   findByLineMessageId,
@@ -19,11 +21,18 @@ import {
   getMedia,
   insertMemo,
   isUniqueConstraintError,
+  listClaimableOgpIds,
   listMemos,
   type MemoRow,
   memoImageKey,
+  type OgpState,
+  type OgpTarget,
   putMedia,
+  updateMemoOgp,
 } from "./repository";
+
+const OGP_CLAIM_STALE_MS = 30_000;
+const OGP_BACKFILL_BUDGET_MS = 20_000;
 
 export type PersistResult =
   | { status: "inserted" }
@@ -39,7 +48,7 @@ export function toMemoResponse(row: MemoRow): Memo {
     source: row.source,
     createdAt: row.createdAt,
     ...(row.url ? { url: row.url } : {}),
-    ...(row.mediaType === "image"
+    ...(row.mediaType === "image" || (row.mediaType === "url" && row.imageKey)
       ? { thumbnailUrl: `/api/memos/${row.id}/image` }
       : {}),
   });
@@ -88,6 +97,7 @@ export async function createForUser(
       tag: tag.slug,
       content: input.content,
       url: null,
+      imageKey: null,
       mediaType,
       source: "web",
       createdAt,
@@ -110,6 +120,72 @@ export async function getImageForUser(
 
 function logJson(fields: Record<string, unknown>) {
   console.log(JSON.stringify(fields));
+}
+
+async function captureOgpImage(
+  env: Pick<Env, "DB" | "MEDIA">,
+  memo: OgpTarget,
+): Promise<Exclude<OgpState, "pending">> {
+  const db = createDb(env.DB);
+
+  if (!isHttpsUrl(memo.content)) {
+    await updateMemoOgp(db, memo.id, { ogpState: "skipped" });
+    return "skipped";
+  }
+
+  const image = await fetchOgpImage(memo.content);
+  if (!image) {
+    await updateMemoOgp(db, memo.id, { ogpState: "failed" });
+    logJson({ event: "memo.ogp", status: "failed", memoId: memo.id });
+    return "failed";
+  }
+
+  const imageKey = memoImageKey(memo.userId, memo.id);
+  await putMedia(env.MEDIA, imageKey, image.body, image.contentType);
+  await updateMemoOgp(db, memo.id, { ogpState: "ready", imageKey });
+  return "ready";
+}
+
+function ogpStaleBefore(now: number): string {
+  return new Date(now - OGP_CLAIM_STALE_MS).toISOString();
+}
+
+export async function captureOgpForMemo(
+  env: Pick<Env, "DB" | "MEDIA">,
+  memoId: string,
+): Promise<void> {
+  try {
+    const now = Date.now();
+    const target = await claimOgp(
+      createDb(env.DB),
+      memoId,
+      new Date(now).toISOString(),
+      ogpStaleBefore(now),
+    );
+    if (target) await captureOgpImage(env, target);
+  } catch {
+    logJson({ event: "memo.ogp", status: "error", memoId });
+  }
+}
+
+export async function backfillOgpForUser(
+  env: Pick<Env, "DB" | "MEDIA">,
+  userId: string,
+): Promise<void> {
+  const startedAt = Date.now();
+  try {
+    const ids = await listClaimableOgpIds(
+      createDb(env.DB),
+      userId,
+      ogpStaleBefore(startedAt),
+    );
+    for (const id of ids) {
+      if (Date.now() - startedAt > OGP_BACKFILL_BUDGET_MS) return;
+      await captureOgpForMemo(env, id);
+    }
+  } catch {
+    logJson({ event: "memo.ogp.backfill", status: "error" });
+  }
 }
 
 export async function deleteForUser(
@@ -182,6 +258,9 @@ export async function createFromLine(
       lineMessageId: input.lineMessageId,
       createdAt: new Date().toISOString(),
     });
+    if (input.classified.mediaType === "url") {
+      await captureOgpForMemo(env, memoId);
+    }
     return { status: "inserted" };
   } catch (error) {
     if (isUniqueConstraintError(error)) return { status: "duplicate" };

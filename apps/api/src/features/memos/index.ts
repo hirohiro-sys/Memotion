@@ -4,6 +4,8 @@ import { createDb } from "../../db";
 import type { Env } from "../../env";
 import { readSessionUserId } from "../../lib/session";
 import {
+  backfillOgpForUser,
+  captureOgpForMemo,
   createForUser,
   deleteForUser,
   getImageForUser,
@@ -20,7 +22,9 @@ memoRoutes.get("/api/memos", async (c) => {
     return c.json({ message: "unauthorized" }, 401);
   }
 
-  return c.json(await listForUser(createDb(c.env.DB), userId));
+  const list = await listForUser(createDb(c.env.DB), userId);
+  c.executionCtx.waitUntil(backfillOgpForUser(c.env, userId));
+  return c.json(list);
 });
 
 memoRoutes.post("/api/memos", async (c) => {
@@ -46,6 +50,9 @@ memoRoutes.post("/api/memos", async (c) => {
     );
   }
 
+  if (result.memo.mediaType === "url") {
+    c.executionCtx.waitUntil(captureOgpForMemo(c.env, result.memo.id));
+  }
   return c.json(result.memo, 201);
 });
 
