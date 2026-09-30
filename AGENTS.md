@@ -30,7 +30,7 @@ LINEを用いた個人用のインタースティシャルジャーナリング�
 │           └── config/
 ├── packages/shared/         # API 契約の Zod
 ├── docs/
-└── .cursor/                 # ファイル別ルール
+└── .cursor/                 # rules/ と agents/
 ```
 
 ## 主要コマンド（テスト、ビルド、リント）
