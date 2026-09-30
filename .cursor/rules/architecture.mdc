@@ -1,0 +1,55 @@
+---
+description: API の置き場所、機能境界、副作用の分離
+globs: apps/api/src/**/*.ts
+alwaysApply: false
+---
+
+# architecture
+
+`apps/api` の置き場所と層。
+
+## 構造（どこに何を置くか）
+
+```
+apps/api/src/
+├── features/<機能名>/
+│   ├── index.ts        # リクエストの受け口。ロジックを書かない
+│   ├── service.ts      # 業務ロジック。repository と外部 I/O を呼ぶ
+│   ├── repository.ts   # DB の読み書き
+│   └── <判断>.ts       # 計算・変換・分岐だけの純粋関数
+├── lib/                # 機能横断の基盤のみ（session、LINE I/O）
+└── db/                 # スキーマと DB 接続
+```
+
+迷ったらこの順で問う:
+
+1. 特定機能の業務ロジック → `features/<機能名>/`
+2. どの機能にも属さない基盤 → `lib/` か `db/`
+3. 複数機能で共有したい処理 → 安易に共通化せず、まず各機能に置く
+
+公開契約の型は `packages/shared` の Zod。機能内の型は使うファイルに置く。
+
+## 1ファイル1責務
+
+- ファイルの担当を一文で言えること。「メモの媒体種別判定」は合格、「メモまわりの処理いろいろ」は失格
+- ファイルが肥大したら、責務の境界で割る
+
+## 機能境界
+
+- 他機能のテーブルへ直接クエリしない。所有機能の service を経由する（例: LINE 受信がメモを保存するときは `memos` の service を呼ぶ。`auth` の repository を直接叩かない）
+- `index.ts` に業務ロジック・クエリを直書きしない。service の関数を呼ぶだけにする
+- `index.ts` はルート定義だけ。他ファイルの再エクスポートはしない。service や repository は実ファイルから import する
+
+```ts
+// ❌
+import { findUserIdByLineUserId } from "../auth/repository";
+
+// ✅
+import { createFromLine } from "../memos/service";
+```
+
+## 副作用の分離（Functional Core / Imperative Shell）
+
+- 業務判断・計算・変換は純粋関数に集める（例: `classify.ts`、`window.ts`、`message.ts`）
+- DB・LINE API・時刻・乱数・環境変数は service / repository / `lib/` に寄せ、Core が返した結果を実行するだけに近づける
+- 狙いは、複雑なロジックを外部依存なしでテストできる形に保つこと
