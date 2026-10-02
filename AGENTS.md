@@ -63,7 +63,7 @@ pnpm build
 | `.cursor/rules/architecture.mdc` | `apps/api/src/**/*.ts`。feature の置き場所、層、機能境界 |
 | `.cursor/rules/testing.mdc` | `apps/api/src/**/*.test.ts` と `apps/api/vitest.config.ts`。単体テストの置き場所と骨抜き禁止 |
 | `.cursor/rules/design.mdc` | `apps/web/**/*.{tsx,css}`。色・余白・角丸は `docs/design-system.md` と `apps/web/src/index.css` に合わせ、新規発明しない |
-| `.cursor/rules/line-security.mdc` | `apps/api/src/{features,lib}/**/*.ts`。認証、LINE webhook、画像、ダイジェストの境界 |
+| `.cursor/rules/line-security.mdc` | `apps/api/src/{features,lib}/**/*.ts` と `apps/web/src/**/*.{ts,tsx}`。認証、LINE webhook、画像、ダイジェスト、Web の API 呼び出しの境界 |
 | `.cursor/rules/logging.mdc` | `apps/api/src/**/*.ts`。JSON 1行。本文と秘密は出さない |
 | `.cursor/rules/db.mdc` | `apps/api/migrations/**`、`apps/api/src/db/**`、`repository.ts`。マイグレーションは前進のみ |
 
