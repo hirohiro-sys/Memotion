@@ -16,8 +16,8 @@
 - [ ] プランを書いた（`docs/plans/` に8項目。AI に逆質問させてから。形式は `docs/plans/_template.md`。記入例自体は対象にしない）
 - [ ] プランをレビューにかけた（観点別。P0 は実装前に反映。プロンプトは `docs/dev-flow.md` の step 2）
 - [ ] テストケース一覧に人間がビジネスの目で介入した（機械的な網羅だけで確定しない）
-- [ ] 実装はプランを渡すだけにした（口頭の追加要件を足さない）
-- [ ] Red を確認してから Green にした（最初から通るテストを疑う）
+- [ ] 実装はプランを渡すだけにした（口頭の追加要件を足さない。API の振る舞いには隣の `*.test.ts` を同時に添える）
+- [ ] 失敗を先に確認したのは、TDD、テスト駆動、または Red-Green-Refactor と指定したときだけ（`.cursor/skills/tdd/SKILL.md`。1件ずつ失敗させてから通す）
 - [ ] 実装レビューを別セッションで走らせた（`design-reviewer`、`edge-case-reviewer`、`security-reviewer`。P0・P1 がゼロまで。3ラウンドを超えて循環したら人間が裁定する）
 - [ ] マージ前に決めたテスト一式を回した（プランの「コミット前テスト実行」。未記載なら `pnpm lint`、`pnpm typecheck`、`pnpm --filter @repo/api test`、`pnpm build`）
 
@@ -25,7 +25,7 @@
 
 - [ ] 本番までの X: デプロイ（`pnpm run deploy`。main への push で CI が実行）とログ（`.cursor/rules/logging.mdc` の JSON 1行）までつながっているか。Sentry は入っていない。Workers の設定、D1、R2、Cloudflare の秘密に「コードは問題ないのに動かない」原因が残っていないか
 - [ ] テストの信頼性: `.only` / `.skip` と、テスト対象を `vi.mock` で差し替えるごまかしをレビューで潰したか（`.cursor/rules/testing.mdc`）。新しいごまかしの型はルールかスキルに書き足したか
-- [ ] 劣化の返済: 同じ失敗の繰り返しが増えたら、コードの劣化を疑う。`docs/dev-flow.md` の step 8（`.cursor/rules/architecture.mdc` に合わせたリファクタ）を止めていないか
+- [ ] 劣化の返済: 同じ失敗の繰り返しが増えたら、コードの劣化を疑う。`docs/dev-flow.md` の step 8（テストを保ったリファクタ。`.cursor/rules/architecture.mdc` に合わせる）を止めていないか
 - [ ] ルールの鮮度: レビューで同じ指摘が繰り返されたら、`.cursor/rules/` のルールへ昇格させたか
 
 ## 品質が揺れたとき（X、Y、F の順に疑う）
