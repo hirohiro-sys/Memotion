@@ -81,7 +81,8 @@ pnpm build
 ```text
 実装が終わった。次の3体のサブエージェントを並列で起動し、
 報告を P0 から P2 に整理して返すこと。
-- design-reviewer: プランドキュメント（docs/plans/）との乖離
+差分は各サブエージェントが git diff main...HEAD を自分で取る。未コミットがあれば git diff HEAD も取る。実装の経緯は渡さない。
+- design-reviewer: プランドキュメント（docs/plans/）の詳細設計と新規テストケースとの乖離
 - edge-case-reviewer: 異常系と境界値の抜け
 - security-reviewer: セキュリティ観点
 ```

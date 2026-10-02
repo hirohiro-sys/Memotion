@@ -12,10 +12,10 @@ alwaysApply: true
 
 ## レビュー観点
 
-実装の経緯は渡さず、差分（git diff）だけを渡して次の観点で読む。指摘は日本語で、変更行のバグ・権限漏れ・契約崩れを優先する。
+実装の経緯は渡さない。差分は `git diff main...HEAD` を自分で取る。作業ツリーに未コミットの変更があるときは `git diff HEAD` も取る。指摘は日本語で、変更行のバグ・権限漏れ・契約崩れを優先する。
 
 1. セキュリティ: `.cursor/rules/line-security.mdc`。認可漏れ、署名検証前の解釈、画像の公開、機密（`.dev.vars`）の露出
-2. テスト: `.cursor/rules/testing.mdc`。振る舞い変更に対応する `*.test.ts` があるか、骨抜きでないか
+2. テスト: `.cursor/rules/testing.mdc`。API の振る舞い変更に対応する `*.test.ts` があるか、骨抜きでないか。Web だけの変更はテスト不足にしない
 3. 設計: `.cursor/rules/architecture.mdc`。1ファイル1責務、機能境界、`index.ts` にロジックを書かない
 4. ルール準拠: `.cursor/rules/` の該当ルール。見た目は `design.mdc`、公開契約は `packages/shared` の Zod
 
