@@ -49,7 +49,7 @@ pnpm build
 | `pnpm lint` | Biome（`biome check .`） |
 | `pnpm typecheck` | ワークスペース全体の型チェック |
 | `pnpm --filter @repo/api test` | API の Vitest |
-| `pnpm build` | Web と API のビルド |
+| `pnpm build` | Web のビルド（`tsc -b && vite build`）。API に build は無く、型は `pnpm typecheck` |
 | `pnpm dev` | ローカル開発 |
 | `pnpm run deploy` | Web をビルドして Worker をデプロイ |
 
