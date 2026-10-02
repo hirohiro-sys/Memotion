@@ -1,15 +1,20 @@
 ---
 description: 認証・LINE webhook・画像・ダイジェストのセキュリティ境界
-globs: apps/api/src/{features,lib}/**/*.ts
+globs: apps/api/src/{features,lib}/**/*.ts,apps/web/src/**/*.{ts,tsx}
 alwaysApply: false
 ---
 
 # LINE / auth
 
+- LINE Login は allowlist 済みユーザーだけセッションを発行する。未登録は `/login?error=denied`
+- `sid` は httpOnly。OAuth `state` は発行と消費が対になる
+- `/api/me`・`/api/memos*`・`/api/notifications` は `readSessionUserId` 必須。401 を省略しない
+- Cookie の `secure` / `sameSite` / path を緩めない
 - webhook は署名検証前に本文を解釈・永続化しない
 - 無効署名は 400。受理は 200 + `waitUntil`
-- 画像キーは `{userId}/{memoId}`。取得・削除は `row.userId === sessionUserId`
+- 画像は公開 URL にしない。R2 キーは `{userId}/{memoId}`。配信はセッション付き `/api/memos/:id/image`。取得・削除は `row.userId === sessionUserId`
+- 画像キーと thumbnail に公開オリジンを埋め込まない。thumbnail は `/api/memos/:id/image`
 - `lineMessageId` 重複は挿入せず `duplicate`
 - LINE 失敗理由を増やしたら `REPLY_TEXT` / `replyTextFor` とテストを同時更新
-- Cookie の `secure` / `sameSite` / path を緩めない
 - 週次ダイジェストは allowlist。JST 窓と `lastSentAt` を壊さない
+- Web の新しい API 呼び出しは `apiFetch` する。JSON の入出力は `packages/shared` の Zod で parse する

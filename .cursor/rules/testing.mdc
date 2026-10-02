@@ -1,0 +1,46 @@
+---
+description: API 単体テストの置き場所、守る境界、骨抜き禁止
+globs: apps/api/src/**/*.test.ts,apps/api/vitest.config.ts
+alwaysApply: false
+---
+
+# テスト
+
+自動テストは API の Vitest だけ。現状はPlaywright も E2E 用のシードもない。Web のフローはブラウザで確認する。
+
+## 種別と実行
+
+| 種別 | ツール | 置き場所 | 実行 | 何を守るか |
+| --- | --- | --- | --- | --- |
+| 単体 | Vitest | 対象ファイルの隣の `*.test.ts` | `pnpm --filter @repo/api test` | 判断・整形・バリデーションの境界と、ルートの 401 / 400 |
+
+- `apps/api/vitest.config.ts` の include は `src/**/*.test.ts`。`tests/unit/` は作らない
+- 例: `features/memos/classify.ts` → `features/memos/classify.test.ts`
+
+## 何を単体で守るか
+
+- 外部 I/O のない判断・計算・整形・バリデーション。境界の両側と異常系を書く（例: `classify`、`window`、`message`、`digest`、`decideLineEvent`、Zod）
+- ルートはセッションなしの 401 と不正ボディの 400 まで。D1 は立てない
+- LINE の HTTP は `fetch` を差し替え、URL・ヘッダ・body を期待値で見る。テスト対象の関数を `vi.mock` で差し替えない
+
+## 骨抜き禁止
+
+```ts
+// ❌
+expect(result).toBeDefined();
+vi.mock("./classify", () => ({ detectMediaType: () => "text" }));
+if (!process.env.LINE_CHANNEL_SECRET) return;
+
+// ✅
+expect(detectMediaType("https://example.com")).toBe("url");
+expect(detectMediaType("眠い")).toBe("text");
+expect(created.status).toBe(401);
+```
+
+- `.only` / `.skip` を残したままコミットしない
+- 振る舞いを変えたら、隣の `*.test.ts` の期待値も更新する
+
+## 独立性
+
+- 各テストは入力を自分で渡す。実行順序や他テストが作ったデータに依存しない
+- 時刻を見る判断は `now` を引数で渡す。待ち時間で時計を進めない
