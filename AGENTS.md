@@ -79,3 +79,12 @@ pnpm build
 - `apps/web/src/routeTree.gen.ts`（TanStack Router の生成物）
 - lockfile と `apps/api/migrations/meta` の機械的差分
 - `.dev.vars` など秘密情報
+
+## Cursor Cloud specific instructions
+
+- Node は 24.21.0（`package.json` の engines は `>=24.14.0`）。`/exec-daemon/node` は 22 で PATH の前方にあるので、解決される `node` は `/usr/local/cargo/bin/node`（実体は `/usr/local/bin/node`）。pnpm は corepack の 10.34.5。
+- pnpm 10 は依存のビルドスクリプトを止める。`pnpm-workspace.yaml` の `allowBuilds` で esbuild、workerd、msw を許可する。無いと Vite と Wrangler が起動しない。
+- `apps/api/wrangler.toml` の D1 と R2 は `remote = true`。`pnpm dev` は本番リソースに接続し、`CLOUDFLARE_API_TOKEN` が必要。Cloud Agent の起動は本番を触らない `wrangler dev --local`（ローカル D1 / R2）にする。
+- 起動前に `apps/api/.dev.vars.example` を `apps/api/.dev.vars` にコピーし、`SESSION_SECRET` を空にしない。ローカルマイグレーションは `pnpm --filter @repo/api db:migrate:local`。
+- Web は `http://127.0.0.1:5173`、API は `http://127.0.0.1:8787`。Vite が `/api` を 8787 にプロキシする。
+- `db:migrate:remote` と `pnpm run deploy` は本番を変更する。Cloud Agent では実行しない。
