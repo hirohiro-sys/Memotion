@@ -8,6 +8,10 @@ import {
 import { useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
+import {
+  getStoredSidebarCollapsed,
+  setStoredSidebarCollapsed,
+} from "@/config/sidebar";
 import { fetchMe } from "@/features/auth/api/get-me";
 import { fetchMemos } from "@/features/memos/api/get-memos";
 import { fetchNotifications } from "@/features/notifications/api/get-notifications";
@@ -26,6 +30,15 @@ export const Route = createFileRoute("/_app")({
 function AppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(getStoredSidebarCollapsed);
+
+  function toggleCollapsed() {
+    setCollapsed((current) => {
+      const next = !current;
+      setStoredSidebarCollapsed(next);
+      return next;
+    });
+  }
   const memos = useQuery({ queryKey: ["memos"], queryFn: fetchMemos });
   const notifications = useQuery({
     queryKey: ["notifications"],
@@ -35,6 +48,8 @@ function AppLayout() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
+        collapsed={collapsed}
+        onToggleCollapsed={toggleCollapsed}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
         memoCount={memos.data?.items.length ?? 0}
