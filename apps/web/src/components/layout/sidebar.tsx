@@ -1,9 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+  ChevronLeft,
+  ChevronRight,
   Inbox,
   Moon,
-  PanelLeftClose,
-  PanelLeftOpen,
   Settings2,
   Sun,
   User,
@@ -96,9 +96,35 @@ function SidebarColumn({
   return (
     <>
       <div
-        className={cn(compact ? "flex justify-center px-2 py-4" : "px-5 py-5")}
+        className={cn(
+          "flex items-center",
+          compact
+            ? "flex-col justify-center gap-2 px-2 py-4"
+            : "gap-1 px-3 py-5",
+        )}
       >
         <BrandLockup markOnly={compact} />
+        {onToggleCompact ? (
+          <button
+            type="button"
+            onClick={onToggleCompact}
+            aria-pressed={compact}
+            aria-label={compact ? "サイドバーを広げる" : "サイドバーを畳む"}
+            title={compact ? "サイドバーを広げる" : "サイドバーを畳む"}
+            className={cn(
+              iconButtonClass,
+              "shrink-0",
+              // 行ボックス中央だと小文字の字面より上に見える
+              !compact && "translate-y-[3px]",
+            )}
+          >
+            {compact ? (
+              <ChevronRight className="size-4" />
+            ) : (
+              <ChevronLeft className="size-4" />
+            )}
+          </button>
+        ) : null}
       </div>
 
       <nav
@@ -150,33 +176,6 @@ function SidebarColumn({
           })}
         </div>
       </nav>
-
-      {onToggleCompact ? (
-        <div
-          className={cn(
-            "flex",
-            compact ? "justify-center px-2 pb-2" : "mx-3 mb-2 justify-end",
-          )}
-        >
-          <button
-            type="button"
-            onClick={onToggleCompact}
-            aria-pressed={compact}
-            aria-label={compact ? "サイドバーを広げる" : "サイドバーを畳む"}
-            title={compact ? "サイドバーを広げる" : "サイドバーを畳む"}
-            className={cn(
-              iconButtonClass,
-              compact && "flex size-10 items-center justify-center p-0",
-            )}
-          >
-            {compact ? (
-              <PanelLeftOpen className="size-4" />
-            ) : (
-              <PanelLeftClose className="size-4" />
-            )}
-          </button>
-        </div>
-      ) : null}
 
       {compact ? null : (
         <div className="mx-3 mb-3 divide-y divide-border overflow-hidden rounded-xl border border-border">
