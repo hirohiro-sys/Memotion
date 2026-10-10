@@ -14,13 +14,13 @@ export function MemoComposer({
   onSubmit: (input: CreateMemoRequest) => Promise<void>;
   onCancel: () => void;
 }) {
-  const [tag, setTag] = useState<MemoTag | null>(null);
+  const [tag, setTag] = useState<MemoTag>("tweet");
   const [content, setContent] = useState("");
-  const canSubmit = tag !== null && content.trim().length > 0 && !busy;
+  const canSubmit = content.trim().length > 0 && !busy;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!tag || content.trim().length === 0) return;
+    if (content.trim().length === 0) return;
     await onSubmit({ tag, content });
   }
 
