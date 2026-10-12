@@ -57,7 +57,7 @@ export function MemoCard({
       <p
         ref={contentRef}
         className={cn(
-          "break-words text-body-sm leading-relaxed text-graphite",
+          "break-words whitespace-pre-wrap text-body-sm leading-relaxed text-graphite",
           overflows || expanded ? "mb-1" : "mb-2",
           !expanded && "line-clamp-3",
         )}
