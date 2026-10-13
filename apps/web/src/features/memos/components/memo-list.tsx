@@ -2,12 +2,20 @@ import type { CreateMemoRequest, Memo, MemoTag } from "@repo/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Inbox, Plus, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/config/tag-meta";
 import { cn } from "@/utils/cn";
 import { createMemo } from "../api/create-memo";
-import { deleteMemo } from "../api/delete-memo";
+import { deleteMemos } from "../api/delete-memos";
 import { fetchMemos } from "../api/get-memos";
 import { MemoCard } from "./memo-card";
 import { MemoListSkeleton } from "./memo-card-skeleton";
@@ -24,6 +32,8 @@ export function MemoList() {
   const [filter, setFilter] = useState<FilterTag>("all");
   const [search, setSearch] = useState("");
   const [composing, setComposing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: createMemo,
@@ -36,12 +46,16 @@ export function MemoList() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteMemo,
+    mutationFn: deleteMemos,
     onSuccess: async () => {
+      setSelectedIds(new Set());
+      setConfirmOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["memos"] });
     },
-    onError: () => {
+    onError: async () => {
+      setConfirmOpen(false);
       toast.add({ title: "削除できませんでした。", type: "error" });
+      await queryClient.invalidateQueries({ queryKey: ["memos"] });
     },
   });
 
@@ -72,6 +86,30 @@ export function MemoList() {
     return result;
   }, [memos, filter, search]);
 
+  const selectedList = useMemo(
+    () => filtered.filter((memo) => selectedIds.has(memo.id)).map((m) => m.id),
+    [filtered, selectedIds],
+  );
+
+  function toggleSelected(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function changeFilter(next: FilterTag) {
+    setFilter(next);
+    setSelectedIds(new Set());
+  }
+
+  function changeSearch(next: string) {
+    setSearch(next);
+    setSelectedIds(new Set());
+  }
+
   async function handleCreate(input: CreateMemoRequest) {
     await createMutation.mutateAsync(input);
     setComposing(false);
@@ -86,14 +124,14 @@ export function MemoList() {
             <input
               type="search"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => changeSearch(event.target.value)}
               placeholder="メモを検索"
               className="w-full rounded-lg border border-border bg-card py-2 pr-8 pl-9 text-body-sm text-foreground outline-none transition-colors duration-200 placeholder:text-stone focus:border-primary"
             />
             {search && (
               <button
                 type="button"
-                onClick={() => setSearch("")}
+                onClick={() => changeSearch("")}
                 className="absolute top-1/2 right-2.5 -translate-y-1/2 text-stone transition-colors duration-200 hover:text-foreground"
                 aria-label="検索をクリア"
               >
@@ -117,7 +155,7 @@ export function MemoList() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setFilter("all")}
+            onClick={() => changeFilter("all")}
             className={cn(
               PILL_BASE,
               filter === "all" ? "bg-foreground text-background" : PILL_IDLE,
@@ -135,7 +173,7 @@ export function MemoList() {
               <button
                 key={tag}
                 type="button"
-                onClick={() => setFilter(tag)}
+                onClick={() => changeFilter(tag)}
                 className={cn(PILL_BASE, active ? meta.className : PILL_IDLE)}
               >
                 {meta.label}
@@ -145,6 +183,31 @@ export function MemoList() {
               </button>
             );
           })}
+          {selectedList.length > 0 && (
+            <div className="ml-auto flex items-center gap-3 text-body-sm">
+              <span className="text-graphite tabular-nums">
+                {selectedList.length}件選択中
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                disabled={busy}
+                onClick={() => setSelectedIds(new Set())}
+              >
+                選択解除
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="xs"
+                disabled={busy}
+                onClick={() => setConfirmOpen(true)}
+              >
+                削除
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -173,6 +236,39 @@ export function MemoList() {
         </div>
       )}
 
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (!deleteMutation.isPending) setConfirmOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogTitle>
+            {selectedList.length}件のメモを削除しますか？
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            削除したメモは元に戻せません。
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogClose
+              render={<Button type="button" variant="ghost" size="sm" />}
+              disabled={deleteMutation.isPending}
+            >
+              キャンセル
+            </AlertDialogClose>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate(selectedList)}
+            >
+              削除する
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {memosQuery.isSuccess && filtered.length > 0 && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((memo) => (
@@ -180,7 +276,8 @@ export function MemoList() {
               key={memo.id}
               memo={memo}
               busy={busy}
-              onDelete={deleteMutation.mutateAsync}
+              selected={selectedIds.has(memo.id)}
+              onToggle={toggleSelected}
             />
           ))}
         </div>
