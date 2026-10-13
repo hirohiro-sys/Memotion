@@ -1,4 +1,8 @@
-import { createMemoRequestSchema } from "@repo/shared";
+import {
+  createMemoRequestSchema,
+  deleteMemosRequestSchema,
+  deleteMemosResponseSchema,
+} from "@repo/shared";
 import { Hono } from "hono";
 import { createDb } from "../../db";
 import type { Env } from "../../env";
@@ -7,7 +11,7 @@ import {
   backfillOgpForUser,
   captureOgpForMemo,
   createForUser,
-  deleteForUser,
+  deleteManyForUser,
   getImageForUser,
   listForUser,
 } from "./service";
@@ -75,16 +79,19 @@ memoRoutes.get("/api/memos/:id/image", async (c) => {
   });
 });
 
-memoRoutes.delete("/api/memos/:id", async (c) => {
+memoRoutes.post("/api/memos/bulk-delete", async (c) => {
   const userId = await readSessionUserId(c);
   if (!userId) {
     return c.json({ message: "unauthorized" }, 401);
   }
 
-  const result = await deleteForUser(c.env, userId, c.req.param("id"));
-  if (result === "not_found") {
-    return c.json({ message: "not found" }, 404);
+  let body: ReturnType<typeof deleteMemosRequestSchema.parse>;
+  try {
+    body = deleteMemosRequestSchema.parse(await c.req.json());
+  } catch {
+    return c.json({ message: "invalid request" }, 400);
   }
 
-  return c.body(null, 204);
+  const result = await deleteManyForUser(c.env, userId, body.ids);
+  return c.json(deleteMemosResponseSchema.parse(result));
 });

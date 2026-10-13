@@ -14,7 +14,7 @@ import { fetchOgpImage, isHttpsUrl } from "./ogp";
 import {
   claimOgp,
   deleteMedia,
-  deleteMemoById,
+  deleteMemosByIds,
   findByLineMessageId,
   findMemoMedia,
   findTagBySlug,
@@ -188,32 +188,28 @@ export async function backfillOgpForUser(
   }
 }
 
-export async function deleteForUser(
+export async function deleteManyForUser(
   env: Pick<Env, "DB" | "MEDIA">,
   userId: string,
-  memoId: string,
-): Promise<"deleted" | "not_found"> {
+  ids: string[],
+): Promise<{ deleted: number }> {
   const db = createDb(env.DB);
-  const row = await findMemoMedia(db, memoId);
-  if (!row || row.userId !== userId) {
-    return "not_found";
-  }
+  const rows = await deleteMemosByIds(db, userId, [...new Set(ids)]);
 
-  await deleteMemoById(db, memoId);
-
-  if (row.imageKey) {
+  for (const row of rows) {
+    if (!row.imageKey) continue;
     try {
       await deleteMedia(env.MEDIA, row.imageKey);
     } catch {
       logJson({
         event: "memo.image.delete",
         status: "failed",
-        imageKey: row.imageKey,
+        memoId: row.id,
       });
     }
   }
 
-  return "deleted";
+  return { deleted: rows.length };
 }
 
 export async function createFromLine(

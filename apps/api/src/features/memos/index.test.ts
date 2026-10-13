@@ -1,4 +1,8 @@
-import { createMemoRequestSchema } from "@repo/shared";
+import {
+  createMemoRequestSchema,
+  deleteMemosRequestSchema,
+  MAX_BULK_DELETE,
+} from "@repo/shared";
 import { describe, expect, it } from "vitest";
 import { detectMediaType } from "./classify";
 import { memoRoutes, toMemoResponse } from "./index";
@@ -132,7 +136,7 @@ describe("detectMediaType", () => {
 });
 
 describe("memo write routes without a session", () => {
-  it("rejects create and delete with 401", async () => {
+  it("rejects create and bulk delete with 401", async () => {
     const created = await memoRoutes.request("/api/memos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -140,9 +144,33 @@ describe("memo write routes without a session", () => {
     });
     expect(created.status).toBe(401);
 
-    const deleted = await memoRoutes.request("/api/memos/memo_1", {
-      method: "DELETE",
+    const deleted = await memoRoutes.request("/api/memos/bulk-delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: ["memo_1"] }),
     });
     expect(deleted.status).toBe(401);
+  });
+});
+
+describe("deleteMemosRequestSchema", () => {
+  it("accepts 1 to MAX_BULK_DELETE ids", () => {
+    expect(deleteMemosRequestSchema.safeParse({ ids: ["a"] }).success).toBe(
+      true,
+    );
+    const max = Array.from({ length: MAX_BULK_DELETE }, (_, i) => `m${i}`);
+    expect(deleteMemosRequestSchema.safeParse({ ids: max }).success).toBe(true);
+  });
+
+  it("rejects an empty list, too many ids, empty ids and a missing field", () => {
+    expect(deleteMemosRequestSchema.safeParse({ ids: [] }).success).toBe(false);
+    const over = Array.from({ length: MAX_BULK_DELETE + 1 }, (_, i) => `m${i}`);
+    expect(deleteMemosRequestSchema.safeParse({ ids: over }).success).toBe(
+      false,
+    );
+    expect(deleteMemosRequestSchema.safeParse({ ids: [""] }).success).toBe(
+      false,
+    );
+    expect(deleteMemosRequestSchema.safeParse({}).success).toBe(false);
   });
 });

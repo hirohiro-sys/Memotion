@@ -2,6 +2,11 @@ export { type HealthResponse, healthResponseSchema } from "./health";
 export {
   type CreateMemoRequest,
   createMemoRequestSchema,
+  type DeleteMemosRequest,
+  type DeleteMemosResponse,
+  deleteMemosRequestSchema,
+  deleteMemosResponseSchema,
+  MAX_BULK_DELETE,
   type Memo,
   type MemoListResponse,
   type MemoMediaType,
