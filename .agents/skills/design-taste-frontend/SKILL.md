@@ -5,7 +5,7 @@ description: Webの画面を、ありきたりでない見た目に仕上げる�
 
 # design-taste-frontend
 
-色・余白・角丸の正本は `docs/design-system.md` と `apps/web/src/index.css`。手順の禁止事項は `.cursor/rules/design.mdc`。新しい色や余白は作らない。
+色・余白・角丸の正本は `docs/design-system.md` と `apps/web/src/index.css`。手順の禁止事項は `.agents/rules/design.md`。新しい色や余白は作らない。
 
 ## 0. 依頼文の読解（何よりも先に空気を読む）
 
