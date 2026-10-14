@@ -7,8 +7,8 @@
 | プロンプト中の参照 | 置き場 |
 | --- | --- |
 | プラン | `docs/plans/`。形式は `docs/plans/_template.md` |
-| ルール | `.cursor/rules/` |
-| サブエージェント | `.cursor/agents/` の design-reviewer、edge-case-reviewer、security-reviewer |
+| ルール | `.agents/rules/` |
+| サブエージェント | `.agents/agents/` の design-reviewer、edge-case-reviewer、security-reviewer |
 | 要件の出所 | issue の Design Doc、または `docs/` の該当文書 |
 | テスト | API は Vitest。Web はブラウザで確認する。Playwright はない |
 
@@ -33,7 +33,7 @@
 docs/plans/[プランファイル].md をレビューすること。私は書いた本人ではない前提で読む。
 docs/plans/_template.md は対象にしない。
 観点: [設計整合性/セキュリティ/運用/ビジネス整合性から1つ]。
-判定の基準: [.cursor/rules/ の該当ルール、または要件の出所]。
+判定の基準: [.agents/rules/ の該当ルール、または要件の出所]。
 指摘は P0（実装前に必ず直す）/ P1（推奨）/ P2（軽微）に分類し、
 プランのどの記述が・どの基準と・なぜずれるかを1件ずつ示すこと。
 ```
@@ -47,19 +47,19 @@ docs/plans/[プランファイル].md の「新規テストケース」だけを
 (2) 境界値の両側・異常系が入っているか
 (3) 実装しないと決めたスコープ外がテストに紛れていないか
 を確認し、足りないテストケースを提案すること。
-自動テストは API の Vitest（.cursor/rules/testing.mdc）だけである。
+自動テストは API の Vitest（.agents/rules/testing.md）だけである。
 Web の確認はブラウザで行い、Playwright のケースは提案しない。
 ```
 
 ## 4. 実装
 
-失敗を先に確認する進め方は、下のプロンプトには書かない。使うときは依頼文で TDD、テスト駆動、または Red-Green-Refactor と指定する。そのときだけ `.cursor/skills/tdd/SKILL.md` に従い、プランの新規テストケースを1件ずつ失敗させてから通す。指定が無いときは、実装とテストを書いてから step 5 へ進む。
+失敗を先に確認する進め方は、下のプロンプトには書かない。使うときは依頼文で TDD、テスト駆動、または Red-Green-Refactor と指定する。そのときだけ `.agents/skills/tdd/SKILL.md` に従い、プランの新規テストケースを1件ずつ失敗させてから通す。指定が無いときは、実装とテストを書いてから step 5 へ進む。
 
 ```text
 docs/plans/[プランファイル].md の実装順に従って実装すること。
 プランの割り当てどおり、[調査/ユーティリティ]はサブエージェントに任せてよい。
 プランにない変更が必要になったら、実装せずに立ち止まって報告すること。
-API の振る舞いを変えたら、対象ファイルの隣の *.test.ts を同時に書く（.cursor/rules/testing.mdc）。
+API の振る舞いを変えたら、対象ファイルの隣の *.test.ts を同時に書く（.agents/rules/testing.md）。
 Web だけの変更はテストを発明せず、ブラウザで変更フローを確認する。
 実装のあとに、テストを失敗させに戻らない。
 ```
@@ -106,6 +106,6 @@ pnpm build
 先に対象のテストを実行して全部 Green であることを確認し、
 そこから1変更ごとにテストを回して、Green を保ったまま進めること。
 観点: 1ファイル1責務に反する肥大したファイルの分割、
-重複した処理の集約、.cursor/rules/architecture.mdc との乖離の解消。
+重複した処理の集約、.agents/rules/architecture.md との乖離の解消。
 テストが赤くなったら、その変更を巻き戻して報告すること。
 ```

@@ -1,1 +1,1 @@
-../../.cursor/agents/design-reviewer.md
+../../.agents/agents/design-reviewer.md

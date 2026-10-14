@@ -1,1 +1,1 @@
-../../.cursor/agents/security-reviewer.md
+../../.agents/agents/security-reviewer.md

@@ -30,7 +30,9 @@ LINEを用いた個人用のインタースティシャルジャーナリング�
 │           └── config/
 ├── packages/shared/         # API 契約の Zod
 ├── docs/
-└── .cursor/                 # rules/ と agents/
+├── .agents/                 # ハーネスの実体。rules/ skills/ agents/
+├── .claude/                 # Claude Code 用。.agents への symlink と settings.json
+└── .cursor/                 # Cursor 用。rules/ は .agents への symlink
 ```
 
 ## 主要コマンド（テスト、ビルド、リント）
@@ -55,17 +57,19 @@ pnpm build
 
 ## 開発ルールの適用
 
+ルール・スキル・エージェントの実体は `.agents/` にある。`.claude/` と `.cursor/` はそこへの symlink で、直すのは `.agents/` だけ。ルールの frontmatter は Cursor 用（`description` / `globs` / `alwaysApply`）と Claude Code 用（`paths`）を併記している。
+
 指摘は変更行のバグ・権限漏れ・契約崩れを優先する。
 
 | ルール | いつ読むか |
 | --- | --- |
-| `.cursor/rules/review.mdc` | 常時。プルリクエスト前の AI 相互レビュー |
-| `.cursor/rules/architecture.mdc` | `apps/api/src/**/*.ts`。feature の置き場所、層、機能境界 |
-| `.cursor/rules/testing.mdc` | `apps/api/src/**/*.test.ts` と `apps/api/vitest.config.ts`。単体テストの置き場所と骨抜き禁止 |
-| `.cursor/rules/design.mdc` | `apps/web/**/*.{tsx,css}`。色・余白・角丸は `docs/design-system.md` と `apps/web/src/index.css` に合わせ、新規発明しない |
-| `.cursor/rules/line-security.mdc` | `apps/api/src/{features,lib}/**/*.ts` と `apps/web/src/**/*.{ts,tsx}`。認証、LINE webhook、画像、ダイジェスト、Web の API 呼び出しの境界 |
-| `.cursor/rules/logging.mdc` | `apps/api/src/**/*.ts`。JSON 1行。本文と秘密は出さない |
-| `.cursor/rules/db.mdc` | `apps/api/migrations/**`、`apps/api/src/db/**`、`repository.ts`。マイグレーションは前進のみ |
+| `.agents/rules/review.md` | 常時。プルリクエスト前の AI 相互レビュー |
+| `.agents/rules/architecture.md` | `apps/api/src/**/*.ts`。feature の置き場所、層、機能境界 |
+| `.agents/rules/testing.md` | `apps/api/src/**/*.test.ts` と `apps/api/vitest.config.ts`。単体テストの置き場所と骨抜き禁止 |
+| `.agents/rules/design.md` | `apps/web/**/*.{tsx,css}`。色・余白・角丸は `docs/design-system.md` と `apps/web/src/index.css` に合わせ、新規発明しない |
+| `.agents/rules/line-security.md` | `apps/api/src/{features,lib}/**/*.ts` と `apps/web/src/**/*.{ts,tsx}`。認証、LINE webhook、画像、ダイジェスト、Web の API 呼び出しの境界 |
+| `.agents/rules/logging.md` | `apps/api/src/**/*.ts`。JSON 1行。本文と秘密は出さない |
+| `.agents/rules/db.md` | `apps/api/migrations/**`、`apps/api/src/db/**`、`repository.ts`。マイグレーションは前進のみ |
 
 作業時:
 

@@ -1,1 +1,1 @@
-../../.cursor/agents/edge-case-reviewer.md
+../../.agents/agents/edge-case-reviewer.md
