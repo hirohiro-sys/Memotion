@@ -1,7 +1,6 @@
 import type { Memo } from "@repo/shared";
 import { Clock, ExternalLink } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
 import { formatDate } from "@/utils/format";
 import { TagBadge } from "./tag-badge";
@@ -9,13 +8,14 @@ import { TagBadge } from "./tag-badge";
 export function MemoCard({
   memo,
   busy,
-  onDelete,
+  selected,
+  onToggle,
 }: {
   memo: Memo;
   busy: boolean;
-  onDelete: (id: string) => Promise<void>;
+  selected: boolean;
+  onToggle: (id: string) => void;
 }) {
-  const [confirming, setConfirming] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
   const contentRef = useRef<HTMLParagraphElement>(null);
@@ -36,22 +36,23 @@ export function MemoCard({
     return () => observer.disconnect();
   }, [expanded]);
 
-  async function handleDelete() {
-    try {
-      await onDelete(memo.id);
-    } finally {
-      setConfirming(false);
-    }
-  }
-
   return (
-    <article className="flex h-full flex-col rounded-xl border border-border bg-card p-4">
+    <article
+      className={cn(
+        "flex h-full flex-col rounded-xl border bg-card p-4 transition-colors duration-200",
+        selected ? "border-primary" : "border-border",
+      )}
+    >
       <div className="mb-2 flex items-start justify-between gap-3">
         <TagBadge tag={memo.tag} size="xs" />
-        <span className="flex shrink-0 items-center gap-1 text-caption text-stone">
-          <Clock className="size-3" />
-          {formatDate(memo.createdAt)}
-        </span>
+        <input
+          type="checkbox"
+          checked={selected}
+          disabled={busy}
+          onChange={() => onToggle(memo.id)}
+          aria-label="このメモを選択"
+          className="size-4 shrink-0 cursor-pointer accent-primary"
+        />
       </div>
 
       <p
@@ -110,39 +111,11 @@ export function MemoCard({
           />
         ))}
 
-      <div className="mt-auto flex items-center justify-end gap-3">
-        {confirming ? (
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              disabled={busy}
-              onClick={() => setConfirming(false)}
-            >
-              キャンセル
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="xs"
-              disabled={busy}
-              onClick={() => void handleDelete()}
-            >
-              削除する
-            </Button>
-          </div>
-        ) : (
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            disabled={busy}
-            onClick={() => setConfirming(true)}
-          >
-            削除
-          </Button>
-        )}
+      <div className="mt-auto flex items-center justify-end">
+        <span className="flex shrink-0 items-center gap-1 text-caption text-stone">
+          <Clock className="size-3" />
+          {formatDate(memo.createdAt)}
+        </span>
       </div>
     </article>
   );

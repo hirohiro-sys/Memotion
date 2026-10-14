@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, lt, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, or } from "drizzle-orm";
 import type { Database } from "../../db";
 import { memos, tags } from "../../db/schema";
 
@@ -138,8 +138,24 @@ export async function claimOgp(
   return row ?? null;
 }
 
-export async function deleteMemoById(db: Database, id: string) {
-  await db.delete(memos).where(eq(memos.id, id));
+// D1 は1クエリあたりのバインド変数が100まで。userId の1つ分を引いて余裕を持たせる。
+const DELETE_CHUNK_SIZE = 90;
+
+export async function deleteMemosByIds(
+  db: Database,
+  userId: string,
+  ids: string[],
+): Promise<{ id: string; imageKey: string | null }[]> {
+  const deleted: { id: string; imageKey: string | null }[] = [];
+  for (let i = 0; i < ids.length; i += DELETE_CHUNK_SIZE) {
+    const chunk = ids.slice(i, i + DELETE_CHUNK_SIZE);
+    const rows = await db
+      .delete(memos)
+      .where(and(eq(memos.userId, userId), inArray(memos.id, chunk)))
+      .returning({ id: memos.id, imageKey: memos.imageKey });
+    deleted.push(...rows);
+  }
+  return deleted;
 }
 
 export async function findByLineMessageId(
