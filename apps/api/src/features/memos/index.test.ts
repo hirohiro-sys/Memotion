@@ -104,6 +104,56 @@ describe("createMemoRequestSchema", () => {
     ).toEqual({ tag: "tweet", content: "眠い" });
   });
 
+  it("keeps a client UUID v4 id and the written time but still drops unknown fields", () => {
+    expect(
+      createMemoRequestSchema.parse({
+        id: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+        tag: "tweet",
+        content: "眠い",
+        createdAt: "2026-10-17T09:00:00+09:00",
+        userId: "user_2",
+      }),
+    ).toEqual({
+      id: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+      tag: "tweet",
+      content: "眠い",
+      createdAt: "2026-10-17T09:00:00+09:00",
+    });
+  });
+
+  it("rejects an id that is not a UUID v4", () => {
+    expect(
+      createMemoRequestSchema.safeParse({
+        id: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+        tag: "tweet",
+        content: "眠い",
+      }).success,
+    ).toBe(false);
+    expect(
+      createMemoRequestSchema.safeParse({
+        id: "memo_1",
+        tag: "tweet",
+        content: "眠い",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a written time without an offset, a date only, or free text", () => {
+    for (const createdAt of [
+      "2026-10-17T09:00:00",
+      "2026-10-17",
+      "yesterday",
+    ]) {
+      expect(
+        createMemoRequestSchema.safeParse({
+          tag: "tweet",
+          content: "眠い",
+          createdAt,
+        }).success,
+      ).toBe(false);
+    }
+  });
+
   it("rejects whitespace-only content", () => {
     expect(() =>
       createMemoRequestSchema.parse({ tag: "tech", content: "   " }),
@@ -143,6 +193,17 @@ describe("memo write routes without a session", () => {
       body: JSON.stringify({ tag: "tweet", content: "眠い" }),
     });
     expect(created.status).toBe(401);
+
+    const withClientId = await memoRoutes.request("/api/memos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+        tag: "tweet",
+        content: "眠い",
+      }),
+    });
+    expect(withClientId.status).toBe(401);
 
     const deleted = await memoRoutes.request("/api/memos/bulk-delete", {
       method: "POST",

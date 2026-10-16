@@ -1,10 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LogOut } from "lucide-react";
-import type { ReactNode } from "react";
+import { CloudOff, LogOut } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { ToggleSwitch } from "@/components/toggle-switch";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PILL_IDLE, WEEKDAYS } from "@/config/tag-meta";
+import { PwaInstallGuide } from "@/features/pwa/components/pwa-install-guide";
 import { cn } from "@/utils/cn";
 import { fetchNotifications } from "../api/get-notifications";
 import { updateNotifications } from "../api/update-notifications";
@@ -46,13 +55,46 @@ function NotifyChannel({
   );
 }
 
-export function SettingsView({ onLogout }: { onLogout: () => Promise<void> }) {
+export function SettingsView({
+  onLogout,
+  countUnsent,
+}: {
+  onLogout: () => Promise<void>;
+  countUnsent: () => Promise<number>;
+}) {
   const queryClient = useQueryClient();
   const notificationsQuery = useQuery({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
   });
   const notifications = notificationsQuery.data;
+  // オフラインで、データが無いまま取得が止まっている。
+  const notificationsOffline =
+    notifications === undefined && notificationsQuery.fetchStatus === "paused";
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [unsentCount, setUnsentCount] = useState(0);
+
+  // 未送信のメモがあれば確認してから、無ければそのままログアウトする。
+  async function requestLogout() {
+    const count = await countUnsent();
+    if (count > 0) {
+      setUnsentCount(count);
+      setConfirmOpen(true);
+      return;
+    }
+    await handleLogout();
+  }
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await onLogout();
+    } finally {
+      setLoggingOut(false);
+      setConfirmOpen(false);
+    }
+  }
 
   const notifyMutation = useMutation({
     mutationFn: updateNotifications,
@@ -66,7 +108,14 @@ export function SettingsView({ onLogout }: { onLogout: () => Promise<void> }) {
       <section className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-6 text-subheading font-bold text-foreground">通知</h3>
 
-        {notificationsQuery.isPending && (
+        {notificationsOffline && (
+          <p className="flex items-center gap-2 text-body-sm text-stone">
+            <CloudOff className="size-4 shrink-0" />
+            オフラインのため設定を取得できません
+          </p>
+        )}
+
+        {notificationsQuery.isPending && !notificationsOffline && (
           <div className="space-y-6" role="status" aria-label="読み込み中">
             <div className="flex items-start justify-between gap-3 border-b border-border pb-6">
               <div className="space-y-2">
@@ -177,15 +226,51 @@ export function SettingsView({ onLogout }: { onLogout: () => Promise<void> }) {
         )}
       </section>
 
+      <PwaInstallGuide />
+
       <div className="flex justify-end">
         <Button
           type="button"
           variant="destructive"
-          onClick={() => void onLogout()}
+          disabled={loggingOut}
+          onClick={() => void requestLogout()}
         >
           <LogOut className="size-3.5" /> ログアウト
         </Button>
       </div>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (!loggingOut) setConfirmOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogTitle>
+            未送信のメモが{unsentCount}件あります
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            ログアウトすると、この端末の未送信のメモは破棄されます。
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogClose
+              render={<Button type="button" variant="ghost" size="sm" />}
+              disabled={loggingOut}
+            >
+              キャンセル
+            </AlertDialogClose>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={loggingOut}
+              onClick={() => void handleLogout()}
+            >
+              破棄してログアウト
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

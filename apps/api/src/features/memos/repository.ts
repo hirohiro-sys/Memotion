@@ -43,6 +43,30 @@ export async function listMemos(
     .orderBy(desc(memos.createdAt));
 }
 
+// 持ち主を確かめずに行を返す。認可（row.userId === sessionUserId）は呼び出し側で必ず行う。
+export async function findMemoWithOwner(
+  db: Database,
+  id: string,
+): Promise<(MemoRow & { userId: string }) | null> {
+  const [row] = await db
+    .select({
+      id: memos.id,
+      userId: memos.userId,
+      tag: tags.slug,
+      content: memos.content,
+      url: memos.url,
+      imageKey: memos.imageKey,
+      mediaType: memos.mediaType,
+      source: memos.source,
+      createdAt: memos.createdAt,
+    })
+    .from(memos)
+    .innerJoin(tags, eq(memos.tagId, tags.id))
+    .where(eq(memos.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function findTagBySlug(db: Database, slug: string) {
   const [tag] = await db
     .select({ id: tags.id, slug: tags.slug })

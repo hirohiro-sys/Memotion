@@ -20,8 +20,13 @@ export const memoListResponseSchema = z.object({
 });
 
 export const createMemoRequestSchema = z.object({
+  // 端末が生成する冪等キー。旧版のクライアントのために任意にする。
+  // 推測できる ID による先取りを防ぐため v4 に限る。
+  id: z.uuidv4().optional(),
   tag: memoTagSchema,
   content: z.string().trim().min(1),
+  // 端末でメモを書いた時刻。オフラインで書いたメモを書いた時刻で保存するため。
+  createdAt: z.iso.datetime({ offset: true }).optional(),
 });
 
 export const MAX_BULK_DELETE = 500;
