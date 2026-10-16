@@ -10,6 +10,12 @@ import type { Env } from "../../env";
 import { fetchMessageContent } from "../../lib/line/client";
 import type { ClassifySuccess } from "./classify";
 import { detectMediaType } from "./classify";
+import {
+  decideCreateResult,
+  type ExistingMemoRow,
+  isPrimaryKeyConflict,
+  type SaveResult,
+} from "./idempotency";
 import { fetchOgpImage, isHttpsUrl } from "./ogp";
 import {
   claimOgp,
@@ -17,6 +23,7 @@ import {
   deleteMemosByIds,
   findByLineMessageId,
   findMemoMedia,
+  findMemoWithOwner,
   findTagBySlug,
   getMedia,
   insertMemo,
@@ -30,6 +37,7 @@ import {
   putMedia,
   updateMemoOgp,
 } from "./repository";
+import { resolveCreatedAt } from "./resolve-created-at";
 
 const OGP_CLAIM_STALE_MS = 30_000;
 const OGP_BACKFILL_BUDGET_MS = 20_000;
@@ -64,15 +72,18 @@ export async function createForUser(
   userId: string,
   input: CreateMemoRequest,
 ): Promise<
-  { ok: true; memo: Memo } | { ok: false; error: "invalid" | "save_failed" }
+  | { ok: true; memo: Memo; created: boolean }
+  | { ok: false; error: "invalid" | "save_failed" | "conflict" }
 > {
   const tag = await findTagBySlug(db, input.tag);
   if (!tag) return { ok: false, error: "invalid" };
 
-  const memoId = nanoid();
-  const createdAt = new Date().toISOString();
+  const memoId = input.id ?? nanoid();
+  const createdAt = resolveCreatedAt(input.createdAt, new Date());
   const mediaType = detectMediaType(input.content);
 
+  let saveResult: SaveResult = "inserted";
+  let existing: ExistingMemoRow | null = null;
   try {
     await insertMemo(db, {
       id: memoId,
@@ -86,23 +97,46 @@ export async function createForUser(
       lineMessageId: null,
       createdAt,
     });
-  } catch {
-    return { ok: false, error: "save_failed" };
+  } catch (error) {
+    // error は SQL と本文を含むためログに渡さない。
+    saveResult = isPrimaryKeyConflict(error)
+      ? "primary_key_conflict"
+      : "failed";
+    if (saveResult === "primary_key_conflict") {
+      try {
+        existing = await findMemoWithOwner(db, memoId);
+      } catch {
+        existing = null;
+      }
+    }
   }
 
-  return {
-    ok: true,
-    memo: toMemoResponse({
-      id: memoId,
-      tag: tag.slug,
-      content: input.content,
-      url: null,
-      imageKey: null,
-      mediaType,
-      source: "web",
-      createdAt,
-    }),
-  };
+  const decision = decideCreateResult(saveResult, existing, input, userId);
+  switch (decision.kind) {
+    case "created":
+      return {
+        ok: true,
+        created: true,
+        memo: toMemoResponse({
+          id: memoId,
+          tag: tag.slug,
+          content: input.content,
+          url: null,
+          imageKey: null,
+          mediaType,
+          source: "web",
+          createdAt,
+        }),
+      };
+    case "existing":
+      logJson({ event: "memo.create", status: "duplicate", memoId });
+      return { ok: true, created: false, memo: toMemoResponse(decision.row) };
+    case "conflict":
+      logJson({ event: "memo.create", status: "conflict", memoId });
+      return { ok: false, error: "conflict" };
+    case "save_failed":
+      return { ok: false, error: "save_failed" };
+  }
 }
 
 export async function getImageForUser(

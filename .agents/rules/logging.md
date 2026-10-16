@@ -22,8 +22,8 @@ Workers のログは `console.log(JSON.stringify(fields))` の1行。各ファ�
 
 | キー | 内容 |
 | --- | --- |
-| event | `line.webhook` / `line.event` / `memo.ogp` / `memo.image.delete` / `tech.weekly` / `todo.daily` |
-| status / action | `invalid_signature` / `failed` / `ignored` / `skipped` / `tick` など |
+| event | `line.webhook` / `line.event` / `memo.create` / `memo.ogp` / `memo.image.delete` / `tech.weekly` / `todo.daily` |
+| status / action | `invalid_signature` / `failed` / `ignored` / `skipped` / `tick` / `duplicate` / `conflict` など |
 | userId | アプリのユーザー ID |
 | lineUserId | 不受理・未登録のときだけ |
 | memoId | メモ ID |

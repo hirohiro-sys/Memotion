@@ -46,14 +46,18 @@ memoRoutes.post("/api/memos", async (c) => {
 
   const result = await createForUser(createDb(c.env.DB), userId, body);
   if (!result.ok) {
-    return c.json(
-      {
-        message: result.error === "invalid" ? "invalid request" : "save failed",
-      },
-      result.error === "invalid" ? 400 : 500,
-    );
+    if (result.error === "invalid") {
+      return c.json({ message: "invalid request" }, 400);
+    }
+    if (result.error === "conflict") {
+      return c.json({ message: "conflict" }, 409);
+    }
+    return c.json({ message: "save failed" }, 500);
   }
 
+  if (!result.created) {
+    return c.json(result.memo, 200);
+  }
   if (result.memo.mediaType === "url") {
     c.executionCtx.waitUntil(captureOgpForMemo(c.env, result.memo.id));
   }
