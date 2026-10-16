@@ -1,7 +1,13 @@
-import type { CreateMemoRequest, Memo, MemoTag } from "@repo/shared";
+import {
+  type CreateMemoRequest,
+  createMemoRequestSchema,
+  type Memo,
+  type MemoTag,
+} from "@repo/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Inbox, Plus, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useRouter } from "@tanstack/react-router";
+import { CloudOff, Inbox, Plus, Search, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -13,13 +19,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/config/tag-meta";
+import { getStoredUserId } from "@/features/auth/stored-user-id";
 import { cn } from "@/utils/cn";
-import { createMemo } from "../api/create-memo";
+import { sendMemo } from "../api/create-memo";
 import { deleteMemos } from "../api/delete-memos";
 import { fetchMemos } from "../api/get-memos";
+import { requestOutboxFlush } from "../offline/flush";
+import { visiblePendingItems } from "../offline/merge-pending";
+import { addOutboxItem, deleteOutboxItem } from "../offline/outbox";
+import { useOutbox } from "../offline/use-outbox";
 import { MemoCard } from "./memo-card";
 import { MemoListSkeleton } from "./memo-card-skeleton";
 import { MemoComposer } from "./memo-composer";
+import { PendingMemoCard } from "./pending-memo-card";
 
 type FilterTag = MemoTag | "all";
 const EMPTY_MEMOS: Memo[] = [];
@@ -35,8 +47,24 @@ export function MemoList() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  const router = useRouter();
+  const outboxItems = useOutbox();
+  // 送信ボタンの連打で同じメモを2回積まないよう、処理中は受け付けない。
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+
+  // 未送信リストが使えない環境で、オンラインのときだけ使う直接送信。
   const createMutation = useMutation({
-    mutationFn: createMemo,
+    mutationFn: async (input: CreateMemoRequest) => {
+      const result = await sendMemo({
+        ...input,
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+      });
+      if (result.kind === "saved") return;
+      if (result.kind === "unauthorized") await router.invalidate();
+      throw new Error("failed to create memo");
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["memos"] });
     },
@@ -59,7 +87,8 @@ export function MemoList() {
     },
   });
 
-  const busy = createMutation.isPending || deleteMutation.isPending;
+  const busy =
+    submitting || createMutation.isPending || deleteMutation.isPending;
 
   const tagCounts = useMemo(() => {
     const acc: Record<MemoTag, number> = {
@@ -110,9 +139,64 @@ export function MemoList() {
     setSelectedIds(new Set());
   }
 
+  const pendingItems = useMemo(
+    () => visiblePendingItems(outboxItems, memos, filter, search),
+    [outboxItems, memos, filter, search],
+  );
+  // オフラインで取得が止まっている（データが無いまま待機中）。
+  const memosOffline =
+    memosQuery.data === undefined && memosQuery.fetchStatus === "paused";
+
+  // 送信ボタンを押した時点で端末に保存してから送る。送信の途中で失敗しても、メモは端末に残る。
   async function handleCreate(input: CreateMemoRequest) {
-    await createMutation.mutateAsync(input);
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      await saveAndSend(input);
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  }
+
+  async function saveAndSend(input: CreateMemoRequest) {
+    const parsed = createMemoRequestSchema.safeParse(input);
+    const userId = getStoredUserId();
+    if (!parsed.success) return;
+
+    try {
+      if (!userId) throw new Error("no stored user");
+      await addOutboxItem({
+        id: crypto.randomUUID(),
+        userId,
+        tag: parsed.data.tag,
+        content: parsed.data.content,
+        createdAt: new Date().toISOString(),
+        status: "pending",
+      });
+    } catch {
+      if (!navigator.onLine) {
+        toast.add({
+          title: "このブラウザではオフラインでの追加が使えません。",
+          type: "error",
+        });
+        return;
+      }
+      await createMutation.mutateAsync(parsed.data);
+      setComposing(false);
+      return;
+    }
+    requestOutboxFlush();
     setComposing(false);
+  }
+
+  async function handleDiscard(id: string) {
+    try {
+      await deleteOutboxItem(id);
+    } catch {
+      toast.add({ title: "破棄できませんでした。", type: "error" });
+    }
   }
 
   return (
@@ -219,7 +303,14 @@ export function MemoList() {
         />
       )}
 
-      {memosQuery.isPending && <MemoListSkeleton />}
+      {memosOffline && (
+        <p className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-body-sm text-stone">
+          <CloudOff className="size-4 shrink-0" />
+          オフラインのため既存のメモは表示できません
+        </p>
+      )}
+
+      {memosQuery.isPending && !memosOffline && <MemoListSkeleton />}
 
       {memosQuery.isError && (
         <p className="py-20 text-center text-body-sm text-destructive">
@@ -227,14 +318,16 @@ export function MemoList() {
         </p>
       )}
 
-      {memosQuery.isSuccess && filtered.length === 0 && (
-        <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
-          <Inbox className="mx-auto mb-3 size-5 text-stone" />
-          <p className="text-body-sm text-stone">
-            {search ? "検索結果が見つかりません" : "まだメモがありません"}
-          </p>
-        </div>
-      )}
+      {memosQuery.isSuccess &&
+        filtered.length === 0 &&
+        pendingItems.length === 0 && (
+          <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
+            <Inbox className="mx-auto mb-3 size-5 text-stone" />
+            <p className="text-body-sm text-stone">
+              {search ? "検索結果が見つかりません" : "まだメモがありません"}
+            </p>
+          </div>
+        )}
 
       <AlertDialog
         open={confirmOpen}
@@ -269,8 +362,16 @@ export function MemoList() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {memosQuery.isSuccess && filtered.length > 0 && (
+      {(pendingItems.length > 0 ||
+        (memosQuery.isSuccess && filtered.length > 0)) && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {pendingItems.map((item) => (
+            <PendingMemoCard
+              key={item.id}
+              item={item}
+              onDiscard={(id) => void handleDiscard(id)}
+            />
+          ))}
           {filtered.map((memo) => (
             <MemoCard
               key={memo.id}

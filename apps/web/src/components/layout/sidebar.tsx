@@ -29,6 +29,7 @@ function NotifyWidget({
   notifyOn,
   cadence,
   pending,
+  unavailable,
   onNavigate,
 }: {
   title: string;
@@ -36,6 +37,7 @@ function NotifyWidget({
   notifyOn: boolean;
   cadence: string;
   pending: boolean;
+  unavailable: boolean;
   onNavigate: () => void;
 }) {
   return (
@@ -50,11 +52,11 @@ function NotifyWidget({
           <Skeleton className="h-4 w-8" />
         ) : (
           <p className="text-body-sm font-medium tabular-nums text-foreground">
-            {count}件
+            {unavailable ? "-" : `${count}件`}
           </p>
         )}
       </div>
-      {pending ? null : (
+      {pending || unavailable ? null : (
         <p className="mt-0.5 text-caption text-stone">
           {notifyOn ? `${cadence}オン` : `${cadence}オフ`}
         </p>
@@ -71,9 +73,11 @@ function SidebarColumn({
   techCount,
   todoCount,
   memosPending,
+  memosOffline,
   notifyOn,
   todoNotifyOn,
   notificationsPending,
+  notificationsOffline,
   dark,
   onTheme,
 }: {
@@ -84,14 +88,17 @@ function SidebarColumn({
   techCount: number;
   todoCount: number;
   memosPending: boolean;
+  memosOffline: boolean;
   notifyOn: boolean;
   todoNotifyOn: boolean;
   notificationsPending: boolean;
+  notificationsOffline: boolean;
   dark: boolean;
   onTheme: () => void;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const summaryPending = memosPending || notificationsPending;
+  const summaryOffline = memosOffline || notificationsOffline;
 
   return (
     <>
@@ -138,7 +145,7 @@ function SidebarColumn({
               ? pathname === item.to
               : pathname.startsWith(item.to);
             const compactLabel =
-              isMemo && !memosPending
+              isMemo && !memosPending && !memosOffline
                 ? `${item.label}、${memoCount}件`
                 : item.label;
             return (
@@ -166,7 +173,16 @@ function SidebarColumn({
                 {!compact && isMemo && memosPending ? (
                   <Skeleton className="h-3 w-4" />
                 ) : null}
-                {!compact && isMemo && !memosPending && memoCount > 0 ? (
+                {!compact && isMemo && memosOffline ? (
+                  <span className="text-caption tabular-nums text-stone">
+                    -
+                  </span>
+                ) : null}
+                {!compact &&
+                isMemo &&
+                !memosPending &&
+                !memosOffline &&
+                memoCount > 0 ? (
                   <span className="text-caption tabular-nums text-stone">
                     {memoCount}
                   </span>
@@ -185,6 +201,7 @@ function SidebarColumn({
             notifyOn={notifyOn}
             cadence="週次通知"
             pending={summaryPending}
+            unavailable={summaryOffline}
             onNavigate={onNavigate}
           />
           <NotifyWidget
@@ -193,6 +210,7 @@ function SidebarColumn({
             notifyOn={todoNotifyOn}
             cadence="毎日通知"
             pending={summaryPending}
+            unavailable={summaryOffline}
             onNavigate={onNavigate}
           />
         </div>
@@ -247,9 +265,11 @@ export function Sidebar({
   techCount,
   todoCount,
   memosPending,
+  memosOffline,
   notifyOn,
   todoNotifyOn,
   notificationsPending,
+  notificationsOffline,
 }: {
   collapsed: boolean;
   onToggleCollapsed: () => void;
@@ -259,9 +279,11 @@ export function Sidebar({
   techCount: number;
   todoCount: number;
   memosPending: boolean;
+  memosOffline: boolean;
   notifyOn: boolean;
   todoNotifyOn: boolean;
   notificationsPending: boolean;
+  notificationsOffline: boolean;
 }) {
   const [theme, setTheme] = useState<"light" | "dark">(getStoredTheme);
   const dark = theme === "dark";
@@ -278,9 +300,11 @@ export function Sidebar({
     techCount,
     todoCount,
     memosPending,
+    memosOffline,
     notifyOn,
     todoNotifyOn,
     notificationsPending,
+    notificationsOffline,
     dark,
     onTheme: handleTheme,
   };

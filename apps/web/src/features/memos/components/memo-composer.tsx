@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/config/tag-meta";
 import { cn } from "@/utils/cn";
+import { useOnlineStatus } from "../offline/use-online-status";
 
 export function MemoComposer({
   busy,
@@ -14,6 +15,7 @@ export function MemoComposer({
   onSubmit: (input: CreateMemoRequest) => Promise<void>;
   onCancel: () => void;
 }) {
+  const online = useOnlineStatus();
   const [tag, setTag] = useState<MemoTag>("tweet");
   const [content, setContent] = useState("");
   const canSubmit = content.trim().length > 0 && !busy;
@@ -21,7 +23,8 @@ export function MemoComposer({
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (content.trim().length === 0) return;
-    await onSubmit({ tag, content });
+    // オフラインでは分類を選ばせず、すべて「つぶやき」で積む。
+    await onSubmit({ tag: online ? tag : "tweet", content });
   }
 
   return (
@@ -29,7 +32,17 @@ export function MemoComposer({
       onSubmit={handleSubmit}
       className="mb-6 rounded-xl border border-border bg-card p-6"
     >
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      {online ? null : (
+        <p className="mb-4 text-caption text-stone">
+          オフラインです。メモは「つぶやき」として保存し、オンラインに戻ると自動で送信します。
+        </p>
+      )}
+      <div
+        className={cn(
+          "mb-4 flex flex-wrap items-center gap-2",
+          !online && "hidden",
+        )}
+      >
         {TAG_ORDER.map((option) => {
           const meta = TAG_META[option];
           const active = tag === option;

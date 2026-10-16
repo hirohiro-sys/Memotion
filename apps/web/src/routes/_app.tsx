@@ -12,17 +12,35 @@ import {
   getStoredSidebarCollapsed,
   setStoredSidebarCollapsed,
 } from "@/config/sidebar";
-import { fetchMe } from "@/features/auth/api/get-me";
+import { fetchMe, SessionCheckNetworkError } from "@/features/auth/api/get-me";
+import { getStoredUserId } from "@/features/auth/stored-user-id";
 import { fetchMemos } from "@/features/memos/api/get-memos";
+import { discardOtherUsersItems } from "@/features/memos/offline/outbox";
+import { useOnlineStatus } from "@/features/memos/offline/use-online-status";
+import { useOutboxSync } from "@/features/memos/offline/use-outbox-sync";
 import { fetchNotifications } from "@/features/notifications/api/get-notifications";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async () => {
-    const user = await fetchMe();
+    let user: Awaited<ReturnType<typeof fetchMe>>;
+    try {
+      user = await fetchMe();
+    } catch (error) {
+      // サーバーに届かないときだけ、前回ログインした端末として通す（5xx は通さない）。
+      if (error instanceof SessionCheckNetworkError && getStoredUserId()) {
+        return;
+      }
+      if (error instanceof SessionCheckNetworkError) {
+        throw redirect({ to: "/login" });
+      }
+      throw error;
+    }
     if (!user) {
       throw redirect({ to: "/login" });
     }
-    return { user };
+    // 別のユーザーが前に残した未送信メモは、送らずに破棄する。
+    // IndexedDB の応答を待って画面が止まらないよう、待たずに進める。
+    void discardOtherUsersItems(user.id).catch(() => undefined);
   },
   component: AppLayout,
 });
@@ -39,11 +57,21 @@ function AppLayout() {
       return next;
     });
   }
+  useOutboxSync();
   const memos = useQuery({ queryKey: ["memos"], queryFn: fetchMemos });
   const notifications = useQuery({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
   });
+  const online = useOnlineStatus();
+  // オフライン（ブラウザが圏外と判断している、またはデータが無いまま取得が止まっている）。
+  // 圏外では、前に取得した古い件数を出さない。
+  const memosOffline =
+    !online || (memos.data === undefined && memos.fetchStatus === "paused");
+  const notificationsOffline =
+    !online ||
+    (notifications.data === undefined &&
+      notifications.fetchStatus === "paused");
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -59,10 +87,12 @@ function AppLayout() {
         todoCount={
           memos.data?.items.filter((memo) => memo.tag === "todo").length ?? 0
         }
-        memosPending={memos.isPending}
+        memosPending={memos.isPending && !memosOffline}
+        memosOffline={memosOffline}
         notifyOn={notifications.data?.techWeeklyEnabled ?? false}
         todoNotifyOn={notifications.data?.todoDailyEnabled ?? false}
-        notificationsPending={notifications.isPending}
+        notificationsPending={notifications.isPending && !notificationsOffline}
+        notificationsOffline={notificationsOffline}
       />
       <div className="min-w-0 flex-1">
         <TopBar pathname={pathname} onMenuClick={() => setMobileOpen(true)} />
