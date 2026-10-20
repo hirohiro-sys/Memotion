@@ -14,8 +14,7 @@ export function MemoCard({
   memo: Memo;
   busy: boolean;
   selected: boolean;
-  // 無いときは選択のチェックボックスを出さない。
-  onToggle?: (id: string) => void;
+  onToggle: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
@@ -46,16 +45,14 @@ export function MemoCard({
     >
       <div className="mb-2 flex items-start justify-between gap-3">
         <TagBadge tag={memo.tag} size="xs" />
-        {onToggle ? (
-          <input
-            type="checkbox"
-            checked={selected}
-            disabled={busy}
-            onChange={() => onToggle(memo.id)}
-            aria-label="このメモを選択"
-            className="size-4 shrink-0 cursor-pointer accent-primary"
-          />
-        ) : null}
+        <input
+          type="checkbox"
+          checked={selected}
+          disabled={busy}
+          onChange={() => onToggle(memo.id)}
+          aria-label="このメモを選択"
+          className="size-4 shrink-0 cursor-pointer accent-primary"
+        />
       </div>
 
       <p

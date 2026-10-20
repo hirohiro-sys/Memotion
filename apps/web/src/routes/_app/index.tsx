@@ -26,10 +26,21 @@ function MemoListPage() {
   const search = Route.useSearch();
   // 省いたキーも元の値のまま残ることがあるので、ここでも groups 以外をメモタブにする。
   const groups = search.view === "groups";
+  if (!groups) {
+    return (
+      <>
+        <MemoPageTabs view="memos" />
+        <MemoList />
+      </>
+    );
+  }
+  // グループはチャットのように入力欄を画面の下に固定するので、上のバー（h-14）を除いた高さに収める。
   return (
-    <>
-      <MemoPageTabs view={groups ? "groups" : "memos"} />
-      {groups ? <GroupsView groupId={search.group} /> : <MemoList />}
-    </>
+    <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
+      <MemoPageTabs view="groups" />
+      <div className="mx-auto min-h-0 w-full max-w-[1440px] flex-1">
+        <GroupsView groupId={search.group} />
+      </div>
+    </div>
   );
 }

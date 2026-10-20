@@ -8,7 +8,7 @@ const TABS = [
 
 export function MemoPageTabs({ view }: { view: "memos" | "groups" }) {
   return (
-    <div className="mx-auto max-w-[1440px] px-4 pt-4 md:px-8 md:pt-8">
+    <div className="mx-auto w-full max-w-[1440px] px-4 pt-4 md:px-8 md:pt-8">
       <div role="tablist" className="flex gap-6 border-b border-border">
         {TABS.map((tab) => {
           const active = tab.view === view;

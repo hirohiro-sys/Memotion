@@ -12,7 +12,7 @@ import { DuplicateGroupNameError } from "../api/errors";
 import { fetchGroups } from "../api/get-groups";
 import { useIsDesktop } from "../use-is-desktop";
 import { useLeaveMissingGroup } from "../use-leave-missing-group";
-import { GroupDetail } from "./group-detail";
+import { GroupChat } from "./group-chat";
 import { GroupList } from "./group-list";
 import { GroupNameDialog } from "./group-name-dialog";
 
@@ -21,7 +21,7 @@ export function GroupsView({ groupId }: { groupId?: string }) {
 
   if (!online) {
     return (
-      <div className="mx-auto max-w-[1440px] p-4 md:p-8">
+      <div className="p-4 md:px-8">
         <p className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-body-sm text-stone">
           <CloudOff className="size-4 shrink-0" />
           オフラインのためグループは使えません
@@ -102,11 +102,13 @@ function OnlineGroupsView({ groupId }: { groupId?: string }) {
   function renderContent() {
     if (groupsQuery.isPending) {
       return (
-        <div className="mx-auto max-w-[1440px] p-4 md:p-8">
-          <div className="grid gap-6 md:grid-cols-[280px_minmax(0,1fr)]">
-            <Skeleton className="h-48 rounded-xl" />
-            <Skeleton className="hidden h-48 rounded-xl md:block" />
+        <div className="grid h-full gap-6 p-4 md:grid-cols-[300px_minmax(0,1fr)] md:px-8 md:pb-6">
+          <div className="space-y-2">
+            <Skeleton className="h-13 rounded-lg" />
+            <Skeleton className="h-13 rounded-lg" />
+            <Skeleton className="h-13 rounded-lg" />
           </div>
+          <Skeleton className="hidden h-full rounded-xl md:block" />
         </div>
       );
     }
@@ -124,11 +126,16 @@ function OnlineGroupsView({ groupId }: { groupId?: string }) {
 
     if (groupsQuery.data.items.length === 0) {
       return (
-        <div className="mx-auto max-w-[1440px] p-4 md:p-8">
-          <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
-            <FolderOpen className="mx-auto mb-3 size-5 text-stone" />
-            <p className="mb-4 text-body-sm text-stone">
+        <div className="flex justify-center px-4 pt-6 md:px-8 md:pt-10">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center">
+            <span className="mx-auto mb-4 flex size-10 items-center justify-center rounded-lg bg-sky-tint text-primary">
+              <FolderOpen className="size-5" />
+            </span>
+            <p className="text-body font-medium text-foreground">
               まだグループがありません
+            </p>
+            <p className="mt-1 mb-5 text-body-sm text-stone">
+              作業ごとにグループを作ると、その作業のメモだけをチャットのように見返せます。
             </p>
             <Button type="button" onClick={() => setCreateOpen(true)}>
               <Plus />
@@ -140,18 +147,26 @@ function OnlineGroupsView({ groupId }: { groupId?: string }) {
     }
 
     return (
-      <div className="mx-auto max-w-[1440px] p-4 md:p-8">
-        <div className="grid items-start gap-6 md:grid-cols-[280px_minmax(0,1fr)]">
-          <div className={cn(groupId ? "hidden md:block" : "block")}>
-            <GroupList
-              groups={groupsQuery.data.items}
-              selectedId={groupId}
-              onCreate={() => setCreateOpen(true)}
-            />
-          </div>
-          <div className={cn(groupId ? "block" : "hidden md:block")}>
-            {selected ? <GroupDetail group={selected} /> : null}
-          </div>
+      <div className="grid h-full min-h-0 md:grid-cols-[300px_minmax(0,1fr)] md:gap-6 md:px-8 md:pb-6">
+        <div
+          className={cn(
+            "min-h-0 px-4 pt-4 md:flex md:px-0",
+            groupId ? "hidden" : "flex",
+          )}
+        >
+          <GroupList
+            groups={groupsQuery.data.items}
+            selectedId={groupId}
+            onCreate={() => setCreateOpen(true)}
+          />
+        </div>
+        <div
+          className={cn(
+            "min-h-0 md:block md:pt-4",
+            groupId ? "block" : "hidden",
+          )}
+        >
+          {selected ? <GroupChat group={selected} /> : null}
         </div>
       </div>
     );
