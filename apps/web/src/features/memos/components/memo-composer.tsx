@@ -1,6 +1,6 @@
 import type { CreateMemoRequest, MemoTag } from "@repo/shared";
 import { SendHorizontal } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/config/tag-meta";
 import { cn } from "@/utils/cn";
@@ -10,21 +10,52 @@ export function MemoComposer({
   busy,
   onSubmit,
   onCancel,
+  tags = TAG_ORDER,
+  clearOnSubmit = false,
 }: {
   busy: boolean;
   onSubmit: (input: CreateMemoRequest) => Promise<void>;
-  onCancel: () => void;
+  // 無いときは「キャンセル」を出さない（入力欄を常に表示する画面）。
+  onCancel?: () => void;
+  // 選べるタグ。先頭が初期値。
+  tags?: MemoTag[];
+  // onSubmit が成功したら本文を消す。失敗（reject）したら本文を残す。
+  clearOnSubmit?: boolean;
 }) {
   const online = useOnlineStatus();
-  const [tag, setTag] = useState<MemoTag>("tweet");
+  const [tag, setTag] = useState<MemoTag>(tags[0] ?? "tweet");
   const [content, setContent] = useState("");
-  const canSubmit = content.trim().length > 0 && !busy;
+  // 送信中は、親の busy が戻る前でも同じ本文を重ねて送らない。
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const canSubmit = content.trim().length > 0 && !busy && !submitting;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (content.trim().length === 0) return;
+    if (content.trim().length === 0 || submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      await submit();
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  }
+
+  async function submit() {
     // オフラインでは分類を選ばせず、すべて「つぶやき」で積む。
-    await onSubmit({ tag: online ? tag : "tweet", content });
+    const input = { tag: online ? tag : "tweet", content } as const;
+    if (!clearOnSubmit) {
+      await onSubmit(input);
+      return;
+    }
+    try {
+      await onSubmit(input);
+    } catch {
+      return;
+    }
+    setContent("");
   }
 
   return (
@@ -43,7 +74,7 @@ export function MemoComposer({
           !online && "hidden",
         )}
       >
-        {TAG_ORDER.map((option) => {
+        {tags.map((option) => {
           const meta = TAG_META[option];
           const active = tag === option;
           return (
@@ -69,9 +100,11 @@ export function MemoComposer({
       />
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          キャンセル
-        </Button>
+        {onCancel ? (
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            キャンセル
+          </Button>
+        ) : null}
         <Button
           type="submit"
           variant="outline"

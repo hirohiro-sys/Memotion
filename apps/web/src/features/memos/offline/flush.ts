@@ -58,7 +58,10 @@ async function sendAll(queryClient: QueryClient): Promise<FlushResult> {
   } finally {
     // 途中で未送信リストの操作に失敗しても、保存済みの分は一覧に出す。
     // 再取得はオフラインで止まりうるので、ロックを握ったまま待たない。
-    if (saved) void queryClient.invalidateQueries({ queryKey: ["memos"] });
+    if (saved) {
+      void queryClient.invalidateQueries({ queryKey: ["memos"] });
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    }
   }
   return result;
 }
