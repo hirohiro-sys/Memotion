@@ -7,7 +7,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { CloudOff, Inbox, Plus, Search, X } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/config/tag-meta";
 import { getStoredUserId } from "@/features/auth/stored-user-id";
+import { AssignToGroupDialog } from "@/features/groups/components/assign-to-group-dialog";
 import { cn } from "@/utils/cn";
 import { sendMemo } from "../api/create-memo";
 import { deleteMemos } from "../api/delete-memos";
@@ -27,6 +28,7 @@ import { fetchMemos } from "../api/get-memos";
 import { requestOutboxFlush } from "../offline/flush";
 import { visiblePendingItems } from "../offline/merge-pending";
 import { addOutboxItem, deleteOutboxItem } from "../offline/outbox";
+import { useOnlineStatus } from "../offline/use-online-status";
 import { useOutbox } from "../offline/use-outbox";
 import { MemoCard } from "./memo-card";
 import { MemoListSkeleton } from "./memo-card-skeleton";
@@ -46,6 +48,12 @@ export function MemoList() {
   const [composing, setComposing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const online = useOnlineStatus();
+  // オフラインで閉じた「グループに追加」を、オンラインに戻ったときに開き直さない。
+  useEffect(() => {
+    if (!online) setAssignOpen(false);
+  }, [online]);
 
   const router = useRouter();
   const outboxItems = useOutbox();
@@ -66,7 +74,10 @@ export function MemoList() {
       throw new Error("failed to create memo");
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["memos"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["memos"] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+      ]);
     },
     onError: () => {
       toast.add({ title: "保存できませんでした。", type: "error" });
@@ -78,12 +89,18 @@ export function MemoList() {
     onSuccess: async () => {
       setSelectedIds(new Set());
       setConfirmOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ["memos"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["memos"] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+      ]);
     },
     onError: async () => {
       setConfirmOpen(false);
       toast.add({ title: "削除できませんでした。", type: "error" });
-      await queryClient.invalidateQueries({ queryKey: ["memos"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["memos"] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+      ]);
     },
   });
 
@@ -283,6 +300,18 @@ export function MemoList() {
               </Button>
               <Button
                 type="button"
+                variant="secondary"
+                size="xs"
+                disabled={busy || !online}
+                title={
+                  online ? undefined : "オフラインのためグループは使えません"
+                }
+                onClick={() => setAssignOpen(true)}
+              >
+                グループに追加
+              </Button>
+              <Button
+                type="button"
                 variant="destructive"
                 size="xs"
                 disabled={busy}
@@ -328,6 +357,13 @@ export function MemoList() {
             </p>
           </div>
         )}
+
+      <AssignToGroupDialog
+        open={assignOpen && online}
+        onOpenChange={setAssignOpen}
+        ids={selectedList}
+        onAssigned={() => setSelectedIds(new Set())}
+      />
 
       <AlertDialog
         open={confirmOpen}

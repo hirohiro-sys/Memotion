@@ -11,7 +11,8 @@ paths:
 
 - LINE Login は allowlist 済みユーザーだけセッションを発行する。未登録は `/login?error=denied`
 - `sid` は httpOnly。OAuth `state` は発行と消費が対になる
-- `/api/me`・`/api/memos*`・`/api/notifications` は `readSessionUserId` 必須。401 を省略しない
+- `/api/me`・`/api/memos*`・`/api/groups*`・`/api/notifications` は `readSessionUserId` 必須。401 を省略しない
+- `/api/groups/:id*` は `groups.user_id = セッションのユーザー ID` で引く。無いグループと他人のグループは区別せず 404（`code: "group_not_found"`）
 - Cookie の `secure` / `sameSite` / path を緩めない
 - webhook は署名検証前に本文を解釈・永続化しない
 - 無効署名は 400。受理は 200 + `waitUntil`

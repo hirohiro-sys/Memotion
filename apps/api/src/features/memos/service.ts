@@ -10,6 +10,7 @@ import type { Env } from "../../env";
 import { fetchMessageContent } from "../../lib/line/client";
 import type { ClassifySuccess } from "./classify";
 import { detectMediaType } from "./classify";
+import { isForeignKeyViolation } from "./constraint-error";
 import {
   decideCreateResult,
   type ExistingMemoRow,
@@ -18,9 +19,12 @@ import {
 } from "./idempotency";
 import { fetchOgpImage, isHttpsUrl } from "./ogp";
 import {
+  assignMemosToGroup,
   claimOgp,
+  countMemosByGroup,
   deleteMedia,
   deleteMemosByIds,
+  deleteMemosInGroupStatement,
   findByLineMessageId,
   findMemoMedia,
   findMemoWithOwner,
@@ -62,8 +66,14 @@ export function toMemoResponse(row: MemoRow): Memo {
   });
 }
 
-export async function listForUser(db: Database, userId: string) {
-  const rows = await listMemos(db, userId);
+// 既定ではどのグループにも入っていないメモだけを返す。groupId を渡すとそのグループのメモだけを返す。
+// groupId の持ち主の確認は呼び出し側（groups の service）が行う。
+export async function listForUser(
+  db: Database,
+  userId: string,
+  options: { groupId?: string } = {},
+) {
+  const rows = await listMemos(db, userId, options.groupId ?? null);
   return memoListResponseSchema.parse({ items: rows.map(toMemoResponse) });
 }
 
@@ -71,10 +81,15 @@ export async function createForUser(
   db: Database,
   userId: string,
   input: CreateMemoRequest,
+  options: { groupId?: string } = {},
 ): Promise<
   | { ok: true; memo: Memo; created: boolean }
-  | { ok: false; error: "invalid" | "save_failed" | "conflict" }
+  | {
+      ok: false;
+      error: "invalid" | "save_failed" | "conflict" | "group_missing";
+    }
 > {
+  const { groupId } = options;
   const tag = await findTagBySlug(db, input.tag);
   if (!tag) return { ok: false, error: "invalid" };
 
@@ -96,9 +111,20 @@ export async function createForUser(
       mediaType,
       lineMessageId: null,
       createdAt,
+      groupId: groupId ?? null,
     });
   } catch (error) {
     // error は SQL と本文を含むためログに渡さない。
+    if (groupId !== undefined && isForeignKeyViolation(error)) {
+      logJson({
+        event: "memo.create",
+        status: "group_missing",
+        userId,
+        memoId,
+        groupId,
+      });
+      return { ok: false, error: "group_missing" };
+    }
     saveResult = isPrimaryKeyConflict(error)
       ? "primary_key_conflict"
       : "failed";
@@ -111,7 +137,12 @@ export async function createForUser(
     }
   }
 
-  const decision = decideCreateResult(saveResult, existing, input, userId);
+  const decision = decideCreateResult(
+    saveResult,
+    existing,
+    { tag: input.tag, content: input.content, groupId },
+    userId,
+  );
   switch (decision.kind) {
     case "created":
       return {
@@ -126,6 +157,7 @@ export async function createForUser(
           mediaType,
           source: "web",
           createdAt,
+          groupId: groupId ?? null,
         }),
       };
     case "existing":
@@ -229,7 +261,16 @@ export async function deleteManyForUser(
 ): Promise<{ deleted: number }> {
   const db = createDb(env.DB);
   const rows = await deleteMemosByIds(db, userId, [...new Set(ids)]);
+  await deleteImagesForUser(env, userId, rows);
+  return { deleted: rows.length };
+}
 
+// 消したメモの画像を R2 から消す。失敗はログを残して先へ進む。
+export async function deleteImagesForUser(
+  env: Pick<Env, "MEDIA">,
+  userId: string,
+  rows: { id: string; imageKey: string | null }[],
+): Promise<void> {
   for (const row of rows) {
     if (!row.imageKey) continue;
     try {
@@ -238,12 +279,56 @@ export async function deleteManyForUser(
       logJson({
         event: "memo.image.delete",
         status: "failed",
+        userId,
         memoId: row.id,
       });
     }
   }
+}
 
-  return { deleted: rows.length };
+// 「グループに追加」。自分の、どのグループにも入っていない、todo 以外のメモだけを入れる。
+// groupId の持ち主の確認は呼び出し側（groups の service）が行う。
+export async function assignGroupForUser(
+  db: Database,
+  userId: string,
+  groupId: string,
+  ids: string[],
+): Promise<
+  | { ok: true; added: number; skippedTodo: number }
+  | { ok: false; error: "group_missing" }
+> {
+  const uniqueIds = [...new Set(ids)];
+  try {
+    const result = await assignMemosToGroup(db, userId, groupId, uniqueIds);
+    return { ok: true, ...result };
+  } catch (error) {
+    if (!isForeignKeyViolation(error)) throw error;
+    logJson({
+      event: "group.assign",
+      status: "group_missing",
+      userId,
+      groupId,
+      count: uniqueIds.length,
+    });
+    return { ok: false, error: "group_missing" };
+  }
+}
+
+export async function countByGroupForUser(
+  db: Database,
+  userId: string,
+): Promise<Map<string, number>> {
+  const rows = await countMemosByGroup(db, userId);
+  return new Map(rows.map((row) => [row.groupId, row.count]));
+}
+
+// 実行せずに文を返す。groups の service がグループの行の削除と一緒に db.batch で実行する。
+export function deleteInGroupStatement(
+  db: Database,
+  userId: string,
+  groupId: string,
+) {
+  return deleteMemosInGroupStatement(db, userId, groupId);
 }
 
 export async function createFromLine(

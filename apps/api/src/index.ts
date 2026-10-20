@@ -2,6 +2,7 @@ import { healthResponseSchema } from "@repo/shared";
 import { Hono } from "hono";
 import type { Env } from "./env";
 import { auth } from "./features/auth";
+import { groupRoutes } from "./features/groups";
 import { lineWebhook } from "./features/line";
 import { memoRoutes } from "./features/memos";
 import { notificationRoutes } from "./features/notifications";
@@ -15,6 +16,7 @@ app.get("/api/health", async (c) => {
 });
 
 app.route("/", auth);
+app.route("/", groupRoutes);
 app.route("/", lineWebhook);
 app.route("/", memoRoutes);
 app.route("/", notificationRoutes);

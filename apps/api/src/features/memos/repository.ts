@@ -1,4 +1,15 @@
-import { and, desc, eq, inArray, isNull, lt, or } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  notInArray,
+  or,
+} from "drizzle-orm";
 import type { Database } from "../../db";
 import { memos, tags } from "../../db/schema";
 
@@ -11,6 +22,7 @@ export type MemoRow = {
   mediaType: string;
   source: string;
   createdAt: string;
+  groupId: string | null;
 };
 
 export function memoImageKey(userId: string, memoId: string): string {
@@ -22,9 +34,11 @@ export function isUniqueConstraintError(error: unknown): boolean {
   return message.includes("UNIQUE constraint failed");
 }
 
+// groupId が null ならどのグループにも入っていないメモ、文字列ならそのグループのメモ。
 export async function listMemos(
   db: Database,
   userId: string,
+  groupId: string | null,
 ): Promise<MemoRow[]> {
   return db
     .select({
@@ -36,10 +50,16 @@ export async function listMemos(
       mediaType: memos.mediaType,
       source: memos.source,
       createdAt: memos.createdAt,
+      groupId: memos.groupId,
     })
     .from(memos)
     .innerJoin(tags, eq(memos.tagId, tags.id))
-    .where(eq(memos.userId, userId))
+    .where(
+      and(
+        eq(memos.userId, userId),
+        groupId === null ? isNull(memos.groupId) : eq(memos.groupId, groupId),
+      ),
+    )
     .orderBy(desc(memos.createdAt));
 }
 
@@ -59,6 +79,7 @@ export async function findMemoWithOwner(
       mediaType: memos.mediaType,
       source: memos.source,
       createdAt: memos.createdAt,
+      groupId: memos.groupId,
     })
     .from(memos)
     .innerJoin(tags, eq(memos.tagId, tags.id))
@@ -89,6 +110,7 @@ export async function insertMemo(
     mediaType: string;
     lineMessageId: string | null;
     createdAt: string;
+    groupId?: string | null;
   },
 ) {
   await db.insert(memos).values(values);
@@ -180,6 +202,77 @@ export async function deleteMemosByIds(
     deleted.push(...rows);
   }
   return deleted;
+}
+
+function todoTagIds(db: Database) {
+  return db.select({ id: tags.id }).from(tags).where(eq(tags.slug, "todo"));
+}
+
+// 自分の、どのグループにも入っていない、todo 以外のメモにだけ group_id を付ける。
+// 付けた件数と、除いた自分の todo の件数を返す。
+export async function assignMemosToGroup(
+  db: Database,
+  userId: string,
+  groupId: string,
+  ids: string[],
+): Promise<{ added: number; skippedTodo: number }> {
+  let added = 0;
+  let skippedTodo = 0;
+  for (let i = 0; i < ids.length; i += DELETE_CHUNK_SIZE) {
+    const chunk = ids.slice(i, i + DELETE_CHUNK_SIZE);
+    const [todo] = await db
+      .select({ count: count() })
+      .from(memos)
+      .where(
+        and(
+          eq(memos.userId, userId),
+          inArray(memos.id, chunk),
+          inArray(memos.tagId, todoTagIds(db)),
+        ),
+      );
+    skippedTodo += todo?.count ?? 0;
+
+    const rows = await db
+      .update(memos)
+      .set({ groupId })
+      .where(
+        and(
+          eq(memos.userId, userId),
+          isNull(memos.groupId),
+          inArray(memos.id, chunk),
+          notInArray(memos.tagId, todoTagIds(db)),
+        ),
+      )
+      .returning({ id: memos.id });
+    added += rows.length;
+  }
+  return { added, skippedTodo };
+}
+
+export async function countMemosByGroup(
+  db: Database,
+  userId: string,
+): Promise<{ groupId: string; count: number }[]> {
+  const rows = await db
+    .select({ groupId: memos.groupId, count: count() })
+    .from(memos)
+    .where(and(eq(memos.userId, userId), isNotNull(memos.groupId)))
+    .groupBy(memos.groupId);
+  return rows.flatMap((row) =>
+    row.groupId === null ? [] : [{ groupId: row.groupId, count: row.count }],
+  );
+}
+
+// 実行せずに文を返す。呼び出し側がグループの行の削除と一緒に db.batch で実行する。
+export function deleteMemosInGroupStatement(
+  db: Database,
+  userId: string,
+  groupId: string,
+) {
+  return db
+    .delete(memos)
+    .where(and(eq(memos.userId, userId), eq(memos.groupId, groupId)))
+    .returning({ id: memos.id, imageKey: memos.imageKey });
 }
 
 export async function findByLineMessageId(
