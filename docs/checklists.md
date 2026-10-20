@@ -17,6 +17,7 @@
 - [ ] プランをレビューにかけた（観点別。P0 は実装前に反映。プロンプトは `docs/dev-flow.md` の step 2）
 - [ ] テストケース一覧に人間がビジネスの目で介入した（機械的な網羅だけで確定しない）
 - [ ] Design Doc を書き、理解度チェックに自分の言葉で答えた（`docs/design-docs/`。方針は `docs/design-doc.md`。納得してから実装に進む）
+- [ ] Design Doc とプランの差分を確かめ、プランを最新にした（実装の基準はプラン。プロンプトは `docs/dev-flow.md` の step 4）
 - [ ] 実装はプランを渡すだけにした（口頭の追加要件を足さない。API の振る舞いには隣の `*.test.ts` を同時に添える）
 - [ ] 失敗を先に確認したのは、TDD、テスト駆動、または Red-Green-Refactor と指定したときだけ（`.agents/skills/tdd/SKILL.md`。1件ずつ失敗させてから通す）
 - [ ] 実装レビューを別セッションで走らせた（`design-reviewer`、`edge-case-reviewer`、`security-reviewer`。P0・P1 がゼロまで。3ラウンドを超えて循環したら人間が裁定する）
