@@ -1,6 +1,6 @@
 # チェックリスト
 
-`docs/dev-flow.md` の 8 step と対になる。導入時、タスクのたび、週次・月次、品質が揺れたときに見る。組織導入は、個人利用のいまは対象外。
+`docs/dev-flow.md` の 9 step と対になる。導入時、タスクのたび、週次・月次、品質が揺れたときに見る。組織導入は、個人利用のいまは対象外。
 
 ## 個別導入
 
@@ -16,6 +16,8 @@
 - [ ] プランを書いた（`docs/plans/` に8項目。AI に逆質問させてから。形式は `docs/plans/_template.md`。記入例自体は対象にしない）
 - [ ] プランをレビューにかけた（観点別。P0 は実装前に反映。プロンプトは `docs/dev-flow.md` の step 2）
 - [ ] テストケース一覧に人間がビジネスの目で介入した（機械的な網羅だけで確定しない）
+- [ ] Design Doc を書き、理解度チェックに自分の言葉で答えた（`docs/design-docs/`。方針は `docs/design-doc.md`。納得してから実装に進む）
+- [ ] Design Doc とプランの差分を確かめ、プランを最新にした（実装の基準はプラン。プロンプトは `docs/dev-flow.md` の step 4）
 - [ ] 実装はプランを渡すだけにした（口頭の追加要件を足さない。API の振る舞いには隣の `*.test.ts` を同時に添える）
 - [ ] 失敗を先に確認したのは、TDD、テスト駆動、または Red-Green-Refactor と指定したときだけ（`.agents/skills/tdd/SKILL.md`。1件ずつ失敗させてから通す）
 - [ ] 実装レビューを別セッションで走らせた（`design-reviewer`、`edge-case-reviewer`、`security-reviewer`。P0・P1 がゼロまで。3ラウンドを超えて循環したら人間が裁定する）
@@ -25,7 +27,7 @@
 
 - [ ] 本番までの X: デプロイ（`pnpm run deploy`。main への push で CI が実行）とログ（`.agents/rules/logging.md` の JSON 1行）までつながっているか。Sentry は入っていない。Workers の設定、D1、R2、Cloudflare の秘密に「コードは問題ないのに動かない」原因が残っていないか
 - [ ] テストの信頼性: `.only` / `.skip` と、テスト対象を `vi.mock` で差し替えるごまかしをレビューで潰したか（`.agents/rules/testing.md`）。新しいごまかしの型はルールかスキルに書き足したか
-- [ ] 劣化の返済: 同じ失敗の繰り返しが増えたら、コードの劣化を疑う。`docs/dev-flow.md` の step 8（テストを保ったリファクタ。`.agents/rules/architecture.md` に合わせる）を止めていないか
+- [ ] 劣化の返済: 同じ失敗の繰り返しが増えたら、コードの劣化を疑う。`docs/dev-flow.md` の step 9（テストを保ったリファクタ。`.agents/rules/architecture.md` に合わせる）を止めていないか
 - [ ] ルールの鮮度: レビューで同じ指摘が繰り返されたら、`.agents/rules/` のルールへ昇格させたか
 
 ## 品質が揺れたとき（X、Y、F の順に疑う）
