@@ -29,6 +29,13 @@
       "when": 1790298997107,
       "tag": "0003_kind_molly_hayes",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792479602184,
+      "tag": "0004_modern_night_thrasher",
+      "breakpoints": true
     }
   ]
 }

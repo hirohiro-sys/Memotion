@@ -15,6 +15,7 @@ const existing: ExistingMemoRow = {
   mediaType: "text",
   source: "web",
   createdAt: "2026-10-17T00:00:00.000Z",
+  groupId: null,
 };
 const input = { tag: "tweet" as const, content: "眠い" };
 
@@ -61,6 +62,49 @@ describe("decideCreateResult for an existing row with the same id", () => {
       "user_2",
     );
     expect(Object.keys(decision)).toEqual(["kind"]);
+  });
+});
+
+describe("decideCreateResult with a group", () => {
+  const inGroup: ExistingMemoRow = { ...existing, groupId: "group_1" };
+
+  it("returns the existing memo when the input has no group and the row was added to one later", () => {
+    expect(
+      decideCreateResult("primary_key_conflict", inGroup, input, "user_1"),
+    ).toEqual({ kind: "existing", row: inGroup });
+  });
+
+  it("returns the existing memo when the input has the same group", () => {
+    expect(
+      decideCreateResult(
+        "primary_key_conflict",
+        inGroup,
+        { ...input, groupId: "group_1" },
+        "user_1",
+      ),
+    ).toEqual({ kind: "existing", row: inGroup });
+  });
+
+  it("conflicts when the input has a different group", () => {
+    expect(
+      decideCreateResult(
+        "primary_key_conflict",
+        inGroup,
+        { ...input, groupId: "group_2" },
+        "user_1",
+      ),
+    ).toEqual({ kind: "conflict" });
+  });
+
+  it("conflicts when the input has a group and the row has none", () => {
+    expect(
+      decideCreateResult(
+        "primary_key_conflict",
+        existing,
+        { ...input, groupId: "group_1" },
+        "user_1",
+      ),
+    ).toEqual({ kind: "conflict" });
   });
 });
 

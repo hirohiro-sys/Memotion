@@ -34,10 +34,12 @@ export function isPrimaryKeyConflict(error: unknown): boolean {
 
 // 同じ id の再送は、自分の行で本文とタグが一致するときだけ既存として返す。
 // それ以外は内容を返さず衝突にする（他ユーザーの行の存在や内容を漏らさない）。
+// グループは入力が持つときだけ比べる（グループなしで保存したあと、別の端末で
+// 「グループに追加」されたメモの再送を衝突にしないため）。
 export function decideCreateResult(
   saveResult: SaveResult,
   existing: ExistingMemoRow | null,
-  input: { tag: MemoTag; content: string },
+  input: { tag: MemoTag; content: string; groupId?: string },
   userId: string,
 ): CreateDecision {
   if (saveResult === "inserted") return { kind: "created" };
@@ -47,7 +49,8 @@ export function decideCreateResult(
   const sameRequest =
     existing.userId === userId &&
     existing.tag === input.tag &&
-    existing.content === input.content;
+    existing.content === input.content &&
+    (input.groupId === undefined || existing.groupId === input.groupId);
   return sameRequest
     ? { kind: "existing", row: existing }
     : { kind: "conflict" };
