@@ -39,6 +39,14 @@ export function LoginForm({ error }: { error?: string }) {
             >
               LINEでログイン
             </Button>
+            {import.meta.env.DEV ? (
+              <a
+                href="/api/auth/dev"
+                className="block text-center text-caption text-stone"
+              >
+                開発用ログイン
+              </a>
+            ) : null}
           </div>
         </div>
         <p className="mt-4 text-center text-caption text-stone">
