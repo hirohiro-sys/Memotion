@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -42,6 +42,16 @@ export function GroupNameDialog({
   const canSubmit =
     trimmed.length > 0 && trimmed.length <= MAX_NAME_LENGTH && !submitting;
 
+  // ⌘ / Ctrl + Enter は「作成」と同じ（変換中は送らない）。
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.nativeEvent.isComposing) return;
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      if (!canSubmit) return;
+      event.currentTarget.form?.requestSubmit();
+    }
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!canSubmit) return;
@@ -74,6 +84,7 @@ export function GroupNameDialog({
             placeholder="グループの名前"
             maxLength={MAX_NAME_LENGTH + 20}
             aria-label="グループの名前"
+            onKeyDown={handleKeyDown}
             aria-invalid={duplicate}
             className="w-full rounded-lg border border-border bg-background px-3 py-2 text-body-sm text-foreground outline-none transition-colors duration-200 placeholder:text-stone focus:border-primary aria-invalid:border-destructive"
           />

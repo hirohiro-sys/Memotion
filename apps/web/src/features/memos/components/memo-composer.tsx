@@ -1,6 +1,6 @@
 import type { CreateMemoRequest, MemoTag } from "@repo/shared";
 import { SendHorizontal } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type KeyboardEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/config/tag-meta";
 import { cn } from "@/utils/cn";
@@ -20,11 +20,24 @@ export function MemoComposer({
   const [content, setContent] = useState("");
   const canSubmit = content.trim().length > 0 && !busy;
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (content.trim().length === 0) return;
+  function submit() {
+    if (!canSubmit) return;
     // オフラインでは分類を選ばせず、すべて「つぶやき」で積む。
-    await onSubmit({ tag: online ? tag : "tweet", content });
+    return onSubmit({ tag: online ? tag : "tweet", content });
+  }
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    void submit();
+  }
+
+  // Enter は改行。⌘ / Ctrl + Enter は「送信」と同じ（変換中は送らない）。
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.nativeEvent.isComposing) return;
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      void submit();
+    }
   }
 
   return (
@@ -65,6 +78,7 @@ export function MemoComposer({
         onChange={(event) => setContent(event.target.value)}
         placeholder="メモを入力..."
         rows={3}
+        onKeyDown={handleKeyDown}
         className="mb-4 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-body-sm text-foreground outline-none transition-colors duration-200 placeholder:text-stone focus:border-primary"
       />
 
