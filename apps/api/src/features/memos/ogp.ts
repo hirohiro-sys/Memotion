@@ -1,3 +1,5 @@
+import { youtubeThumbnailCandidates } from "./youtube-thumbnail";
+
 export type OgpImage = { body: ArrayBuffer; contentType: string };
 
 const FETCH_TIMEOUT_MS = 5_000;
@@ -224,8 +226,14 @@ async function fetchImage(
 export async function fetchOgpImage(pageUrl: string): Promise<OgpImage | null> {
   const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
   try {
+    const pageUrlObject = new URL(pageUrl);
+    for (const candidate of youtubeThumbnailCandidates(pageUrl)) {
+      const image = await fetchImage(candidate, pageUrlObject, signal);
+      if (image) return image;
+    }
+
     const page = await fetchFollowingRedirects(
-      new URL(pageUrl),
+      pageUrlObject,
       "text/html,application/xhtml+xml",
       signal,
     );
