@@ -25,9 +25,7 @@ binding = "DB"
 database_name = "line-memo-orchestrator"
 database_id = "52233bb7-9a0f-4385-918d-54616c7338a2"
 migrations_dir = "migrations"
-remote = true
 
 [[r2_buckets]]
 binding = "MEDIA"
 bucket_name = "line-memo-orchestrator-media"
-remote = true

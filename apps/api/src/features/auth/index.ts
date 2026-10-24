@@ -9,7 +9,8 @@ import {
   issueSession,
   readSessionUserId,
 } from "../../lib/session";
-import { findUserIdByLineUserId } from "./repository";
+import { devLoginAllowed } from "./dev-login";
+import { ensureDevUser, findUserIdByLineUserId } from "./repository";
 import { callbackUrl, exchangeCodeForLineUserId, frontendUrl } from "./service";
 
 const LINE_AUTHORIZE = "https://access.line.me/oauth2/v2.1/authorize";
@@ -60,6 +61,19 @@ auth.get("/api/auth/line/callback", async (c) => {
   } catch {
     return c.redirect(frontendUrl(appUrl, "/login?error=failed"));
   }
+});
+
+// ローカルの http ループバック以外では 404。本番の LINE ログインはここを通らない。
+auth.get("/api/auth/dev", async (c) => {
+  if (!devLoginAllowed({ appUrl: c.env.APP_URL, requestUrl: c.req.url })) {
+    return c.body(null, 404);
+  }
+  const userId = await ensureDevUser(
+    createDb(c.env.DB),
+    new Date().toISOString(),
+  );
+  await issueSession(c, userId);
+  return c.redirect(frontendUrl(c.env.APP_URL, "/"));
 });
 
 auth.post("/api/auth/logout", (c) => {

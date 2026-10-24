@@ -6,3 +6,5 @@ dist
 !.env.example
 .wrangler
 .dev.vars
+.cursor/skills/verify-memotion/run/
+.cursor/skills/verify-memotion/artifacts/
