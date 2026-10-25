@@ -223,15 +223,37 @@ async function fetchImage(
   return { body: bytes.buffer, contentType };
 }
 
+// 1枚のタイムアウトや接続失敗で、次の画質とページ取得まで止めない。
+async function fetchImageWithinTimeout(
+  candidate: string,
+  base: URL,
+): Promise<OgpImage | null> {
+  try {
+    return await fetchImage(
+      candidate,
+      base,
+      AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    );
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchOgpImage(pageUrl: string): Promise<OgpImage | null> {
+  let pageUrlObject: URL;
+  try {
+    pageUrlObject = new URL(pageUrl);
+  } catch {
+    return null;
+  }
+
+  for (const candidate of youtubeThumbnailCandidates(pageUrl)) {
+    const image = await fetchImageWithinTimeout(candidate, pageUrlObject);
+    if (image) return image;
+  }
+
   const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
   try {
-    const pageUrlObject = new URL(pageUrl);
-    for (const candidate of youtubeThumbnailCandidates(pageUrl)) {
-      const image = await fetchImage(candidate, pageUrlObject, signal);
-      if (image) return image;
-    }
-
     const page = await fetchFollowingRedirects(
       pageUrlObject,
       "text/html,application/xhtml+xml",

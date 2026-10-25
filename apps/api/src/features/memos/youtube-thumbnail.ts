@@ -1,5 +1,7 @@
 const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 const PATH_ID_PREFIXES = new Set(["embed", "shorts", "live", "v", "e"]);
+// 再生リストとチャンネルライブの埋め込み名。11文字だが動画 ID ではない。
+const RESERVED_VIDEO_IDS = new Set(["videoseries", "live_stream"]);
 const THUMBNAIL_QUALITIES = [
   "maxresdefault",
   "sddefault",
@@ -49,6 +51,7 @@ function videoIdFromUrl(url: URL, allowEmbedded = true): string | null {
 
 function videoId(value: string | null | undefined): string | null {
   if (!value || !VIDEO_ID.test(value)) return null;
+  if (RESERVED_VIDEO_IDS.has(value.toLowerCase())) return null;
   return value;
 }
 
