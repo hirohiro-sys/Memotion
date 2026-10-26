@@ -35,8 +35,6 @@ import { MemoListSkeleton } from "./memo-card-skeleton";
 import { MemoComposer } from "./memo-composer";
 import { PendingMemoCard } from "./pending-memo-card";
 
-type FilterTag = MemoTag | "all";
-
 // 送るあいだに JST の日付が変わり、予定の日付が過去になった（400 schedule_date_past）。
 class SchedulePastError extends Error {
   constructor() {
@@ -51,7 +49,8 @@ export function MemoList() {
   const memosQuery = useQuery({ queryKey: ["memos"], queryFn: fetchMemos });
   const memos = memosQuery.data?.items ?? EMPTY_MEMOS;
 
-  const [filter, setFilter] = useState<FilterTag>("all");
+  // 選んだタグ。空なら「すべて」。複数選ぶと、どれかに当てはまるメモを出す。
+  const [filterTags, setFilterTags] = useState<ReadonlySet<MemoTag>>(new Set());
   const [search, setSearch] = useState("");
   const [composing, setComposing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -139,7 +138,8 @@ export function MemoList() {
 
   const filtered = useMemo(() => {
     let result = memos;
-    if (filter !== "all") result = result.filter((memo) => memo.tag === filter);
+    if (filterTags.size > 0)
+      result = result.filter((memo) => filterTags.has(memo.tag));
     const query = search.trim().toLowerCase();
     if (query) {
       result = result.filter(
@@ -149,7 +149,7 @@ export function MemoList() {
       );
     }
     return result;
-  }, [memos, filter, search]);
+  }, [memos, filterTags, search]);
 
   const selectedList = useMemo(
     () => filtered.filter((memo) => selectedIds.has(memo.id)).map((m) => m.id),
@@ -165,8 +165,18 @@ export function MemoList() {
     });
   }
 
-  function changeFilter(next: FilterTag) {
-    setFilter(next);
+  function toggleFilterTag(tag: MemoTag) {
+    setFilterTags((current) => {
+      const next = new Set(current);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      return next;
+    });
+    setSelectedIds(new Set());
+  }
+
+  function clearFilterTags() {
+    setFilterTags(new Set());
     setSelectedIds(new Set());
   }
 
@@ -176,8 +186,8 @@ export function MemoList() {
   }
 
   const pendingItems = useMemo(
-    () => visiblePendingItems(outboxItems, memos, filter, search),
-    [outboxItems, memos, filter, search],
+    () => visiblePendingItems(outboxItems, memos, filterTags, search),
+    [outboxItems, memos, filterTags, search],
   );
   // オフラインで取得が止まっている（データが無いまま待機中）。
   const memosOffline =
@@ -287,10 +297,12 @@ export function MemoList() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => changeFilter("all")}
+            onClick={clearFilterTags}
             className={cn(
               PILL_BASE,
-              filter === "all" ? "bg-foreground text-background" : PILL_IDLE,
+              filterTags.size === 0
+                ? "bg-foreground text-background"
+                : PILL_IDLE,
             )}
           >
             すべて
@@ -300,12 +312,13 @@ export function MemoList() {
           </button>
           {TAG_ORDER.map((tag) => {
             const meta = TAG_META[tag];
-            const active = filter === tag;
+            const active = filterTags.has(tag);
             return (
               <button
                 key={tag}
                 type="button"
-                onClick={() => changeFilter(tag)}
+                aria-pressed={active}
+                onClick={() => toggleFilterTag(tag)}
                 className={cn(PILL_BASE, active ? meta.className : PILL_IDLE)}
               >
                 {meta.label}
