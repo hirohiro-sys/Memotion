@@ -16,6 +16,8 @@ const existing: ExistingMemoRow = {
   source: "web",
   createdAt: "2026-10-17T00:00:00.000Z",
   groupId: null,
+  scheduledDate: null,
+  scheduledTime: null,
 };
 const input = { tag: "tweet" as const, content: "眠い" };
 
@@ -210,5 +212,112 @@ describe("isPrimaryKeyConflict", () => {
         ),
       ),
     ).toBe(false);
+  });
+});
+
+describe("decideCreateResult for a schedule", () => {
+  const scheduleRow: ExistingMemoRow = {
+    ...existing,
+    tag: "schedule",
+    content: "歯医者",
+    scheduledDate: "2026-11-03",
+    scheduledTime: "14:00",
+  };
+  const scheduleInput = {
+    tag: "schedule" as const,
+    content: "歯医者",
+    scheduledDate: "2026-11-03",
+    scheduledTime: "14:00",
+  };
+
+  it("returns the existing memo when the date and time match", () => {
+    expect(
+      decideCreateResult(
+        "primary_key_conflict",
+        scheduleRow,
+        scheduleInput,
+        "user_1",
+      ),
+    ).toEqual({ kind: "existing", row: scheduleRow });
+  });
+
+  it("conflicts when the date or the time differs", () => {
+    for (const changed of [
+      { scheduledDate: "2026-11-04" },
+      { scheduledTime: "15:00" },
+      { scheduledTime: null },
+    ]) {
+      expect(
+        decideCreateResult(
+          "primary_key_conflict",
+          scheduleRow,
+          { ...scheduleInput, ...changed },
+          "user_1",
+        ),
+      ).toEqual({ kind: "conflict" });
+    }
+  });
+
+  it("treats an omitted time as the same as a stored null time", () => {
+    const untimed = { ...scheduleRow, scheduledTime: null };
+    const { scheduledTime: _omitted, ...withoutTime } = scheduleInput;
+    expect(
+      decideCreateResult(
+        "primary_key_conflict",
+        untimed,
+        withoutTime,
+        "user_1",
+      ),
+    ).toEqual({ kind: "existing", row: untimed });
+  });
+
+  it("conflicts when the row is a tweet or has no date", () => {
+    expect(
+      decideCreateResult(
+        "primary_key_conflict",
+        {
+          ...scheduleRow,
+          tag: "tweet",
+          scheduledDate: null,
+          scheduledTime: null,
+        },
+        scheduleInput,
+        "user_1",
+      ),
+    ).toEqual({ kind: "conflict" });
+    expect(
+      decideCreateResult(
+        "primary_key_conflict",
+        { ...scheduleRow, scheduledDate: null },
+        scheduleInput,
+        "user_1",
+      ),
+    ).toEqual({ kind: "conflict" });
+  });
+
+  it("conflicts for another user's row whether or not the date matches", () => {
+    expect(
+      decideCreateResult(
+        "primary_key_conflict",
+        scheduleRow,
+        scheduleInput,
+        "user_2",
+      ),
+    ).toEqual({ kind: "conflict" });
+    expect(
+      decideCreateResult(
+        "primary_key_conflict",
+        scheduleRow,
+        { ...scheduleInput, scheduledDate: "2026-11-04" },
+        "user_2",
+      ),
+    ).toEqual({ kind: "conflict" });
+  });
+
+  it("does not compare dates for an input that is not a schedule", () => {
+    const tweetRow = { ...existing, scheduledDate: "2026-11-03" };
+    expect(
+      decideCreateResult("primary_key_conflict", tweetRow, input, "user_1"),
+    ).toEqual({ kind: "existing", row: tweetRow });
   });
 });

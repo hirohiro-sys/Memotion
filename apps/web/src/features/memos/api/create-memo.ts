@@ -1,4 +1,6 @@
 import {
+  type ApiErrorCode,
+  apiErrorSchema,
   type CreateMemoRequest,
   createMemoRequestSchema,
   memoSchema,
@@ -12,7 +14,7 @@ export type SendMemoResult =
   | { kind: "saved"; created: boolean }
   | { kind: "retry" }
   | { kind: "unauthorized" }
-  | { kind: "rejected"; status: number };
+  | { kind: "rejected"; status: number; code?: ApiErrorCode };
 
 export async function sendMemo(
   input: CreateMemoRequest,
@@ -50,5 +52,11 @@ export async function sendMemo(
   if (res.status === 408 || res.status === 429 || res.status >= 500) {
     return { kind: "retry" };
   }
-  return { kind: "rejected", status: res.status };
+  // 理由の code（過去の日付など）があれば、呼び出し側が文言を出し分けられるよう返す。
+  const body = apiErrorSchema.safeParse(await res.json().catch(() => null));
+  return {
+    kind: "rejected",
+    status: res.status,
+    ...(body.success && body.data.code ? { code: body.data.code } : {}),
+  };
 }

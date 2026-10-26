@@ -1,6 +1,7 @@
 import {
   apiErrorSchema,
   assignMemosRequestSchema,
+  assignMemosResponseSchema,
   createGroupMemoRequestSchema,
   createGroupRequestSchema,
   groupIdSchema,
@@ -48,6 +49,27 @@ describe("createGroupMemoRequestSchema", () => {
         createGroupMemoRequestSchema.safeParse({ tag, content: "x" }).success,
       ).toBe(true);
     }
+  });
+
+  it("rejects schedule", () => {
+    expect(
+      createGroupMemoRequestSchema.safeParse({
+        tag: "schedule",
+        content: "x",
+        scheduledDate: "2026-11-03",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("drops a date and time sent with a group memo", () => {
+    expect(
+      createGroupMemoRequestSchema.parse({
+        tag: "tweet",
+        content: "眠い",
+        scheduledDate: "2026-11-03",
+        scheduledTime: "14:00",
+      }),
+    ).toEqual({ tag: "tweet", content: "眠い" });
   });
 
   it("drops extra keys such as groupId and userId, and trims content", () => {
@@ -98,6 +120,41 @@ describe("assignMemosRequestSchema ids", () => {
     expect(
       assignMemosRequestSchema.safeParse({ ids: ids(MAX_BULK_DELETE + 1) })
         .success,
+    ).toBe(false);
+  });
+});
+
+describe("assignMemosResponseSchema", () => {
+  it("accepts added, skippedTodo and skippedSchedule", () => {
+    expect(
+      assignMemosResponseSchema.parse({
+        added: 1,
+        skippedTodo: 1,
+        skippedSchedule: 1,
+      }),
+    ).toEqual({ added: 1, skippedTodo: 1, skippedSchedule: 1 });
+  });
+
+  it("requires skippedSchedule", () => {
+    expect(
+      assignMemosResponseSchema.safeParse({ added: 1, skippedTodo: 0 }).success,
+    ).toBe(false);
+  });
+
+  it("rejects negative and fractional counts", () => {
+    expect(
+      assignMemosResponseSchema.safeParse({
+        added: 0,
+        skippedTodo: 0,
+        skippedSchedule: -1,
+      }).success,
+    ).toBe(false);
+    expect(
+      assignMemosResponseSchema.safeParse({
+        added: 0,
+        skippedTodo: 0,
+        skippedSchedule: 0.5,
+      }).success,
     ).toBe(false);
   });
 });

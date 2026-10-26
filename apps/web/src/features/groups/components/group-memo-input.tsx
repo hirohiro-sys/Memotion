@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/config/tag-meta";
 import { cn } from "@/utils/cn";
 
-// todo はグループに入れられない。
+// todo と schedule はグループに入れられない。
 const GROUP_TAGS = TAG_ORDER.filter(
-  (tag): tag is GroupMemoTag => tag !== "todo",
+  (tag): tag is GroupMemoTag => tag !== "todo" && tag !== "schedule",
 );
 const MAX_ROWS_HEIGHT = 160;
 

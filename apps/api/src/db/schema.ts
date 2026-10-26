@@ -55,8 +55,14 @@ export const memos = sqliteTable(
     createdAt: text("created_at").notNull(),
     ogpState: text("ogp_state"),
     ogpClaimedAt: text("ogp_claimed_at"),
+    // 予定（tag: schedule）の日付（YYYY-MM-DD）と時刻（HH:MM）。JST。予定以外は NULL。
+    scheduledDate: text("scheduled_date"),
+    scheduledTime: text("scheduled_time"),
   },
-  (t) => [index("memos_user_id_group_id_idx").on(t.userId, t.groupId)],
+  (t) => [
+    index("memos_user_id_group_id_idx").on(t.userId, t.groupId),
+    index("memos_user_id_scheduled_date_idx").on(t.userId, t.scheduledDate),
+  ],
 );
 
 export const techWeeklySettings = sqliteTable("tech_weekly_settings", {
@@ -84,6 +90,19 @@ export const todoDailySettings = sqliteTable("todo_daily_settings", {
   disabledReason: text("disabled_reason"),
 });
 
+// 予定の前日通知。二重送信を防ぐため、送った時刻ではなく最後に処理した対象日を持つ。
+export const scheduleDailySettings = sqliteTable("schedule_daily_settings", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "restrict" }),
+  enabled: integer("enabled", { mode: "boolean" }).notNull(),
+  time: text("time").notNull(),
+  lastTargetDate: text("last_target_date"),
+  disabledReason: text("disabled_reason"),
+});
+
 export const usersRelations = relations(users, ({ many, one }) => ({
   memos: many(memos),
   groups: many(groups),
@@ -94,6 +113,10 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   todoDailySettings: one(todoDailySettings, {
     fields: [users.id],
     references: [todoDailySettings.userId],
+  }),
+  scheduleDailySettings: one(scheduleDailySettings, {
+    fields: [users.id],
+    references: [scheduleDailySettings.userId],
   }),
 }));
 
@@ -139,6 +162,16 @@ export const todoDailySettingsRelations = relations(
   ({ one }) => ({
     user: one(users, {
       fields: [todoDailySettings.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const scheduleDailySettingsRelations = relations(
+  scheduleDailySettings,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [scheduleDailySettings.userId],
       references: [users.id],
     }),
   }),

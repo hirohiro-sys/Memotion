@@ -1,6 +1,12 @@
 import type { MemoTag } from "@repo/shared";
 
-export const TAG_ORDER: MemoTag[] = ["tweet", "tech", "todo", "other"];
+export const TAG_ORDER: MemoTag[] = [
+  "tweet",
+  "tech",
+  "todo",
+  "schedule",
+  "other",
+];
 
 export const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
@@ -47,5 +53,12 @@ export const TAG_META: Record<
     hashtag: "#todo",
     description: "やるべきこと・タスク",
     className: "bg-marigold/20 text-foreground",
+  },
+  schedule: {
+    id: "schedule",
+    label: "予定",
+    hashtag: "#schedule",
+    description: "日付のある予定",
+    className: "bg-midnight-ink/15 text-foreground",
   },
 };

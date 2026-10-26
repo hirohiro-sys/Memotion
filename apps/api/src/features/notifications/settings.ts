@@ -3,6 +3,7 @@ import {
   notificationSettingsSchema,
   type UpdateNotificationSettingsRequest,
 } from "@repo/shared";
+import { scheduleTargetToMark } from "./window";
 
 export type StoredSettings = {
   enabled: boolean;
@@ -24,6 +25,14 @@ export type StoredNotificationSettings = {
   todoDaily: StoredDailySettings;
 };
 
+// 予定の前日通知。二重送信を対象日ごとに1回に制限するため、送った時刻ではなく最後に処理した対象日を持つ。
+export type StoredScheduleSettings = {
+  enabled: boolean;
+  time: string;
+  lastTargetDate: string | null;
+  disabledReason: string | null;
+};
+
 export const DEFAULT_TECH_WEEKLY: StoredSettings = {
   enabled: true,
   weekday: 0,
@@ -36,6 +45,13 @@ export const DEFAULT_TODO_DAILY: StoredDailySettings = {
   enabled: true,
   time: "08:00",
   lastSentAt: null,
+  disabledReason: null,
+};
+
+export const DEFAULT_SCHEDULE_DAILY: StoredScheduleSettings = {
+  enabled: true,
+  time: "20:00",
+  lastTargetDate: null,
   disabledReason: null,
 };
 
@@ -89,10 +105,67 @@ export function applySettingsPatch(
   };
 }
 
+export type ScheduleSettingsChange = {
+  enabled: boolean;
+  time: string;
+  disabledReason: string | null;
+  // 処理済みにする対象日。オンにしたか時刻を変えて、通知の時刻がすでに今日に来ているときだけ。
+  markTarget: string | null;
+};
+
+// 予定の設定の更新。last_target_date には触らず、処理済みにする対象日だけを返す。
+export function planScheduleSettingsChange(
+  current: StoredScheduleSettings,
+  patch: UpdateNotificationSettingsRequest,
+  now: Date,
+): ScheduleSettingsChange {
+  const enabled = patch.scheduleDailyEnabled ?? current.enabled;
+  const time = patch.scheduleDailyTime ?? current.time;
+  // すでにオンの設定に enabled: true が届いても、オンにしたとは扱わない（再試行中の通知を処理済みにしない）。
+  const turningOn = patch.scheduleDailyEnabled === true && !current.enabled;
+  const timeChanged =
+    patch.scheduleDailyTime !== undefined &&
+    patch.scheduleDailyTime !== current.time;
+  return {
+    enabled,
+    time,
+    disabledReason:
+      patch.scheduleDailyEnabled !== undefined ? null : current.disabledReason,
+    markTarget:
+      enabled && (turningOn || timeChanged)
+        ? scheduleTargetToMark(now, { time })
+        : null,
+  };
+}
+
+export type SettingsSections = {
+  techWeekly: boolean;
+  todoDaily: boolean;
+  scheduleDaily: boolean;
+};
+
+// パッチが触る設定の表。変更の無い表は書かない（cron の書き込みを古い値で巻き戻さないため）。
+export function changedSections(
+  patch: UpdateNotificationSettingsRequest,
+): SettingsSections {
+  return {
+    techWeekly:
+      patch.techWeeklyEnabled !== undefined ||
+      patch.techWeeklyDay !== undefined ||
+      patch.techWeeklyTime !== undefined,
+    todoDaily:
+      patch.todoDailyEnabled !== undefined || patch.todoDailyTime !== undefined,
+    scheduleDaily:
+      patch.scheduleDailyEnabled !== undefined ||
+      patch.scheduleDailyTime !== undefined,
+  };
+}
+
 export function toNotificationSettings(
   settings: StoredNotificationSettings,
   pendingCount: number,
-  todoPendingCount = 0,
+  todoPendingCount: number,
+  schedule: Pick<StoredScheduleSettings, "enabled" | "time" | "disabledReason">,
 ): NotificationSettings {
   return notificationSettingsSchema.parse({
     techWeeklyEnabled: settings.techWeekly.enabled,
@@ -104,5 +177,8 @@ export function toNotificationSettings(
     todoDailyTime: settings.todoDaily.time,
     todoPendingCount,
     todoDisabledReason: settings.todoDaily.disabledReason,
+    scheduleDailyEnabled: schedule.enabled,
+    scheduleDailyTime: schedule.time,
+    scheduleDisabledReason: schedule.disabledReason,
   });
 }

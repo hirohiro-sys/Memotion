@@ -1,8 +1,12 @@
 import type { Memo } from "@repo/shared";
-import { Clock, ExternalLink } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { CalendarDays, Clock, ExternalLink } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ScheduleDialog } from "@/features/schedule/components/schedule-dialog";
+import { formatScheduleDate } from "@/features/schedule/jst";
 import { cn } from "@/utils/cn";
 import { formatDate } from "@/utils/format";
+import { useOnlineStatus } from "../offline/use-online-status";
 import { TagBadge } from "./tag-badge";
 
 export function MemoCard({
@@ -18,6 +22,19 @@ export function MemoCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const online = useOnlineStatus();
+  // オフラインで閉じたダイアログを、オンラインに戻ったときに開き直さない。
+  useEffect(() => {
+    if (!online) setScheduleOpen(false);
+  }, [online]);
+  // つぶやきは「予定にする」、予定は「日時を変更」。ほかのタグには出さない。
+  const scheduleAction =
+    memo.tag === "tweet"
+      ? "予定にする"
+      : memo.tag === "schedule"
+        ? "日時を変更"
+        : null;
   const contentRef = useRef<HTMLParagraphElement>(null);
 
   useLayoutEffect(() => {
@@ -54,6 +71,16 @@ export function MemoCard({
           className="size-4 shrink-0 cursor-pointer accent-primary"
         />
       </div>
+
+      {memo.tag === "schedule" && memo.scheduledDate ? (
+        <p className="mb-2 flex items-center gap-1.5 text-body-sm font-medium text-foreground">
+          <CalendarDays className="size-3.5 shrink-0 text-stone" />
+          {formatScheduleDate(memo.scheduledDate)}
+          <span className="tabular-nums">
+            {memo.scheduledTime ?? "時間未定"}
+          </span>
+        </p>
+      ) : null}
 
       <p
         ref={contentRef}
@@ -111,12 +138,36 @@ export function MemoCard({
           />
         ))}
 
-      <div className="mt-auto flex items-center justify-end">
+      <div className="mt-auto flex items-center justify-between gap-2">
+        {scheduleAction ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            disabled={busy || !online}
+            title={online ? undefined : "オフラインのため使えません"}
+            onClick={() => setScheduleOpen(true)}
+            className="-ml-2.5 text-stone"
+          >
+            <CalendarDays />
+            {scheduleAction}
+          </Button>
+        ) : (
+          <span />
+        )}
         <span className="flex shrink-0 items-center gap-1 text-caption text-stone">
           <Clock className="size-3" />
           {formatDate(memo.createdAt)}
         </span>
       </div>
+
+      {scheduleAction ? (
+        <ScheduleDialog
+          memo={memo}
+          open={scheduleOpen && online}
+          onOpenChange={setScheduleOpen}
+        />
+      ) : null}
     </article>
   );
 }

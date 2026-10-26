@@ -1,7 +1,10 @@
+import type { NotificationSettings } from "@repo/shared";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
+  CircleCheck,
   Inbox,
   Moon,
   Settings2,
@@ -13,55 +16,123 @@ import { useState } from "react";
 import { BrandLockup } from "@/components/layout/brand-lockup";
 import { Skeleton } from "@/components/ui/skeleton";
 import { applyTheme, getStoredTheme } from "@/config/theme";
+import {
+  formatMonthDay,
+  nextDailyDate,
+  nextWeeklyDate,
+} from "@/features/notifications/next-notice";
 import { cn } from "@/utils/cn";
 
 const NAV_ITEMS = [
   { to: "/", label: "メモ一覧", icon: Inbox, exact: true },
+  { to: "/calendar", label: "カレンダー", icon: CalendarDays, exact: false },
   { to: "/settings", label: "設定", icon: Settings2, exact: false },
 ] as const;
 
 const iconButtonClass =
   "rounded-lg p-1.5 text-stone transition-colors duration-200 hover:bg-muted hover:text-foreground";
 
-function NotifyWidget({
+function NotifyStatusRow({
   title,
-  count,
-  notifyOn,
-  cadence,
+  enabled,
+  next,
   pending,
   unavailable,
   onNavigate,
 }: {
   title: string;
-  count: number;
-  notifyOn: boolean;
-  cadence: string;
+  enabled: boolean;
+  next: string;
   pending: boolean;
   unavailable: boolean;
   onNavigate: () => void;
 }) {
+  const on = enabled && !pending && !unavailable;
   return (
     <Link
       to="/settings"
       onClick={onNavigate}
-      className="block px-3 py-3 no-underline transition-colors duration-200 hover:bg-muted"
+      className="flex items-center gap-2.5 rounded-lg px-3 py-1.5 no-underline transition-colors duration-200 hover:bg-muted"
     >
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="text-body-sm font-medium text-foreground">{title}</p>
+      <CircleCheck
+        className={cn("size-3.5 shrink-0", on ? "text-primary" : "text-stone")}
+      />
+      <div className="min-w-0 flex-1">
+        <p
+          className={cn(
+            "truncate text-caption",
+            on ? "font-medium text-foreground" : "text-stone",
+          )}
+        >
+          {title}
+        </p>
         {pending ? (
-          <Skeleton className="h-4 w-8" />
+          <Skeleton className="mt-0.5 h-2.5 w-14" />
         ) : (
-          <p className="text-body-sm font-medium tabular-nums text-foreground">
-            {unavailable ? "-" : `${count}件`}
+          <p className="truncate text-[10px] text-stone">
+            {unavailable ? "-" : enabled ? next : "無効"}
           </p>
         )}
       </div>
-      {pending || unavailable ? null : (
-        <p className="mt-0.5 text-caption text-stone">
-          {notifyOn ? `${cadence}オン` : `${cadence}オフ`}
-        </p>
-      )}
     </Link>
+  );
+}
+
+// LINE 通知の状態。各通知のオン/オフと、次に届く日を出す。
+function NotifyStatus({
+  notifications,
+  pending,
+  unavailable,
+  onNavigate,
+}: {
+  notifications: NotificationSettings | undefined;
+  pending: boolean;
+  unavailable: boolean;
+  onNavigate: () => void;
+}) {
+  const now = new Date();
+  const rowState = { pending, unavailable, onNavigate };
+  return (
+    <section className="border-t border-border px-3 pt-3 pb-3">
+      <h2 className="mb-2 px-3 text-body-sm font-medium text-foreground">
+        LINE通知ステータス
+      </h2>
+      <NotifyStatusRow
+        title="週次Techまとめ"
+        enabled={notifications?.techWeeklyEnabled ?? false}
+        next={
+          notifications
+            ? `次回: ${formatMonthDay(
+                nextWeeklyDate(
+                  now,
+                  notifications.techWeeklyDay,
+                  notifications.techWeeklyTime,
+                ),
+              )}`
+            : ""
+        }
+        {...rowState}
+      />
+      <NotifyStatusRow
+        title="直近TODO"
+        enabled={notifications?.todoDailyEnabled ?? false}
+        next={
+          notifications
+            ? `次回: ${formatMonthDay(
+                nextDailyDate(now, notifications.todoDailyTime),
+              )}`
+            : ""
+        }
+        {...rowState}
+      />
+      <NotifyStatusRow
+        title="予定の前日通知"
+        enabled={notifications?.scheduleDailyEnabled ?? false}
+        // 予定がある日の前日だけ届くので、日付ではなく時刻を出す。
+        next={notifications ? `前日 ${notifications.scheduleDailyTime}` : ""}
+        {...rowState}
+      />
+    </section>
   );
 }
 
@@ -70,12 +141,9 @@ function SidebarColumn({
   onToggleCompact,
   onNavigate,
   memoCount,
-  techCount,
-  todoCount,
   memosPending,
   memosOffline,
-  notifyOn,
-  todoNotifyOn,
+  notifications,
   notificationsPending,
   notificationsOffline,
   dark,
@@ -85,20 +153,15 @@ function SidebarColumn({
   onToggleCompact?: () => void;
   onNavigate: () => void;
   memoCount: number;
-  techCount: number;
-  todoCount: number;
   memosPending: boolean;
   memosOffline: boolean;
-  notifyOn: boolean;
-  todoNotifyOn: boolean;
+  notifications: NotificationSettings | undefined;
   notificationsPending: boolean;
   notificationsOffline: boolean;
   dark: boolean;
   onTheme: () => void;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const summaryPending = memosPending || notificationsPending;
-  const summaryOffline = memosOffline || notificationsOffline;
 
   return (
     <>
@@ -194,26 +257,12 @@ function SidebarColumn({
       </nav>
 
       {compact ? null : (
-        <div className="mx-3 mb-3 divide-y divide-border overflow-hidden rounded-xl border border-border">
-          <NotifyWidget
-            title="今週の技術"
-            count={techCount}
-            notifyOn={notifyOn}
-            cadence="週次通知"
-            pending={summaryPending}
-            unavailable={summaryOffline}
-            onNavigate={onNavigate}
-          />
-          <NotifyWidget
-            title="やること"
-            count={todoCount}
-            notifyOn={todoNotifyOn}
-            cadence="毎日通知"
-            pending={summaryPending}
-            unavailable={summaryOffline}
-            onNavigate={onNavigate}
-          />
-        </div>
+        <NotifyStatus
+          notifications={notifications}
+          pending={notificationsPending}
+          unavailable={notificationsOffline}
+          onNavigate={onNavigate}
+        />
       )}
 
       <div
@@ -262,12 +311,9 @@ export function Sidebar({
   mobileOpen,
   onCloseMobile,
   memoCount,
-  techCount,
-  todoCount,
   memosPending,
   memosOffline,
-  notifyOn,
-  todoNotifyOn,
+  notifications,
   notificationsPending,
   notificationsOffline,
 }: {
@@ -276,12 +322,9 @@ export function Sidebar({
   mobileOpen: boolean;
   onCloseMobile: () => void;
   memoCount: number;
-  techCount: number;
-  todoCount: number;
   memosPending: boolean;
   memosOffline: boolean;
-  notifyOn: boolean;
-  todoNotifyOn: boolean;
+  notifications: NotificationSettings | undefined;
   notificationsPending: boolean;
   notificationsOffline: boolean;
 }) {
@@ -297,12 +340,9 @@ export function Sidebar({
   const columnProps = {
     onNavigate: onCloseMobile,
     memoCount,
-    techCount,
-    todoCount,
     memosPending,
     memosOffline,
-    notifyOn,
-    todoNotifyOn,
+    notifications,
     notificationsPending,
     notificationsOffline,
     dark,

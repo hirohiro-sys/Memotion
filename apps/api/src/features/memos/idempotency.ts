@@ -36,10 +36,17 @@ export function isPrimaryKeyConflict(error: unknown): boolean {
 // それ以外は内容を返さず衝突にする（他ユーザーの行の存在や内容を漏らさない）。
 // グループは入力が持つときだけ比べる（グループなしで保存したあと、別の端末で
 // 「グループに追加」されたメモの再送を衝突にしないため）。
+// 予定は日付と時刻も比べる。時刻の省略と null は同じ「時間未定」として扱う。
 export function decideCreateResult(
   saveResult: SaveResult,
   existing: ExistingMemoRow | null,
-  input: { tag: MemoTag; content: string; groupId?: string },
+  input: {
+    tag: MemoTag;
+    content: string;
+    groupId?: string;
+    scheduledDate?: string;
+    scheduledTime?: string | null;
+  },
   userId: string,
 ): CreateDecision {
   if (saveResult === "inserted") return { kind: "created" };
@@ -50,7 +57,10 @@ export function decideCreateResult(
     existing.userId === userId &&
     existing.tag === input.tag &&
     existing.content === input.content &&
-    (input.groupId === undefined || existing.groupId === input.groupId);
+    (input.groupId === undefined || existing.groupId === input.groupId) &&
+    (input.tag !== "schedule" ||
+      (existing.scheduledDate === (input.scheduledDate ?? null) &&
+        existing.scheduledTime === (input.scheduledTime ?? null)));
   return sameRequest
     ? { kind: "existing", row: existing }
     : { kind: "conflict" };

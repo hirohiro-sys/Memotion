@@ -162,6 +162,12 @@ groupRoutes.post("/api/groups/:id/memos", async (c) => {
   if (!result.ok) {
     if (result.error === "group_missing") return groupNotFound(c);
     if (result.error === "invalid") return invalidRequest(c);
+    if (result.error === "past_date") {
+      return c.json(
+        { message: "schedule date is past", code: "schedule_date_past" },
+        400,
+      );
+    }
     if (result.error === "conflict") {
       return c.json({ message: "conflict" }, 409);
     }
@@ -198,6 +204,7 @@ groupRoutes.post("/api/groups/:id/memos/assign", async (c) => {
     assignMemosResponseSchema.parse({
       added: result.added,
       skippedTodo: result.skippedTodo,
+      skippedSchedule: result.skippedSchedule,
     }),
   );
 });

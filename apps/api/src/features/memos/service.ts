@@ -3,6 +3,7 @@ import {
   type Memo,
   memoListResponseSchema,
   memoSchema,
+  type SetScheduleRequest,
 } from "@repo/shared";
 import { nanoid } from "nanoid";
 import { createDb, type Database } from "../../db";
@@ -26,6 +27,7 @@ import {
   deleteMemosByIds,
   deleteMemosInGroupStatement,
   findByLineMessageId,
+  findMemoForUser,
   findMemoMedia,
   findMemoWithOwner,
   findTagBySlug,
@@ -34,14 +36,22 @@ import {
   isUniqueConstraintError,
   listClaimableOgpIds,
   listMemos,
+  listSchedulesOnDate,
   type MemoRow,
   memoImageKey,
   type OgpState,
   type OgpTarget,
   putMedia,
+  type ScheduleOnDateRow,
   updateMemoOgp,
+  updateMemoSchedule,
 } from "./repository";
 import { resolveCreatedAt } from "./resolve-created-at";
+import {
+  decideScheduleSet,
+  isPastScheduleDate,
+  validateCreateSchedule,
+} from "./schedule";
 
 const OGP_CLAIM_STALE_MS = 30_000;
 const OGP_BACKFILL_BUDGET_MS = 20_000;
@@ -62,6 +72,12 @@ export function toMemoResponse(row: MemoRow): Memo {
     ...(row.url ? { url: row.url } : {}),
     ...(row.mediaType === "image" || (row.mediaType === "url" && row.imageKey)
       ? { thumbnailUrl: `/api/memos/${row.id}/image` }
+      : {}),
+    ...(row.tag === "schedule" && row.scheduledDate
+      ? { scheduledDate: row.scheduledDate }
+      : {}),
+    ...(row.tag === "schedule" && row.scheduledDate && row.scheduledTime
+      ? { scheduledTime: row.scheduledTime }
       : {}),
   });
 }
@@ -86,16 +102,32 @@ export async function createForUser(
   | { ok: true; memo: Memo; created: boolean }
   | {
       ok: false;
-      error: "invalid" | "save_failed" | "conflict" | "group_missing";
+      error:
+        | "invalid"
+        | "save_failed"
+        | "conflict"
+        | "group_missing"
+        | "past_date";
     }
 > {
   const { groupId } = options;
+  const now = new Date();
+  const scheduleCheck = validateCreateSchedule(
+    { tag: input.tag, groupId, scheduledDate: input.scheduledDate },
+    now,
+  );
+  if (scheduleCheck !== "ok") return { ok: false, error: scheduleCheck };
+
   const tag = await findTagBySlug(db, input.tag);
   if (!tag) return { ok: false, error: "invalid" };
 
   const memoId = input.id ?? nanoid();
-  const createdAt = resolveCreatedAt(input.createdAt, new Date());
+  const createdAt = resolveCreatedAt(input.createdAt, now);
   const mediaType = detectMediaType(input.content);
+  const scheduledDate =
+    input.tag === "schedule" ? (input.scheduledDate ?? null) : null;
+  const scheduledTime =
+    input.tag === "schedule" ? (input.scheduledTime ?? null) : null;
 
   let saveResult: SaveResult = "inserted";
   let existing: ExistingMemoRow | null = null;
@@ -112,6 +144,8 @@ export async function createForUser(
       lineMessageId: null,
       createdAt,
       groupId: groupId ?? null,
+      scheduledDate,
+      scheduledTime,
     });
   } catch (error) {
     // error は SQL と本文を含むためログに渡さない。
@@ -140,7 +174,13 @@ export async function createForUser(
   const decision = decideCreateResult(
     saveResult,
     existing,
-    { tag: input.tag, content: input.content, groupId },
+    {
+      tag: input.tag,
+      content: input.content,
+      groupId,
+      scheduledDate: input.scheduledDate,
+      scheduledTime: input.scheduledTime,
+    },
     userId,
   );
   switch (decision.kind) {
@@ -158,6 +198,8 @@ export async function createForUser(
           source: "web",
           createdAt,
           groupId: groupId ?? null,
+          scheduledDate,
+          scheduledTime,
         }),
       };
     case "existing":
@@ -169,6 +211,61 @@ export async function createForUser(
     case "save_failed":
       return { ok: false, error: "save_failed" };
   }
+}
+
+// つぶやきを予定にする、または予定の日時を変える。
+// 順番は「過去の日付（DB に触らない）→ メモの取得（持ち主で絞る）→ 状態の判断 → 条件付きの更新」。
+export async function setScheduleForUser(
+  db: Database,
+  userId: string,
+  memoId: string,
+  input: SetScheduleRequest,
+): Promise<
+  | { ok: true; memo: Memo }
+  | {
+      ok: false;
+      error: "past_date" | "not_found" | "not_schedulable" | "save_failed";
+    }
+> {
+  if (isPastScheduleDate(input.scheduledDate, new Date())) {
+    return { ok: false, error: "past_date" };
+  }
+
+  const memo = await findMemoForUser(db, userId, memoId);
+  const decision = decideScheduleSet({ memo });
+  if (decision !== "ok") return { ok: false, error: decision };
+
+  const tag = await findTagBySlug(db, "schedule");
+  if (!tag) return { ok: false, error: "save_failed" };
+
+  let updated: MemoRow | null;
+  try {
+    updated = await updateMemoSchedule(db, {
+      userId,
+      memoId,
+      scheduleTagId: tag.id,
+      scheduledDate: input.scheduledDate,
+      scheduledTime: input.scheduledTime ?? null,
+    });
+  } catch {
+    // 例外の message は SQL と params（日付や本文）を含むため、投げ直さず ID だけ残す。
+    logJson({ event: "memo.schedule", status: "failed", userId, memoId });
+    return { ok: false, error: "save_failed" };
+  }
+  if (updated) return { ok: true, memo: toMemoResponse(updated) };
+
+  // 確認のあとに状態が変わった。削除されていれば 404、グループに入ったなどなら 409。
+  const current = await findMemoForUser(db, userId, memoId);
+  return { ok: false, error: current ? "not_schedulable" : "not_found" };
+}
+
+// 通知用。ある日（JST）の自分の予定。
+export async function listSchedulesOnDateForUser(
+  db: Database,
+  userId: string,
+  date: string,
+): Promise<ScheduleOnDateRow[]> {
+  return listSchedulesOnDate(db, userId, date);
 }
 
 export async function getImageForUser(
@@ -286,7 +383,7 @@ export async function deleteImagesForUser(
   }
 }
 
-// 「グループに追加」。自分の、どのグループにも入っていない、todo 以外のメモだけを入れる。
+// 「グループに追加」。自分の、どのグループにも入っていない、todo と schedule 以外のメモだけを入れる。
 // groupId の持ち主の確認は呼び出し側（groups の service）が行う。
 export async function assignGroupForUser(
   db: Database,
@@ -294,7 +391,7 @@ export async function assignGroupForUser(
   groupId: string,
   ids: string[],
 ): Promise<
-  | { ok: true; added: number; skippedTodo: number }
+  | { ok: true; added: number; skippedTodo: number; skippedSchedule: number }
   | { ok: false; error: "group_missing" }
 > {
   const uniqueIds = [...new Set(ids)];

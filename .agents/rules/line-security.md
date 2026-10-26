@@ -14,6 +14,7 @@ paths:
 - `sid` は httpOnly。OAuth `state` は発行と消費が対になる
 - `/api/me`・`/api/memos*`・`/api/groups*`・`/api/notifications` は `readSessionUserId` 必須。401 を省略しない
 - `/api/groups/:id*` は `groups.user_id = セッションのユーザー ID` で引く。無いグループと他人のグループは区別せず 404（`code: "group_not_found"`）
+- `PUT /api/memos/:id/schedule` は `readSessionUserId` 必須。検査は「401 → `:id` と本文の 400 → 過去の日付の 400（`schedule_date_past`）→ 持ち主と状態」の順。他人のメモと存在しないメモは区別せず 404。更新の SQL は `memos.user_id`・`group_id IS NULL`・タグ（`tweet` か `schedule`）で絞った1文にする
 - Cookie の `secure` / `sameSite` / path を緩めない
 - webhook は署名検証前に本文を解釈・永続化しない
 - 無効署名は 400。受理は 200 + `waitUntil`

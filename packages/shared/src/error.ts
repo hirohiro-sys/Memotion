@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-export const apiErrorCodeSchema = z.enum(["group_not_found"]);
+export const apiErrorCodeSchema = z.enum([
+  "group_not_found",
+  "schedule_date_past",
+  "not_schedulable",
+]);
 
 export const apiErrorSchema = z.object({
   message: z.string(),

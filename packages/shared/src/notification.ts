@@ -12,6 +12,9 @@ export const notificationSettingsSchema = z.object({
   todoDailyTime: clockTimeSchema,
   todoPendingCount: z.number().int().min(0),
   todoDisabledReason: z.string().nullable(),
+  scheduleDailyEnabled: z.boolean(),
+  scheduleDailyTime: clockTimeSchema,
+  scheduleDisabledReason: z.string().nullable(),
 });
 
 export const updateNotificationSettingsRequestSchema = z
@@ -21,6 +24,8 @@ export const updateNotificationSettingsRequestSchema = z
     techWeeklyTime: clockTimeSchema,
     todoDailyEnabled: z.boolean(),
     todoDailyTime: clockTimeSchema,
+    scheduleDailyEnabled: z.boolean(),
+    scheduleDailyTime: clockTimeSchema,
   })
   .partial();
 

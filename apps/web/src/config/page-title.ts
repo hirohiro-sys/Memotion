@@ -2,6 +2,7 @@ export const APP_NAME = "Memotion";
 
 export const PAGE_TITLES = {
   "/": "メモ一覧",
+  "/calendar": "カレンダー",
   "/settings": "設定",
   "/login": "ログイン",
 } as const;

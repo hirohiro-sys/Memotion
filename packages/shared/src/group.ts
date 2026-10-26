@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  createMemoRequestSchema,
+  createMemoRequestBaseSchema,
   MAX_BULK_DELETE,
   memoTagSchema,
 } from "./memo";
@@ -36,18 +36,20 @@ export const assignMemosRequestSchema = z.object({
 export const assignMemosResponseSchema = z.object({
   added: z.number().int().nonnegative(),
   skippedTodo: z.number().int().nonnegative(),
+  skippedSchedule: z.number().int().nonnegative(),
 });
 
 export const deleteGroupResponseSchema = z.object({
   deletedMemos: z.number().int().nonnegative(),
 });
 
-// todo はグループに入れられない。
-export const groupMemoTagSchema = memoTagSchema.exclude(["todo"]);
+// todo と schedule はグループに入れられない。
+export const groupMemoTagSchema = memoTagSchema.exclude(["todo", "schedule"]);
 
-export const createGroupMemoRequestSchema = createMemoRequestSchema.extend({
-  tag: groupMemoTagSchema,
-});
+// グループの入力欄は日時を受け取らない（送られても捨てる）。
+export const createGroupMemoRequestSchema = createMemoRequestBaseSchema
+  .omit({ scheduledDate: true, scheduledTime: true })
+  .extend({ tag: groupMemoTagSchema });
 
 export type Group = z.infer<typeof groupSchema>;
 export type GroupListResponse = z.infer<typeof groupListResponseSchema>;

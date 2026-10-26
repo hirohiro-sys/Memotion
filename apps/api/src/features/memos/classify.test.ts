@@ -95,6 +95,17 @@ describe("classify: unknown tags and collisions", () => {
     });
   });
 
+  it("rejects #schedule because schedules are not created from LINE", () => {
+    expect(classify({ text: "#schedule 11/3 歯医者" })).toEqual({
+      save: false,
+      reason: "unknown_tag",
+    });
+    expect(classify({ text: "＃schedule 歯医者" })).toEqual({
+      save: false,
+      reason: "unknown_tag",
+    });
+  });
+
   it("rejects concatenated leading permitted tags", () => {
     expect(classify({ text: "#tweet#tech 本文" })).toEqual({
       save: false,

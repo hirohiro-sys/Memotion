@@ -6,7 +6,8 @@ export type OutboxStatus = "pending" | "failed";
 export type OutboxItem = {
   id: string;
   userId: string;
-  tag: MemoTag;
+  // 予定は日時を持つため、未送信リストに積まない（直接送る）。
+  tag: Exclude<MemoTag, "schedule">;
   content: string;
   createdAt: string;
   status: OutboxStatus;
