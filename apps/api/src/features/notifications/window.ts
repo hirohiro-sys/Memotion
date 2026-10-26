@@ -1,4 +1,10 @@
-import { fromJst, jstParts, WEEK_MS } from "./jst";
+import {
+  fromJst,
+  jstDateString,
+  jstParts,
+  nextDateString,
+  WEEK_MS,
+} from "./jst";
 
 export type WeeklySlot = {
   weekday: number;
@@ -91,4 +97,23 @@ export function isInstantInWindow(
   const ms = Date.parse(createdAt);
   if (Number.isNaN(ms)) return false;
   return ms >= window.start.getTime() && ms < window.end.getTime();
+}
+
+// 予定の前日通知の対象日。直近の通知の時刻（latestDailyDueAt）の JST の日付の翌日。
+export function scheduleTargetDate(now: Date, slot: DailySlot): string {
+  return nextDateString(jstDateString(latestDailyDueAt(now, slot)));
+}
+
+// now が、直近の通知の時刻と同じ JST の日付か。日付をまたいだら「明日の予定」が嘘になる。
+export function isSameJstDayAsDue(now: Date, slot: DailySlot): boolean {
+  return jstDateString(now) === jstDateString(latestDailyDueAt(now, slot));
+}
+
+// 設定をオンにした、または時刻を変えたときに処理済みにする対象日。
+// 通知の時刻がまだ今日に来ていなければ null（時刻が来たら送る）。
+export function scheduleTargetToMark(
+  now: Date,
+  slot: DailySlot,
+): string | null {
+  return isSameJstDayAsDue(now, slot) ? scheduleTargetDate(now, slot) : null;
 }

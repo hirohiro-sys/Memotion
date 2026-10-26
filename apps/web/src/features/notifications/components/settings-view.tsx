@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CloudOff, LogOut } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { ToggleSwitch } from "@/components/toggle-switch";
 import {
   AlertDialog,
@@ -18,6 +18,46 @@ import { cn } from "@/utils/cn";
 import { fetchNotifications } from "../api/get-notifications";
 import { updateNotifications } from "../api/update-notifications";
 
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// 入力の確定（フォーカスが外れたとき、Enter）でだけ送る時刻の欄。
+// 予定の通知は時刻を変えると「処理済み」が進んで戻らないので、打ちかけの値（02:00 など）を送らない。
+function CommitTimeInput({
+  id,
+  value,
+  onCommit,
+}: {
+  id: string;
+  value: string;
+  onCommit: (time: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+
+  function commit() {
+    if (draft === value) return;
+    if (!TIME_PATTERN.test(draft)) {
+      setDraft(value);
+      return;
+    }
+    onCommit(draft);
+  }
+
+  return (
+    <input
+      id={id}
+      type="time"
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") commit();
+      }}
+      className="w-28 rounded-lg border border-border bg-background px-2.5 py-1.5 text-center font-mono text-body-sm outline-none transition-colors duration-200 focus:border-primary"
+    />
+  );
+}
+
 function NotifyChannel({
   title,
   summary,
@@ -29,7 +69,7 @@ function NotifyChannel({
   children,
 }: {
   title: string;
-  summary: string;
+  summary?: string;
   checked: boolean;
   onCheckedChange: (enabled: boolean) => void;
   hint?: string;
@@ -42,7 +82,9 @@ function NotifyChannel({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-body-sm text-foreground">{title}</p>
-          <p className="mt-0.5 text-caption text-stone">{summary}</p>
+          {summary ? (
+            <p className="mt-0.5 text-caption text-stone">{summary}</p>
+          ) : null}
         </div>
         <ToggleSwitch checked={checked} onChange={onCheckedChange} />
       </div>
@@ -219,6 +261,33 @@ export function SettingsView({
                     })
                   }
                   className="w-28 rounded-lg border border-border bg-background px-2.5 py-1.5 text-center font-mono text-body-sm outline-none transition-colors duration-200 focus:border-primary"
+                />
+              </div>
+            </NotifyChannel>
+
+            <NotifyChannel
+              className="border-t border-border pt-6"
+              title="予定の前日通知"
+              checked={notifications.scheduleDailyEnabled}
+              onCheckedChange={(enabled) =>
+                notifyMutation.mutate({ scheduleDailyEnabled: enabled })
+              }
+              warning={notifications.scheduleDisabledReason}
+              hint={`翌日に予定がある日だけ、前日の ${notifications.scheduleDailyTime} に届く。最初はオンで、オフにもできる。今日の通知時刻を過ぎてからオンにしたり時刻を変えたりした日は、明日の予定は通知されない`}
+            >
+              <div>
+                <label
+                  htmlFor="schedule-notify-time"
+                  className="mb-1.5 block text-caption text-stone"
+                >
+                  時刻
+                </label>
+                <CommitTimeInput
+                  id="schedule-notify-time"
+                  value={notifications.scheduleDailyTime}
+                  onCommit={(time) =>
+                    notifyMutation.mutate({ scheduleDailyTime: time })
+                  }
                 />
               </div>
             </NotifyChannel>

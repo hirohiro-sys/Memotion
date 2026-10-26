@@ -22,7 +22,7 @@ Workers のログは `console.log(JSON.stringify(fields))` の1行。各ファ�
 
 | キー | 内容 |
 | --- | --- |
-| event | `line.webhook` / `line.event` / `memo.create` / `memo.ogp` / `memo.image.delete` / `group.create` / `group.rename` / `group.delete` / `group.touch` / `group.assign` / `tech.weekly` / `todo.daily` |
+| event | `line.webhook` / `line.event` / `memo.create` / `memo.ogp` / `memo.image.delete` / `group.create` / `group.rename` / `group.delete` / `group.touch` / `group.assign` / `memo.schedule` / `tech.weekly` / `todo.daily` / `schedule.daily` |
 | status / action | `invalid_signature` / `failed` / `ignored` / `skipped` / `tick` / `duplicate` / `conflict` など |
 | userId | アプリのユーザー ID |
 | lineUserId | 不受理・未登録のときだけ |
@@ -30,6 +30,7 @@ Workers のログは `console.log(JSON.stringify(fields))` の1行。各ファ�
 | groupId | グループ ID。グループ名はユーザーの入力なので出さない |
 | reason | `empty` や `group` などの短い理由 |
 | count / sent / failed | ダイジェストの件数 |
+| messages | ダイジェストの通数（`schedule.daily`） |
 
 ## 秘密値をログに流さない
 

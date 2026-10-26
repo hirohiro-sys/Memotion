@@ -1,15 +1,21 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { Database } from "../../db";
 import {
   memos,
+  scheduleDailySettings,
   tags,
   techWeeklySettings,
   todoDailySettings,
   users,
 } from "../../db/schema";
 import type { DigestMemo } from "./message";
-import type { StoredDailySettings, StoredSettings } from "./settings";
+import {
+  DEFAULT_SCHEDULE_DAILY,
+  type StoredDailySettings,
+  type StoredScheduleSettings,
+  type StoredSettings,
+} from "./settings";
 
 export async function readStoredSettings(
   db: Database,
@@ -114,6 +120,97 @@ export async function upsertDailySettings(
     lastSentAt: settings.lastSentAt,
     disabledReason: settings.disabledReason,
   });
+}
+
+export async function readStoredScheduleSettings(
+  db: Database,
+  userId: string,
+): Promise<StoredScheduleSettings | null> {
+  const [row] = await db
+    .select({
+      enabled: scheduleDailySettings.enabled,
+      time: scheduleDailySettings.time,
+      lastTargetDate: scheduleDailySettings.lastTargetDate,
+      disabledReason: scheduleDailySettings.disabledReason,
+    })
+    .from(scheduleDailySettings)
+    .where(eq(scheduleDailySettings.userId, userId))
+    .limit(1);
+  return row ?? null;
+}
+
+// 設定画面からの更新。enabled・time・disabled_reason だけを書き、last_target_date には触らない。
+export async function upsertScheduleSettingsColumns(
+  db: Database,
+  userId: string,
+  values: Pick<StoredScheduleSettings, "enabled" | "time" | "disabledReason">,
+): Promise<void> {
+  await db
+    .insert(scheduleDailySettings)
+    .values({ id: nanoid(), userId, ...values, lastTargetDate: null })
+    .onConflictDoUpdate({ target: scheduleDailySettings.userId, set: values });
+}
+
+// 対象日を「先取り」する1文。オンで、まだ処理していない（または古い対象日の）行だけを進める。
+// 設定を読んだあとにオフにされたら進めない（送らない）。
+// 行が無いときは既定値（オン）の行を作る。進めたら true、すでに処理済みかオフなら false。
+export async function claimScheduleTarget(
+  db: Database,
+  userId: string,
+  targetDate: string,
+): Promise<boolean> {
+  const rows = await db
+    .insert(scheduleDailySettings)
+    .values({
+      id: nanoid(),
+      userId,
+      enabled: DEFAULT_SCHEDULE_DAILY.enabled,
+      time: DEFAULT_SCHEDULE_DAILY.time,
+      lastTargetDate: targetDate,
+      disabledReason: null,
+    })
+    .onConflictDoUpdate({
+      target: scheduleDailySettings.userId,
+      set: { lastTargetDate: targetDate },
+      setWhere: and(
+        eq(scheduleDailySettings.enabled, true),
+        or(
+          isNull(scheduleDailySettings.lastTargetDate),
+          lt(scheduleDailySettings.lastTargetDate, targetDate),
+        ),
+      ),
+    })
+    .returning({ id: scheduleDailySettings.id });
+  return rows.length > 0;
+}
+
+// 一時的な送信失敗のあと、先取りを元に戻す。別の実行が先へ進めていたら触らない。
+export async function revertScheduleTarget(
+  db: Database,
+  userId: string,
+  targetDate: string,
+  previous: string | null,
+): Promise<void> {
+  await db
+    .update(scheduleDailySettings)
+    .set({ lastTargetDate: previous })
+    .where(
+      and(
+        eq(scheduleDailySettings.userId, userId),
+        eq(scheduleDailySettings.lastTargetDate, targetDate),
+      ),
+    );
+}
+
+export async function disableScheduleSettings(
+  db: Database,
+  userId: string,
+  disabledReason: string,
+): Promise<void> {
+  await db
+    .update(scheduleDailySettings)
+    .set({ enabled: false, disabledReason })
+    .where(eq(scheduleDailySettings.userId, userId));
 }
 
 export async function listAllowedUsers(

@@ -21,7 +21,9 @@ D1（SQLite）と Drizzle。Prisma はない。スキーマの正本は `apps/ap
 
 ## 設定
 
-ユーザーごとの通知（有効、曜日、時刻、`lastSentAt`）は `tech_weekly_settings` と `todo_daily_settings` が正。`DEFAULT_TECH_WEEKLY` と `DEFAULT_TODO_DAILY` は行が無いときの初期値だけで、保存済みの値を上書きしない。
+ユーザーごとの通知（有効、曜日、時刻、`lastSentAt`）は `tech_weekly_settings` と `todo_daily_settings` が正。予定の前日通知（有効、時刻、`lastTargetDate`）は `schedule_daily_settings` が正。`DEFAULT_TECH_WEEKLY`・`DEFAULT_TODO_DAILY`・`DEFAULT_SCHEDULE_DAILY` は行が無いときの初期値だけで、保存済みの値を上書きしない。
+
+`schedule_daily_settings.last_target_date` は、cron の先取り（条件付きの1文）と、設定の更新で処理済みにするときだけ進める。設定画面の更新は `enabled`・`time`・`disabled_reason` だけを書き、`last_target_date` を古い値で上書きしない。
 
 ## DBが守るもの／アプリが守るもの
 

@@ -36,6 +36,14 @@ import { MemoComposer } from "./memo-composer";
 import { PendingMemoCard } from "./pending-memo-card";
 
 type FilterTag = MemoTag | "all";
+
+// 送るあいだに JST の日付が変わり、予定の日付が過去になった（400 schedule_date_past）。
+class SchedulePastError extends Error {
+  constructor() {
+    super("schedule date is past");
+    this.name = "SchedulePastError";
+  }
+}
 const EMPTY_MEMOS: Memo[] = [];
 
 export function MemoList() {
@@ -61,16 +69,20 @@ export function MemoList() {
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
 
-  // 未送信リストが使えない環境で、オンラインのときだけ使う直接送信。
+  // 未送信リストが使えない環境と予定で、オンラインのときだけ使う直接送信。
+  // 入力が id を持つとき（予定）はそれを使い、送り直しで同じメモを2件作らない。
   const createMutation = useMutation({
     mutationFn: async (input: CreateMemoRequest) => {
       const result = await sendMemo({
         ...input,
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
+        id: input.id ?? crypto.randomUUID(),
+        createdAt: input.createdAt ?? new Date().toISOString(),
       });
       if (result.kind === "saved") return;
       if (result.kind === "unauthorized") await router.invalidate();
+      if (result.kind === "rejected" && result.code === "schedule_date_past") {
+        throw new SchedulePastError();
+      }
       throw new Error("failed to create memo");
     },
     onSuccess: async () => {
@@ -79,8 +91,14 @@ export function MemoList() {
         queryClient.invalidateQueries({ queryKey: ["notifications"] }),
       ]);
     },
-    onError: () => {
-      toast.add({ title: "保存できませんでした。", type: "error" });
+    onError: (error) => {
+      toast.add({
+        title:
+          error instanceof SchedulePastError
+            ? "日付が過去になったため保存できませんでした。"
+            : "保存できませんでした。",
+        type: "error",
+      });
     },
   });
 
@@ -113,6 +131,7 @@ export function MemoList() {
       tech: 0,
       other: 0,
       todo: 0,
+      schedule: 0,
     };
     for (const memo of memos) acc[memo.tag] += 1;
     return acc;
@@ -181,6 +200,18 @@ export function MemoList() {
     const parsed = createMemoRequestSchema.safeParse(input);
     const userId = getStoredUserId();
     if (!parsed.success) return;
+
+    // 予定は日時を持つので、未送信リストを通さず直接送る。
+    // 失敗したら入力欄を閉じず、本文と日時を残す（知らせるのは createMutation の onError）。
+    if (parsed.data.tag === "schedule") {
+      try {
+        await createMutation.mutateAsync(parsed.data);
+        setComposing(false);
+      } catch {
+        // 入力欄に残す。
+      }
+      return;
+    }
 
     try {
       if (!userId) throw new Error("no stored user");

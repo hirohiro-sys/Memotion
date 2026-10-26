@@ -1,3 +1,4 @@
+import { updateNotificationSettingsRequestSchema } from "@repo/shared";
 import { Jwt } from "hono/utils/jwt";
 import { describe, expect, it } from "vitest";
 import { notificationRoutes } from "./index";
@@ -81,5 +82,47 @@ describe("PATCH /api/notifications validation", () => {
       env,
     );
     expect(time.status).toBe(400);
+  });
+});
+
+describe("PATCH /api/notifications schedule validation", () => {
+  async function patch(body: unknown) {
+    return notificationRoutes.request(
+      "/api/notifications",
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: await sessionCookie(),
+        },
+        body: JSON.stringify(body),
+      },
+      { SESSION_SECRET },
+    );
+  }
+
+  it.each([
+    { scheduleDailyTime: "20:00:00" },
+    { scheduleDailyTime: "25:00" },
+    { scheduleDailyEnabled: "true" },
+  ])("rejects %j with 400", async (body) => {
+    expect((await patch(body)).status).toBe(400);
+  });
+});
+
+describe("updateNotificationSettingsRequestSchema schedule fields", () => {
+  it("accepts 00:00, 23:59 and a schedule-only patch", () => {
+    for (const time of ["00:00", "23:59"]) {
+      expect(
+        updateNotificationSettingsRequestSchema.parse({
+          scheduleDailyTime: time,
+        }),
+      ).toEqual({ scheduleDailyTime: time });
+    }
+    expect(
+      updateNotificationSettingsRequestSchema.parse({
+        scheduleDailyEnabled: false,
+      }),
+    ).toEqual({ scheduleDailyEnabled: false });
   });
 });

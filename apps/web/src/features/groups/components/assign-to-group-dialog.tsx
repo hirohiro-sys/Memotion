@@ -69,13 +69,18 @@ export function AssignToGroupDialog({
 
   function notifyAssigned(
     group: Pick<Group, "id" | "name">,
-    result: { added: number; skippedTodo: number },
+    result: { added: number; skippedTodo: number; skippedSchedule: number },
   ) {
+    // 入れなかった種別だけを並べる。
+    const skipped = [
+      result.skippedTodo > 0 ? `やること ${result.skippedTodo} 件` : null,
+      result.skippedSchedule > 0 ? `予定 ${result.skippedSchedule} 件` : null,
+    ].filter((text) => text !== null);
     const toastId = toast.add({
       title: `${result.added} 件を「${group.name}」に入れました`,
       description:
-        result.skippedTodo > 0
-          ? `やること ${result.skippedTodo} 件は入れませんでした`
+        skipped.length > 0
+          ? `${skipped.join("・")}は入れませんでした`
           : undefined,
       type: "success",
       actionProps: {
@@ -158,7 +163,7 @@ export function AssignToGroupDialog({
       <AlertDialogContent>
         <AlertDialogTitle>{ids.length}件をグループに追加</AlertDialogTitle>
         <AlertDialogDescription className="mb-4">
-          やることのメモは入れられません。
+          やること / 予定のメモは自動的に除外されます。
         </AlertDialogDescription>
 
         {groupsQuery.isPending ? (

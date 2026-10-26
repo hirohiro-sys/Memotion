@@ -81,15 +81,9 @@ function AppLayout() {
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
         memoCount={memos.data?.items.length ?? 0}
-        // 次の週次通知で送る tech の件数（グループに入れた tech も数える）。
-        techCount={notifications.data?.pendingCount ?? 0}
-        todoCount={
-          memos.data?.items.filter((memo) => memo.tag === "todo").length ?? 0
-        }
         memosPending={memos.isPending && !memosOffline}
         memosOffline={memosOffline}
-        notifyOn={notifications.data?.techWeeklyEnabled ?? false}
-        todoNotifyOn={notifications.data?.todoDailyEnabled ?? false}
+        notifications={notifications.data}
         notificationsPending={notifications.isPending && !notificationsOffline}
         notificationsOffline={notificationsOffline}
       />

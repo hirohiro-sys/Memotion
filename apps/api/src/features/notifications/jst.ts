@@ -41,3 +41,21 @@ export function formatJstMdHm(instant: Date): string {
   const minute = String(parts.minute).padStart(2, "0");
   return `${parts.month}/${parts.day} ${hour}:${minute}`;
 }
+
+// instant の JST の日付（YYYY-MM-DD）。
+export function jstDateString(instant: Date): string {
+  return new Date(instant.getTime() + JST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+// YYYY-MM-DD の翌日。
+export function nextDateString(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  const next = new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, (day ?? 1) + 1));
+  return next.toISOString().slice(0, 10);
+}
+
+// YYYY-MM-DD を「M/D」（0埋めなし）にする。
+export function formatDateMd(date: string): string {
+  const [, month, day] = date.split("-").map(Number);
+  return `${month}/${day}`;
+}

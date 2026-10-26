@@ -1,4 +1,4 @@
-import { formatJstMd, formatJstMdHm } from "./jst";
+import { formatDateMd, formatJstMd, formatJstMdHm } from "./jst";
 
 export const MAX_DIGEST_MESSAGES = 5;
 export const MAX_URL_PREVIEWS_PER_MESSAGE = 5;
@@ -25,19 +25,18 @@ function excerptText(content: string): string {
   return content.slice(0, TEXT_EXCERPT_LENGTH);
 }
 
-function formatMemoLine(memo: DigestMemo): string {
-  const date = formatJstMd(new Date(memo.createdAt));
-  const body = isUrlMemo(memo)
+function memoBody(memo: DigestMemo): string {
+  return isUrlMemo(memo)
     ? (memo.url ?? memo.content)
     : excerptText(memo.content);
-  return `${date} ${body}`;
 }
 
-function formatMemoEntry(memo: DigestMemo): DigestLine {
-  return {
-    text: formatMemoLine(memo),
-    previewCount: isUrlMemo(memo) ? 1 : 0,
-  };
+function formatMemoLine(memo: DigestMemo): string {
+  return `${formatJstMd(new Date(memo.createdAt))} ${memoBody(memo)}`;
+}
+
+function byCreatedAt(a: DigestMemo, b: DigestMemo): number {
+  return a.createdAt.localeCompare(b.createdAt);
 }
 
 function headline(count: number, start: Date, end: Date): string {
@@ -67,17 +66,20 @@ function canAppend(lines: DigestLine[], extra: DigestLine): boolean {
   );
 }
 
-function packDigestMessages(
-  memos: DigestMemo[],
+// 並べ替えと1行の整形は呼び出し側が渡す。
+function packDigestMessages<T extends DigestMemo>(
+  memos: T[],
   title: string,
   appUrl: string,
+  format: { compare: (a: T, b: T) => number; line: (memo: T) => string },
 ): string[] {
   if (memos.length === 0) return [];
 
-  const sorted = [...memos].sort((a, b) =>
-    a.createdAt.localeCompare(b.createdAt),
-  );
-  const items = sorted.map(formatMemoEntry);
+  const sorted = [...memos].sort(format.compare);
+  const items: DigestLine[] = sorted.map((memo) => ({
+    text: format.line(memo),
+    previewCount: isUrlMemo(memo) ? 1 : 0,
+  }));
   const messages: DigestLine[][] = [[{ text: title, previewCount: 0 }]];
   let packed = 0;
 
@@ -133,6 +135,7 @@ export function buildDigestMessages(input: {
     input.memos,
     headline(input.memos.length, input.windowStart, input.windowEnd),
     input.appUrl,
+    { compare: byCreatedAt, line: formatMemoLine },
   );
 }
 
@@ -144,5 +147,35 @@ export function buildTodoDigestMessages(input: {
     input.memos,
     `未完了のTODO ${input.memos.length}件`,
     input.appUrl,
+    { compare: byCreatedAt, line: formatMemoLine },
+  );
+}
+
+export type ScheduleDigestMemo = DigestMemo & { scheduledTime: string | null };
+
+// 時刻のない予定が先頭。残りは時刻の早い順。同じ時刻は登録順。
+function bySchedule(a: ScheduleDigestMemo, b: ScheduleDigestMemo): number {
+  if (a.scheduledTime !== b.scheduledTime) {
+    if (a.scheduledTime === null) return -1;
+    if (b.scheduledTime === null) return 1;
+    return a.scheduledTime.localeCompare(b.scheduledTime);
+  }
+  return byCreatedAt(a, b);
+}
+
+function formatScheduleLine(memo: ScheduleDigestMemo): string {
+  return `${memo.scheduledTime ?? "時間未定"} ${memoBody(memo)}`;
+}
+
+export function buildScheduleDigestMessages(input: {
+  schedules: ScheduleDigestMemo[];
+  targetDate: string;
+  appUrl: string;
+}): string[] {
+  return packDigestMessages(
+    input.schedules,
+    `明日の予定 ${input.schedules.length}件（${formatDateMd(input.targetDate)}）`,
+    input.appUrl,
+    { compare: bySchedule, line: formatScheduleLine },
   );
 }

@@ -39,6 +39,7 @@ export {
   type MemoMediaType,
   type MemoSource,
   type MemoTag,
+  memoIdSchema,
   memoListResponseSchema,
   memoMediaTypeSchema,
   memoSchema,
@@ -51,4 +52,10 @@ export {
   type UpdateNotificationSettingsRequest,
   updateNotificationSettingsRequestSchema,
 } from "./notification";
+export {
+  type SetScheduleRequest,
+  scheduleDateSchema,
+  scheduleTimeSchema,
+  setScheduleRequestSchema,
+} from "./schedule";
 export { type User, userSchema } from "./user";

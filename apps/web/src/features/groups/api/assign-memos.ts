@@ -29,6 +29,7 @@ export async function assignMemos(
 ): Promise<AssignMemosResponse> {
   let added = 0;
   let skippedTodo = 0;
+  let skippedSchedule = 0;
   for (let i = 0; i < ids.length; i += MAX_BULK_DELETE) {
     const result = await assignChunk(
       groupId,
@@ -36,6 +37,7 @@ export async function assignMemos(
     );
     added += result.added;
     skippedTodo += result.skippedTodo;
+    skippedSchedule += result.skippedSchedule;
   }
-  return { added, skippedTodo };
+  return { added, skippedTodo, skippedSchedule };
 }

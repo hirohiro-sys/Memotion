@@ -23,6 +23,8 @@ export type MemoRow = {
   source: string;
   createdAt: string;
   groupId: string | null;
+  scheduledDate: string | null;
+  scheduledTime: string | null;
 };
 
 export function memoImageKey(userId: string, memoId: string): string {
@@ -51,6 +53,8 @@ export async function listMemos(
       source: memos.source,
       createdAt: memos.createdAt,
       groupId: memos.groupId,
+      scheduledDate: memos.scheduledDate,
+      scheduledTime: memos.scheduledTime,
     })
     .from(memos)
     .innerJoin(tags, eq(memos.tagId, tags.id))
@@ -80,10 +84,39 @@ export async function findMemoWithOwner(
       source: memos.source,
       createdAt: memos.createdAt,
       groupId: memos.groupId,
+      scheduledDate: memos.scheduledDate,
+      scheduledTime: memos.scheduledTime,
     })
     .from(memos)
     .innerJoin(tags, eq(memos.tagId, tags.id))
     .where(eq(memos.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+// 自分のメモだけを返す。他人のメモと存在しないメモは区別せず null。
+export async function findMemoForUser(
+  db: Database,
+  userId: string,
+  id: string,
+): Promise<MemoRow | null> {
+  const [row] = await db
+    .select({
+      id: memos.id,
+      tag: tags.slug,
+      content: memos.content,
+      url: memos.url,
+      imageKey: memos.imageKey,
+      mediaType: memos.mediaType,
+      source: memos.source,
+      createdAt: memos.createdAt,
+      groupId: memos.groupId,
+      scheduledDate: memos.scheduledDate,
+      scheduledTime: memos.scheduledTime,
+    })
+    .from(memos)
+    .innerJoin(tags, eq(memos.tagId, tags.id))
+    .where(and(eq(memos.userId, userId), eq(memos.id, id)))
     .limit(1);
   return row ?? null;
 }
@@ -111,6 +144,8 @@ export async function insertMemo(
     lineMessageId: string | null;
     createdAt: string;
     groupId?: string | null;
+    scheduledDate?: string | null;
+    scheduledTime?: string | null;
   },
 ) {
   await db.insert(memos).values(values);
@@ -204,33 +239,50 @@ export async function deleteMemosByIds(
   return deleted;
 }
 
-function todoTagIds(db: Database) {
-  return db.select({ id: tags.id }).from(tags).where(eq(tags.slug, "todo"));
+function tagIdsBySlug(db: Database, slugs: string[]) {
+  return db.select({ id: tags.id }).from(tags).where(inArray(tags.slug, slugs));
 }
 
-// 自分の、どのグループにも入っていない、todo 以外のメモにだけ group_id を付ける。
-// 付けた件数と、除いた自分の todo の件数を返す。
+async function countOwnMemosWithTag(
+  db: Database,
+  userId: string,
+  ids: string[],
+  slug: string,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: count() })
+    .from(memos)
+    .where(
+      and(
+        eq(memos.userId, userId),
+        inArray(memos.id, ids),
+        inArray(memos.tagId, tagIdsBySlug(db, [slug])),
+      ),
+    );
+  return row?.count ?? 0;
+}
+
+// 自分の、どのグループにも入っていない、todo と schedule 以外のメモにだけ group_id を付ける。
+// 付けた件数と、除いた自分の todo と schedule の件数を返す。
+// 「予定にする」の更新も group_id IS NULL を条件に持つため、同時に動いてもグループに入った予定は生まれない。
 export async function assignMemosToGroup(
   db: Database,
   userId: string,
   groupId: string,
   ids: string[],
-): Promise<{ added: number; skippedTodo: number }> {
+): Promise<{ added: number; skippedTodo: number; skippedSchedule: number }> {
   let added = 0;
   let skippedTodo = 0;
+  let skippedSchedule = 0;
   for (let i = 0; i < ids.length; i += DELETE_CHUNK_SIZE) {
     const chunk = ids.slice(i, i + DELETE_CHUNK_SIZE);
-    const [todo] = await db
-      .select({ count: count() })
-      .from(memos)
-      .where(
-        and(
-          eq(memos.userId, userId),
-          inArray(memos.id, chunk),
-          inArray(memos.tagId, todoTagIds(db)),
-        ),
-      );
-    skippedTodo += todo?.count ?? 0;
+    skippedTodo += await countOwnMemosWithTag(db, userId, chunk, "todo");
+    skippedSchedule += await countOwnMemosWithTag(
+      db,
+      userId,
+      chunk,
+      "schedule",
+    );
 
     const rows = await db
       .update(memos)
@@ -240,13 +292,88 @@ export async function assignMemosToGroup(
           eq(memos.userId, userId),
           isNull(memos.groupId),
           inArray(memos.id, chunk),
-          notInArray(memos.tagId, todoTagIds(db)),
+          notInArray(memos.tagId, tagIdsBySlug(db, ["todo", "schedule"])),
         ),
       )
       .returning({ id: memos.id });
     added += rows.length;
   }
-  return { added, skippedTodo };
+  return { added, skippedTodo, skippedSchedule };
+}
+
+// つぶやきを予定にする、または予定の日時を変える。確認と同じ条件（自分のメモ、グループなし、
+// タグが tweet か schedule）を WHERE に入れた1文で更新する。条件に合わなければ null。
+export async function updateMemoSchedule(
+  db: Database,
+  values: {
+    userId: string;
+    memoId: string;
+    scheduleTagId: string;
+    scheduledDate: string;
+    scheduledTime: string | null;
+  },
+): Promise<MemoRow | null> {
+  const [row] = await db
+    .update(memos)
+    .set({
+      tagId: values.scheduleTagId,
+      scheduledDate: values.scheduledDate,
+      scheduledTime: values.scheduledTime,
+    })
+    .where(
+      and(
+        eq(memos.id, values.memoId),
+        eq(memos.userId, values.userId),
+        isNull(memos.groupId),
+        inArray(memos.tagId, tagIdsBySlug(db, ["tweet", "schedule"])),
+      ),
+    )
+    .returning({
+      id: memos.id,
+      content: memos.content,
+      url: memos.url,
+      imageKey: memos.imageKey,
+      mediaType: memos.mediaType,
+      source: memos.source,
+      createdAt: memos.createdAt,
+      groupId: memos.groupId,
+      scheduledDate: memos.scheduledDate,
+      scheduledTime: memos.scheduledTime,
+    });
+  return row ? { ...row, tag: "schedule" } : null;
+}
+
+export type ScheduleOnDateRow = {
+  scheduledTime: string | null;
+  content: string;
+  mediaType: string;
+  url: string | null;
+  createdAt: string;
+};
+
+// ある日（JST）の自分の予定。予定はグループに入らないので group_id は見ない。
+export async function listSchedulesOnDate(
+  db: Database,
+  userId: string,
+  date: string,
+): Promise<ScheduleOnDateRow[]> {
+  return db
+    .select({
+      scheduledTime: memos.scheduledTime,
+      content: memos.content,
+      mediaType: memos.mediaType,
+      url: memos.url,
+      createdAt: memos.createdAt,
+    })
+    .from(memos)
+    .innerJoin(tags, eq(memos.tagId, tags.id))
+    .where(
+      and(
+        eq(memos.userId, userId),
+        eq(memos.scheduledDate, date),
+        eq(tags.slug, "schedule"),
+      ),
+    );
 }
 
 export async function countMemosByGroup(
