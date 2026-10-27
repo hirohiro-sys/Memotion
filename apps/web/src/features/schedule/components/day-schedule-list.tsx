@@ -1,5 +1,5 @@
 import { CalendarX2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useOnlineStatus } from "@/features/memos/offline/use-online-status";
 import type { ScheduleMemo } from "../day-schedule";
@@ -7,17 +7,19 @@ import { formatScheduleDate } from "../jst";
 import { ScheduleDialog } from "./schedule-dialog";
 
 // 選んだ日の予定の一覧。各予定に「日時を変更」と「削除」を置く。
-// 日ごとのメモと日報は、この下に別の節として足せるようにしておく。
+// 日ごとのメモは、children として下に別の節で出す。日報も同じ形で足せる。
 export function DaySchedulePanel({
   date,
   schedules,
   busy,
   onDelete,
+  children,
 }: {
   date: string;
   schedules: ScheduleMemo[];
   busy: boolean;
   onDelete: (memo: ScheduleMemo) => void;
+  children?: ReactNode;
 }) {
   return (
     <section className="rounded-xl border border-border bg-card p-4 md:p-6">
@@ -41,6 +43,7 @@ export function DaySchedulePanel({
           ))}
         </ul>
       )}
+      {children}
     </section>
   );
 }

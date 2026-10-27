@@ -12,6 +12,11 @@ export function jstToday(now: Date): string {
   return jstShifted(now).toISOString().slice(0, 10);
 }
 
+// ISO 日時（createdAt など）の JST の日付（YYYY-MM-DD）。
+export function jstDateOf(iso: string): string {
+  return jstToday(new Date(iso));
+}
+
 // now の JST の時刻（HH:MM）。
 export function jstClock(now: Date): string {
   return jstShifted(now).toISOString().slice(11, 16);

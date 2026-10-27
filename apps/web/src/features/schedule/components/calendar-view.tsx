@@ -1,3 +1,4 @@
+import type { Memo } from "@repo/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CloudOff } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -15,13 +16,16 @@ import { toast } from "@/components/ui/toast";
 import { deleteMemos } from "@/features/memos/api/delete-memos";
 import { fetchMemos } from "@/features/memos/api/get-memos";
 import { useOnlineStatus } from "@/features/memos/offline/use-online-status";
+import { groupMemosByCreatedDate } from "../day-memos";
 import { groupSchedulesByDate, type ScheduleMemo } from "../day-schedule";
 import { jstToday, parseDate } from "../jst";
 import { shiftMonth } from "../month-grid";
+import { DayMemoList } from "./day-memo-list";
 import { DaySchedulePanel } from "./day-schedule-list";
 import { MonthGrid } from "./month-grid";
 
 const NO_SCHEDULES: ScheduleMemo[] = [];
+const NO_MEMOS: Memo[] = [];
 
 // 予定のカレンダー。メモ一覧の取得から予定を選んで表示する（専用の取得 API は無い）。
 // 月と選んだ日は画面の状態だけで持つ。再読み込みすると今日に戻る。
@@ -42,6 +46,10 @@ export function CalendarView() {
     [memosQuery.data],
   );
   const scheduledDates = useMemo(() => new Set(byDate.keys()), [byDate]);
+  const memosByDate = useMemo(
+    () => groupMemosByCreatedDate(memosQuery.data?.items ?? []),
+    [memosQuery.data],
+  );
 
   const deleteMutation = useMutation({
     mutationFn: (memo: ScheduleMemo) => deleteMemos([memo.id]),
@@ -110,7 +118,9 @@ export function CalendarView() {
             schedules={byDate.get(selected) ?? NO_SCHEDULES}
             busy={deleteMutation.isPending}
             onDelete={setDeleting}
-          />
+          >
+            <DayMemoList memos={memosByDate.get(selected) ?? NO_MEMOS} />
+          </DaySchedulePanel>
         ) : memosQuery.isPending && !offline ? (
           <section className="space-y-3 rounded-xl border border-border bg-card p-4 md:p-6">
             <Skeleton className="h-5 w-40" />
