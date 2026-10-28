@@ -22,7 +22,7 @@ Workers のログは `console.log(JSON.stringify(fields))` の1行。各ファ�
 
 | キー | 内容 |
 | --- | --- |
-| event | `line.webhook` / `line.event` / `memo.create` / `memo.ogp` / `memo.image.delete` / `group.create` / `group.rename` / `group.delete` / `group.touch` / `group.assign` / `memo.schedule` / `tech.weekly` / `todo.daily` / `schedule.daily` |
+| event | `line.webhook` / `line.event` / `memo.create` / `memo.ogp` / `memo.image.delete` / `group.create` / `group.rename` / `group.delete` / `group.touch` / `group.assign` / `memo.schedule` / `connpass.sync` / `tech.weekly` / `todo.daily` / `schedule.daily` |
 | status / action | `invalid_signature` / `failed` / `ignored` / `skipped` / `tick` / `duplicate` / `conflict` など |
 | userId | アプリのユーザー ID |
 | lineUserId | 不受理・未登録のときだけ |

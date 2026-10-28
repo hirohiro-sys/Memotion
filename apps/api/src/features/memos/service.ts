@@ -23,6 +23,7 @@ import {
   assignMemosToGroup,
   claimOgp,
   countMemosByGroup,
+  deleteImportedScheduleStatement,
   deleteMedia,
   deleteMemosByIds,
   deleteMemosInGroupStatement,
@@ -32,6 +33,7 @@ import {
   findMemoWithOwner,
   findTagBySlug,
   getMedia,
+  insertImportedScheduleStatement,
   insertMemo,
   isUniqueConstraintError,
   listClaimableOgpIds,
@@ -43,6 +45,7 @@ import {
   type OgpTarget,
   putMedia,
   type ScheduleOnDateRow,
+  updateImportedScheduleStatement,
   updateMemoOgp,
   updateMemoSchedule,
 } from "./repository";
@@ -426,6 +429,34 @@ export function deleteInGroupStatement(
   groupId: string,
 ) {
   return deleteMemosInGroupStatement(db, userId, groupId);
+}
+
+// connpass の取り込みが使う。予定のタグの ID（タグの行が無ければ null）。
+export async function findScheduleTagId(db: Database): Promise<string | null> {
+  return (await findTagBySlug(db, "schedule"))?.id ?? null;
+}
+
+// 以下3つは、実行せずに文を返す。connpass の service が、対応表の文と一緒に db.batch で実行する。
+export function importedScheduleInsertStatement(
+  db: Database,
+  values: Parameters<typeof insertImportedScheduleStatement>[1],
+) {
+  return insertImportedScheduleStatement(db, values);
+}
+
+export function importedScheduleUpdateStatement(
+  db: Database,
+  values: Parameters<typeof updateImportedScheduleStatement>[1],
+) {
+  return updateImportedScheduleStatement(db, values);
+}
+
+export function importedScheduleDeleteStatement(
+  db: Database,
+  userId: string,
+  memoId: string,
+) {
+  return deleteImportedScheduleStatement(db, userId, memoId);
 }
 
 export async function createFromLine(

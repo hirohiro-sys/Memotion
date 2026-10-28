@@ -1,4 +1,14 @@
 export {
+  type ConnpassSettings,
+  type ConnpassSyncResponse,
+  connpassNicknameSchema,
+  connpassSettingsSchema,
+  connpassSyncResponseSchema,
+  connpassSyncStatusSchema,
+  type UpdateConnpassSettingsRequest,
+  updateConnpassSettingsRequestSchema,
+} from "./connpass";
+export {
   type ApiError,
   type ApiErrorCode,
   apiErrorCodeSchema,
