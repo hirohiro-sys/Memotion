@@ -23,6 +23,8 @@ D1（SQLite）と Drizzle。Prisma はない。スキーマの正本は `apps/ap
 
 ユーザーごとの通知（有効、曜日、時刻、`lastSentAt`）は `tech_weekly_settings` と `todo_daily_settings` が正。予定の前日通知（有効、時刻、`lastTargetDate`）は `schedule_daily_settings` が正。`DEFAULT_TECH_WEEKLY`・`DEFAULT_TODO_DAILY`・`DEFAULT_SCHEDULE_DAILY` は行が無いときの初期値だけで、保存済みの値を上書きしない。
 
+connpass 連携は `connpass_settings`（ユーザー名と、取り込みの先取りに使う `last_synced_at`）と `connpass_imports`（connpass のイベントと予定の対応表）が正。`connpass_imports.memo_id` は `onDelete: set null` で、NULL の行は「ユーザーが予定を消したので、もう取り込まない」を表す。この行は消さない（消すと、次の取り込みで予定が戻る）。取り込みが予定を消すときだけ、予定と対応表の行を `db.batch` で一緒に消す。
+
 `schedule_daily_settings.last_target_date` は、cron の先取り（条件付きの1文）と、設定の更新で処理済みにするときだけ進める。設定画面の更新は `enabled`・`time`・`disabled_reason` だけを書き、`last_target_date` を古い値で上書きしない。
 
 ## DBが守るもの／アプリが守るもの

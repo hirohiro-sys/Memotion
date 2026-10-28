@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PILL_IDLE, WEEKDAYS } from "@/config/tag-meta";
+import { ConnpassSettings } from "@/features/connpass/components/connpass-settings";
 import { PwaInstallGuide } from "@/features/pwa/components/pwa-install-guide";
 import { cn } from "@/utils/cn";
 import { fetchNotifications } from "../api/get-notifications";
@@ -294,6 +295,8 @@ export function SettingsView({
           </div>
         )}
       </section>
+
+      <ConnpassSettings />
 
       <PwaInstallGuide />
 

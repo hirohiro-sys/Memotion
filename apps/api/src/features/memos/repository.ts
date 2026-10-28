@@ -390,6 +390,75 @@ export async function countMemosByGroup(
   );
 }
 
+// connpass の取り込み用。実行せずに文を返し、connpass の service が自分の表の文と一緒に db.batch で実行する。
+// 更新と削除は、自分の、グループに入っていない予定だけを対象にする。
+export function insertImportedScheduleStatement(
+  db: Database,
+  values: {
+    id: string;
+    userId: string;
+    tagId: string;
+    content: string;
+    scheduledDate: string;
+    scheduledTime: string | null;
+    createdAt: string;
+  },
+) {
+  return db.insert(memos).values({
+    ...values,
+    url: null,
+    imageKey: null,
+    source: "web",
+    mediaType: "text",
+    lineMessageId: null,
+    groupId: null,
+  });
+}
+
+export function updateImportedScheduleStatement(
+  db: Database,
+  values: {
+    userId: string;
+    memoId: string;
+    content: string;
+    scheduledDate: string;
+    scheduledTime: string | null;
+  },
+) {
+  return db
+    .update(memos)
+    .set({
+      content: values.content,
+      scheduledDate: values.scheduledDate,
+      scheduledTime: values.scheduledTime,
+    })
+    .where(
+      and(
+        eq(memos.id, values.memoId),
+        eq(memos.userId, values.userId),
+        isNull(memos.groupId),
+        inArray(memos.tagId, tagIdsBySlug(db, ["schedule"])),
+      ),
+    );
+}
+
+export function deleteImportedScheduleStatement(
+  db: Database,
+  userId: string,
+  memoId: string,
+) {
+  return db
+    .delete(memos)
+    .where(
+      and(
+        eq(memos.id, memoId),
+        eq(memos.userId, userId),
+        isNull(memos.groupId),
+        inArray(memos.tagId, tagIdsBySlug(db, ["schedule"])),
+      ),
+    );
+}
+
 // 実行せずに文を返す。呼び出し側がグループの行の削除と一緒に db.batch で実行する。
 export function deleteMemosInGroupStatement(
   db: Database,

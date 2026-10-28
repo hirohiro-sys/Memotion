@@ -103,6 +103,42 @@ export const scheduleDailySettings = sqliteTable("schedule_daily_settings", {
   disabledReason: text("disabled_reason"),
 });
 
+// connpass 連携の設定。ユーザー名が無い（行が無い）ユーザーは取り込まない。
+// last_synced_at は、取り込みの開始を条件付きの1文で「先取り」するために持つ。
+export const connpassSettings = sqliteTable("connpass_settings", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "restrict" }),
+  nickname: text("nickname").notNull(),
+  lastSyncedAt: text("last_synced_at"),
+  lastSyncStatus: text("last_sync_status"),
+});
+
+// connpass のイベントと、取り込んだ予定の対応表。
+// memo_id が NULL の行は、ユーザーが予定を消したので、もう取り込まないことを表す。
+export const connpassImports = sqliteTable(
+  "connpass_imports",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    eventId: integer("event_id").notNull(),
+    memoId: text("memo_id").references(() => memos.id, {
+      onDelete: "set null",
+    }),
+    importedTitle: text("imported_title").notNull(),
+    importedDate: text("imported_date").notNull(),
+    importedTime: text("imported_time"),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => [
+    unique("connpass_imports_user_id_event_id_unique").on(t.userId, t.eventId),
+  ],
+);
+
 export const usersRelations = relations(users, ({ many, one }) => ({
   memos: many(memos),
   groups: many(groups),
