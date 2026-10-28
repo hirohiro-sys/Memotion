@@ -156,6 +156,7 @@ export function MemoComposer({
       <textarea
         value={content}
         onChange={(event) => setContent(event.target.value)}
+        aria-label="メモを入力..."
         placeholder="メモを入力..."
         rows={3}
         onKeyDown={handleKeyDown}

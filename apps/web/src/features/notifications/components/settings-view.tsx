@@ -48,6 +48,7 @@ function CommitTimeInput({
     <input
       id={id}
       type="time"
+      aria-label="時刻"
       value={draft}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={commit}

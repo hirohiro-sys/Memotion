@@ -116,13 +116,13 @@ function ToastAction({
 function ToastClose({
   className,
   children,
-  render = <Button variant="ghost" size="icon-sm" />,
+  render = <Button variant="ghost" size="icon-sm" aria-label="閉じる" />,
   ...props
 }: ToastPrimitive.Close.Props) {
   return (
     <ToastPrimitive.Close
       data-slot="toast-close"
-      aria-label="Close toast"
+      aria-label="閉じる"
       render={render}
       className={cn(
         "relative shrink-0 text-stone after:absolute after:-inset-2 after:content-[''] hover:text-foreground",
