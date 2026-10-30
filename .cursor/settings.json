@@ -2,6 +2,9 @@
   "plugins": {
     "pstack": {
       "enabled": true
+    },
+    "thermos": {
+      "enabled": true
     }
   }
 }
