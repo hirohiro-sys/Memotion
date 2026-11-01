@@ -6,8 +6,14 @@ ROOT="$(cd "$SKILL_DIR/../../.." && pwd)"
 RUN="$SKILL_DIR/run"
 mkdir -p "$RUN"
 
-if grep -q '^remote = true' "$ROOT/apps/api/wrangler.toml"; then
-  echo "wrangler.toml has remote = true; refusing to start" >&2
+# D1 と R2 の remote は本番に書く。AI の remote はローカルにモデルが無いためで、ここは止めない。
+if awk '
+  /^\[\[d1_databases\]\]/ || /^\[\[r2_buckets\]\]/ { block = 1; next }
+  /^\[/ { block = 0 }
+  block && /^remote = true/ { found = 1 }
+  END { exit found ? 0 : 1 }
+' "$ROOT/apps/api/wrangler.toml"; then
+  echo "wrangler.toml D1 or R2 has remote = true; refusing to start" >&2
   exit 1
 fi
 
@@ -65,7 +71,8 @@ fi
 pnpm --filter @repo/api exec node ./scripts/ensure-dev-assets.mjs
 
 set -m
-pnpm --filter @repo/api exec wrangler dev --local --ip 127.0.0.1 --port 8787 >"$RUN/api.log" 2>&1 &
+# --local は AI の remote バインディングまで切る。D1 は remote を付けないのでローカルのまま。
+pnpm --filter @repo/api exec wrangler dev --ip 127.0.0.1 --port 8787 >"$RUN/api.log" 2>&1 &
 echo $! >"$RUN/api.pid"
 pnpm --filter @repo/web exec vite --host 127.0.0.1 --port 5173 >"$RUN/web.log" 2>&1 &
 echo $! >"$RUN/web.pid"

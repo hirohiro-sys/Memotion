@@ -1,6 +1,7 @@
 import {
   type CreateMemoRequest,
   createMemoRequestSchema,
+  MAX_DAILY_REPORT_MEMOS,
   type Memo,
   type MemoTag,
 } from "@repo/shared";
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { PILL_BASE, PILL_IDLE, TAG_META, TAG_ORDER } from "@/config/tag-meta";
 import { getStoredUserId } from "@/features/auth/stored-user-id";
+import { CreateDailyReportDialog } from "@/features/daily-reports/components/create-daily-report-dialog";
 import { AssignToGroupDialog } from "@/features/groups/components/assign-to-group-dialog";
 import { cn } from "@/utils/cn";
 import { sendMemo } from "../api/create-memo";
@@ -56,10 +58,14 @@ export function MemoList() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const online = useOnlineStatus();
   // オフラインで閉じた「グループに追加」を、オンラインに戻ったときに開き直さない。
   useEffect(() => {
-    if (!online) setAssignOpen(false);
+    if (!online) {
+      setAssignOpen(false);
+      setReportOpen(false);
+    }
   }, [online]);
 
   const router = useRouter();
@@ -151,9 +157,13 @@ export function MemoList() {
     return result;
   }, [memos, filterTags, search]);
 
-  const selectedList = useMemo(
-    () => filtered.filter((memo) => selectedIds.has(memo.id)).map((m) => m.id),
+  const selectedMemos = useMemo(
+    () => filtered.filter((memo) => selectedIds.has(memo.id)),
     [filtered, selectedIds],
+  );
+  const selectedList = useMemo(
+    () => selectedMemos.map((memo) => memo.id),
+    [selectedMemos],
   );
 
   function toggleSelected(id: string) {
@@ -347,6 +357,26 @@ export function MemoList() {
                 type="button"
                 variant="secondary"
                 size="xs"
+                disabled={
+                  busy ||
+                  !online ||
+                  selectedList.length > MAX_DAILY_REPORT_MEMOS
+                }
+                title={
+                  !online
+                    ? "オフラインのため日報は作れません"
+                    : selectedList.length > MAX_DAILY_REPORT_MEMOS
+                      ? `メモは${MAX_DAILY_REPORT_MEMOS}件までです`
+                      : undefined
+                }
+                onClick={() => setReportOpen(true)}
+              >
+                日報を追加
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="xs"
                 disabled={busy || !online}
                 title={
                   online ? undefined : "オフラインのためグループは使えません"
@@ -402,6 +432,12 @@ export function MemoList() {
             </p>
           </div>
         )}
+
+      <CreateDailyReportDialog
+        open={reportOpen && online}
+        onOpenChange={setReportOpen}
+        memos={selectedMemos}
+      />
 
       <AssignToGroupDialog
         open={assignOpen && online}

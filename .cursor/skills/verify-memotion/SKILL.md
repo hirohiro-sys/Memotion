@@ -17,9 +17,9 @@ From the repo root, with `apps/api/.dev.vars` present, `SESSION_SECRET` non-empt
 .cursor/skills/verify-memotion/scripts/launch.sh
 ```
 
-The script applies local D1 migrations, starts the API with `wrangler dev --local` and the web app with Vite, and opens a dev session. Ready means all of these are true:
+The script applies local D1 migrations, starts the API with `wrangler dev` (D1 stays local; `--local` would disable the Workers AI binding) and the web app with Vite, and opens a dev session. Ready means all of these are true:
 
-- `apps/api/wrangler.toml` has no `remote = true` (a remote binding would write the dev user into production).
+- `apps/api/wrangler.toml` の D1 と R2 に `remote = true` が無い（付けると開発用ログインが本番のユーザーに行を足す）。AI バインディングの `remote = true` はローカルにモデルが無いためのもので、D1 には書かない。
 - `http://127.0.0.1:8787/api/health` returns `{"status":"ok"}`.
 - The API log line for `env.DB` says `local`.
 - `http://127.0.0.1:5173/login` returns 200. The HTML shell does not contain `開発用ログイン`; the browser renders that link from the dev bundle.

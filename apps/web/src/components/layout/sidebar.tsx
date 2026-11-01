@@ -7,6 +7,7 @@ import {
   CircleCheck,
   Inbox,
   Moon,
+  NotebookPen,
   Settings2,
   Sun,
   User,
@@ -26,6 +27,7 @@ import { cn } from "@/utils/cn";
 const NAV_ITEMS = [
   { to: "/", label: "メモ一覧", icon: Inbox, exact: true },
   { to: "/calendar", label: "カレンダー", icon: CalendarDays, exact: false },
+  { to: "/daily-reports", label: "日報", icon: NotebookPen, exact: false },
   { to: "/settings", label: "設定", icon: Settings2, exact: false },
 ] as const;
 

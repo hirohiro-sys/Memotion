@@ -29,3 +29,9 @@ migrations_dir = "migrations"
 [[r2_buckets]]
 binding = "MEDIA"
 bucket_name = "line-memo-orchestrator-media"
+
+# Workers AI。キーは置かない。モデル ID は daily-reports の client に固定する。
+# ローカルにモデルは無い。remote は推論先だけで、D1 と R2 はローカルのまま。
+[ai]
+binding = "AI"
+remote = true

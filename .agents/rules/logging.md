@@ -22,7 +22,7 @@ Workers のログは `console.log(JSON.stringify(fields))` の1行。各ファ�
 
 | キー | 内容 |
 | --- | --- |
-| event | `line.webhook` / `line.event` / `memo.create` / `memo.ogp` / `memo.image.delete` / `group.create` / `group.rename` / `group.delete` / `group.touch` / `group.assign` / `memo.schedule` / `connpass.sync` / `tech.weekly` / `todo.daily` / `schedule.daily` |
+| event | `line.webhook` / `line.event` / `memo.create` / `memo.ogp` / `memo.image.delete` / `group.create` / `group.rename` / `group.delete` / `group.touch` / `group.assign` / `memo.schedule` / `connpass.sync` / `tech.weekly` / `todo.daily` / `schedule.daily` / `daily_report.generate` |
 | status / action | `invalid_signature` / `failed` / `ignored` / `skipped` / `tick` / `duplicate` / `conflict` など |
 | userId | アプリのユーザー ID |
 | lineUserId | 不受理・未登録のときだけ |
@@ -31,6 +31,8 @@ Workers のログは `console.log(JSON.stringify(fields))` の1行。各ファ�
 | reason | `empty` や `group` などの短い理由 |
 | count / sent / failed | ダイジェストの件数 |
 | messages | ダイジェストの通数（`schedule.daily`） |
+
+日報の生成失敗は `daily_report.generate`（`status: failed`、`reason` は `limit` / `upstream` / `empty` / `too_long` / `no_secret` / `write`、`userId`）。429 は `limit`。バインディングが無い 502 は `no_secret`。空は `empty`。2万字超は `too_long`。生成先の失敗と、日時を直せない材料は `upstream`。保存の失敗は `write`。本文、URL、プロンプト、応答は出さない。成功は出さない。
 
 ## 秘密値をログに流さない
 

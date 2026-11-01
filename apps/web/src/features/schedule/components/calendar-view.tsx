@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
+import { fetchDailyReports } from "@/features/daily-reports/api/get-daily-reports";
 import { deleteMemos } from "@/features/memos/api/delete-memos";
 import { fetchMemos } from "@/features/memos/api/get-memos";
 import { useOnlineStatus } from "@/features/memos/offline/use-online-status";
@@ -21,6 +22,7 @@ import { groupSchedulesByDate, type ScheduleMemo } from "../day-schedule";
 import { jstToday, parseDate } from "../jst";
 import { shiftMonth } from "../month-grid";
 import { DayMemoList } from "./day-memo-list";
+import { DayReportList } from "./day-report-list";
 import { DaySchedulePanel } from "./day-schedule-list";
 import { MonthGrid } from "./month-grid";
 
@@ -32,6 +34,10 @@ const NO_MEMOS: Memo[] = [];
 export function CalendarView() {
   const queryClient = useQueryClient();
   const memosQuery = useQuery({ queryKey: ["memos"], queryFn: fetchMemos });
+  const reportsQuery = useQuery({
+    queryKey: ["daily-reports"],
+    queryFn: fetchDailyReports,
+  });
   const today = jstToday(new Date());
   const [selected, setSelected] = useState(today);
   const [visibleMonth, setVisibleMonth] = useState(() => {
@@ -49,6 +55,13 @@ export function CalendarView() {
   const memosByDate = useMemo(
     () => groupMemosByCreatedDate(memosQuery.data?.items ?? []),
     [memosQuery.data],
+  );
+  const dayReports = useMemo(
+    () =>
+      (reportsQuery.data?.reports ?? []).filter(
+        (report) => report.reportDate === selected,
+      ),
+    [reportsQuery.data, selected],
   );
 
   const deleteMutation = useMutation({
@@ -120,6 +133,14 @@ export function CalendarView() {
             onDelete={setDeleting}
           >
             <DayMemoList memos={memosByDate.get(selected) ?? NO_MEMOS} />
+            <DayReportList
+              reports={dayReports}
+              known={reportsQuery.data !== undefined}
+              pending={
+                reportsQuery.isPending && reportsQuery.fetchStatus !== "paused"
+              }
+              failed={reportsQuery.isError}
+            />
           </DaySchedulePanel>
         ) : memosQuery.isPending && !offline ? (
           <section className="space-y-3 rounded-xl border border-border bg-card p-4 md:p-6">
