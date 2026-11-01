@@ -14,6 +14,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppDailyReportsIndexRouteImport } from './routes/_app/daily-reports/index'
+import { Route as AppDailyReportsIdRouteImport } from './routes/_app/daily-reports/$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -39,18 +41,32 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDailyReportsIndexRoute = AppDailyReportsIndexRouteImport.update({
+  id: '/daily-reports/',
+  path: '/daily-reports/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDailyReportsIdRoute = AppDailyReportsIdRouteImport.update({
+  id: '/daily-reports/$id',
+  path: '/daily-reports/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/calendar': typeof AppCalendarRoute
   '/settings': typeof AppSettingsRoute
+  '/daily-reports/$id': typeof AppDailyReportsIdRoute
+  '/daily-reports/': typeof AppDailyReportsIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/calendar': typeof AppCalendarRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
+  '/daily-reports/$id': typeof AppDailyReportsIdRoute
+  '/daily-reports': typeof AppDailyReportsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +75,26 @@ export interface FileRoutesById {
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/daily-reports/$id': typeof AppDailyReportsIdRoute
+  '/_app/daily-reports/': typeof AppDailyReportsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/calendar' | '/settings'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/calendar'
+    | '/settings'
+    | '/daily-reports/$id'
+    | '/daily-reports/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/calendar' | '/settings' | '/'
+  to:
+    | '/login'
+    | '/calendar'
+    | '/settings'
+    | '/'
+    | '/daily-reports/$id'
+    | '/daily-reports'
   id:
     | '__root__'
     | '/_app'
@@ -72,6 +102,8 @@ export interface FileRouteTypes {
     | '/_app/calendar'
     | '/_app/settings'
     | '/_app/'
+    | '/_app/daily-reports/$id'
+    | '/_app/daily-reports/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -116,6 +148,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/daily-reports/': {
+      id: '/_app/daily-reports/'
+      path: '/daily-reports'
+      fullPath: '/daily-reports/'
+      preLoaderRoute: typeof AppDailyReportsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/daily-reports/$id': {
+      id: '/_app/daily-reports/$id'
+      path: '/daily-reports/$id'
+      fullPath: '/daily-reports/$id'
+      preLoaderRoute: typeof AppDailyReportsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -123,12 +169,16 @@ interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppDailyReportsIdRoute: typeof AppDailyReportsIdRoute
+  AppDailyReportsIndexRoute: typeof AppDailyReportsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppDailyReportsIdRoute: AppDailyReportsIdRoute,
+  AppDailyReportsIndexRoute: AppDailyReportsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

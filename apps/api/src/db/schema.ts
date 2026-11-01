@@ -139,9 +139,75 @@ export const connpassImports = sqliteTable(
   ],
 );
 
+// ユーザー・日付・種類（仕事 / 個人）につき1本。本文はモデルの出力に先頭行を足したもの。
+export const dailyReports = sqliteTable(
+  "daily_reports",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    reportDate: text("report_date").notNull(),
+    kind: text("kind").notNull(),
+    framework: text("framework").notNull(),
+    status: text("status").notNull(),
+    body: text("body").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => [
+    unique("daily_reports_user_id_report_date_kind_unique").on(
+      t.userId,
+      t.reportDate,
+      t.kind,
+    ),
+  ],
+);
+
+// 日報とメモの対応。日報を消すと対応だけ消え、メモは残る。メモを消すと対応だけ消える。
+export const dailyReportMemos = sqliteTable(
+  "daily_report_memos",
+  {
+    id: text("id").primaryKey(),
+    reportId: text("report_id")
+      .notNull()
+      .references(() => dailyReports.id, { onDelete: "cascade" }),
+    memoId: text("memo_id")
+      .notNull()
+      .references(() => memos.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    unique("daily_report_memos_report_id_memo_id_unique").on(
+      t.reportId,
+      t.memoId,
+    ),
+  ],
+);
+
+// 呼び出し日（JST）ごとの生成回数。日報を消しても戻さない。
+export const dailyReportAiUses = sqliteTable(
+  "daily_report_ai_uses",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    usedOn: text("used_on").notNull(),
+    count: integer("count").notNull(),
+  },
+  (t) => [
+    unique("daily_report_ai_uses_user_id_used_on_unique").on(
+      t.userId,
+      t.usedOn,
+    ),
+  ],
+);
+
 export const usersRelations = relations(users, ({ many, one }) => ({
   memos: many(memos),
   groups: many(groups),
+  dailyReports: many(dailyReports),
+  dailyReportAiUses: many(dailyReportAiUses),
   techWeeklySettings: one(techWeeklySettings, {
     fields: [users.id],
     references: [techWeeklySettings.userId],
@@ -168,7 +234,7 @@ export const groupsRelations = relations(groups, ({ one, many }) => ({
   memos: many(memos),
 }));
 
-export const memosRelations = relations(memos, ({ one }) => ({
+export const memosRelations = relations(memos, ({ one, many }) => ({
   user: one(users, {
     fields: [memos.userId],
     references: [users.id],
@@ -181,6 +247,7 @@ export const memosRelations = relations(memos, ({ one }) => ({
     fields: [memos.tagId],
     references: [tags.id],
   }),
+  dailyReportMemos: many(dailyReportMemos),
 }));
 
 export const techWeeklySettingsRelations = relations(
@@ -208,6 +275,41 @@ export const scheduleDailySettingsRelations = relations(
   ({ one }) => ({
     user: one(users, {
       fields: [scheduleDailySettings.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const dailyReportsRelations = relations(
+  dailyReports,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [dailyReports.userId],
+      references: [users.id],
+    }),
+    memos: many(dailyReportMemos),
+  }),
+);
+
+export const dailyReportMemosRelations = relations(
+  dailyReportMemos,
+  ({ one }) => ({
+    report: one(dailyReports, {
+      fields: [dailyReportMemos.reportId],
+      references: [dailyReports.id],
+    }),
+    memo: one(memos, {
+      fields: [dailyReportMemos.memoId],
+      references: [memos.id],
+    }),
+  }),
+);
+
+export const dailyReportAiUsesRelations = relations(
+  dailyReportAiUses,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [dailyReportAiUses.userId],
       references: [users.id],
     }),
   }),

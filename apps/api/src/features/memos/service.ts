@@ -31,6 +31,7 @@ import {
   findMemoForUser,
   findMemoMedia,
   findMemoWithOwner,
+  findOwnedMemosByIds,
   findTagBySlug,
   getMedia,
   insertImportedScheduleStatement,
@@ -83,6 +84,36 @@ export function toMemoResponse(row: MemoRow): Memo {
       ? { scheduledTime: row.scheduledTime }
       : {}),
   });
+}
+
+export type OwnedMemo = {
+  id: string;
+  tag: string;
+  content: string;
+  url: string | null;
+  createdAt: string;
+  groupId: string | null;
+  scheduledDate: string | null;
+  scheduledTime: string | null;
+};
+
+// 画像キーは返さない。日報の材料にしないため。
+export async function findOwnedByIds(
+  db: Database,
+  userId: string,
+  ids: string[],
+): Promise<OwnedMemo[]> {
+  const rows = await findOwnedMemosByIds(db, userId, ids);
+  return rows.map((row) => ({
+    id: row.id,
+    tag: row.tag,
+    content: row.content,
+    url: row.url,
+    createdAt: row.createdAt,
+    groupId: row.groupId,
+    scheduledDate: row.scheduledDate,
+    scheduledTime: row.scheduledTime,
+  }));
 }
 
 // 既定ではどのグループにも入っていないメモだけを返す。groupId を渡すとそのグループのメモだけを返す。

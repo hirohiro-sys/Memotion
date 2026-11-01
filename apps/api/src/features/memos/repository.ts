@@ -67,6 +67,40 @@ export async function listMemos(
     .orderBy(desc(memos.createdAt));
 }
 
+// D1 は1クエリあたりのバインド変数が100まで。userId の1つ分を引いて余裕を持たせる。
+const BIND_CHUNK_SIZE = 90;
+
+// 指定した ID のうち、このユーザーのメモを返す。グループに入っているものも含む。
+export async function findOwnedMemosByIds(
+  db: Database,
+  userId: string,
+  ids: string[],
+): Promise<MemoRow[]> {
+  const rows: MemoRow[] = [];
+  for (let i = 0; i < ids.length; i += BIND_CHUNK_SIZE) {
+    const chunk = ids.slice(i, i + BIND_CHUNK_SIZE);
+    const found = await db
+      .select({
+        id: memos.id,
+        tag: tags.slug,
+        content: memos.content,
+        url: memos.url,
+        imageKey: memos.imageKey,
+        mediaType: memos.mediaType,
+        source: memos.source,
+        createdAt: memos.createdAt,
+        groupId: memos.groupId,
+        scheduledDate: memos.scheduledDate,
+        scheduledTime: memos.scheduledTime,
+      })
+      .from(memos)
+      .innerJoin(tags, eq(memos.tagId, tags.id))
+      .where(and(eq(memos.userId, userId), inArray(memos.id, chunk)));
+    rows.push(...found);
+  }
+  return rows;
+}
+
 // 持ち主を確かめずに行を返す。認可（row.userId === sessionUserId）は呼び出し側で必ず行う。
 export async function findMemoWithOwner(
   db: Database,
@@ -219,17 +253,14 @@ export async function claimOgp(
   return row ?? null;
 }
 
-// D1 は1クエリあたりのバインド変数が100まで。userId の1つ分を引いて余裕を持たせる。
-const DELETE_CHUNK_SIZE = 90;
-
 export async function deleteMemosByIds(
   db: Database,
   userId: string,
   ids: string[],
 ): Promise<{ id: string; imageKey: string | null }[]> {
   const deleted: { id: string; imageKey: string | null }[] = [];
-  for (let i = 0; i < ids.length; i += DELETE_CHUNK_SIZE) {
-    const chunk = ids.slice(i, i + DELETE_CHUNK_SIZE);
+  for (let i = 0; i < ids.length; i += BIND_CHUNK_SIZE) {
+    const chunk = ids.slice(i, i + BIND_CHUNK_SIZE);
     const rows = await db
       .delete(memos)
       .where(and(eq(memos.userId, userId), inArray(memos.id, chunk)))
@@ -274,8 +305,8 @@ export async function assignMemosToGroup(
   let added = 0;
   let skippedTodo = 0;
   let skippedSchedule = 0;
-  for (let i = 0; i < ids.length; i += DELETE_CHUNK_SIZE) {
-    const chunk = ids.slice(i, i + DELETE_CHUNK_SIZE);
+  for (let i = 0; i < ids.length; i += BIND_CHUNK_SIZE) {
+    const chunk = ids.slice(i, i + BIND_CHUNK_SIZE);
     skippedTodo += await countOwnMemosWithTag(db, userId, chunk, "todo");
     skippedSchedule += await countOwnMemosWithTag(
       db,

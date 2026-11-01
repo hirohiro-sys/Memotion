@@ -14,8 +14,13 @@ fail() {
 kill -0 "$(cat "$RUN/api.pid")" 2>/dev/null || fail "api process is not running"
 kill -0 "$(cat "$RUN/web.pid")" 2>/dev/null || fail "web process is not running"
 
-if grep -q '^remote = true' "$ROOT/apps/api/wrangler.toml"; then
-  fail "wrangler.toml has remote = true"
+if awk '
+  /^\[\[d1_databases\]\]/ || /^\[\[r2_buckets\]\]/ { block = 1; next }
+  /^\[/ { block = 0 }
+  block && /^remote = true/ { found = 1 }
+  END { exit found ? 0 : 1 }
+' "$ROOT/apps/api/wrangler.toml"; then
+  fail "wrangler.toml D1 or R2 has remote = true"
 fi
 
 curl -sf http://127.0.0.1:8787/api/health | grep -q '"status":"ok"' || fail "api health is not ok"
