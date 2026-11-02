@@ -27,6 +27,7 @@ import { cn } from "@/utils/cn";
 import { sendMemo } from "../api/create-memo";
 import { deleteMemos } from "../api/delete-memos";
 import { fetchMemos } from "../api/get-memos";
+import { memoMatchesQuery } from "../memo-search";
 import { requestOutboxFlush } from "../offline/flush";
 import { visiblePendingItems } from "../offline/merge-pending";
 import { addOutboxItem, deleteOutboxItem } from "../offline/outbox";
@@ -143,18 +144,11 @@ export function MemoList() {
   }, [memos]);
 
   const filtered = useMemo(() => {
-    let result = memos;
-    if (filterTags.size > 0)
-      result = result.filter((memo) => filterTags.has(memo.tag));
-    const query = search.trim().toLowerCase();
-    if (query) {
-      result = result.filter(
-        (memo) =>
-          memo.content.toLowerCase().includes(query) ||
-          (memo.url ?? "").toLowerCase().includes(query),
-      );
-    }
-    return result;
+    const tagged =
+      filterTags.size > 0
+        ? memos.filter((memo) => filterTags.has(memo.tag))
+        : memos;
+    return tagged.filter((memo) => memoMatchesQuery(memo, search));
   }, [memos, filterTags, search]);
 
   const selectedMemos = useMemo(
