@@ -1,8 +1,10 @@
-import type { Memo } from "@repo/shared";
+import type { Memo, MemoTag } from "@repo/shared";
 
 export type ScheduleMemo = Memo & { scheduledDate: string };
 
-export function isScheduleMemo(memo: Memo): memo is ScheduleMemo {
+export function isScheduleMemo<
+  T extends { tag: MemoTag; scheduledDate?: string },
+>(memo: T): memo is T & { scheduledDate: string } {
   return memo.tag === "schedule" && memo.scheduledDate !== undefined;
 }
 

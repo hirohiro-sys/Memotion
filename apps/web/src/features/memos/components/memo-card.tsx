@@ -2,8 +2,8 @@ import type { Memo } from "@repo/shared";
 import { CalendarDays, Clock, ExternalLink } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { scheduleCardLine } from "@/features/schedule/card-line";
 import { ScheduleDialog } from "@/features/schedule/components/schedule-dialog";
-import { formatScheduleDate } from "@/features/schedule/jst";
 import { cn } from "@/utils/cn";
 import { formatDate } from "@/utils/format";
 import { useOnlineStatus } from "../offline/use-online-status";
@@ -53,6 +53,8 @@ export function MemoCard({
     return () => observer.disconnect();
   }, [expanded]);
 
+  const line = scheduleCardLine(memo);
+
   return (
     <article
       className={cn(
@@ -72,13 +74,11 @@ export function MemoCard({
         />
       </div>
 
-      {memo.tag === "schedule" && memo.scheduledDate ? (
+      {line ? (
         <p className="mb-2 flex items-center gap-1.5 text-body-sm font-medium text-foreground">
           <CalendarDays className="size-3.5 shrink-0 text-stone" />
-          {formatScheduleDate(memo.scheduledDate)}
-          <span className="tabular-nums">
-            {memo.scheduledTime ?? "時間未定"}
-          </span>
+          {line.dateLabel}
+          <span className="tabular-nums">{line.timeLabel}</span>
         </p>
       ) : null}
 

@@ -1,4 +1,5 @@
 import type { Memo, MemoTag } from "@repo/shared";
+import { memoMatchesQuery } from "../memo-search";
 import type { OutboxItem } from "./outbox";
 
 // 一覧の先頭に出す送信待ちを選ぶ。取得済みの一覧に同じ id があれば、送信が済んだので隠す
@@ -10,11 +11,10 @@ export function visiblePendingItems(
   search: string,
 ): OutboxItem[] {
   const savedIds = new Set(memos.map((memo) => memo.id));
-  const query = search.trim().toLowerCase();
   return items.filter(
     (item) =>
       !savedIds.has(item.id) &&
       (filterTags.size === 0 || filterTags.has(item.tag)) &&
-      (!query || item.content.toLowerCase().includes(query)),
+      memoMatchesQuery(item, search),
   );
 }
