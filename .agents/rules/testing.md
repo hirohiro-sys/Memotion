@@ -1,21 +1,24 @@
 ---
 description: API 単体テストの置き場所、守る境界、骨抜き禁止
-globs: apps/api/src/**/*.test.ts,apps/api/vitest.config.ts
+globs: apps/api/src/**/*.test.ts,apps/api/vitest.config.ts,apps/web/src/**/*.test.ts,apps/web/vitest.config.ts
 alwaysApply: false
 paths:
   - "apps/api/src/**/*.test.ts"
   - "apps/api/vitest.config.ts"
+  - "apps/web/src/**/*.test.ts"
+  - "apps/web/vitest.config.ts"
 ---
 
 # テスト
 
-自動テストは API の Vitest だけ。現状はPlaywright も E2E 用のシードもない。Web のフローはブラウザで確認する。
+自動テストは API の Vitest と、Web の純粋な判断の Vitest。Playwright も E2E 用のシードもない。画面のフローはブラウザで確認する。
 
 ## 種別と実行
 
 | 種別 | ツール | 置き場所 | 実行 | 何を守るか |
 | --- | --- | --- | --- | --- |
 | 単体 | Vitest | 対象ファイルの隣の `*.test.ts` | `pnpm --filter @repo/api test` | 判断・整形・バリデーションの境界と、ルートの 401 / 400 |
+| 単体 | Vitest | `apps/web` の対象ファイルの隣の `*.test.ts` | `pnpm --filter @repo/web test` | 画面に依存しない判断。画面のフローはブラウザで確認する |
 
 - `apps/api/vitest.config.ts` の include は `src/**/*.test.ts`。`tests/unit/` は作らない
 - 例: `features/memos/classify.ts` → `features/memos/classify.test.ts`
