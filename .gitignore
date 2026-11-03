@@ -8,3 +8,6 @@ dist
 .dev.vars
 .cursor/skills/verify-memotion/run/
 .cursor/skills/verify-memotion/artifacts/
+
+# impeccable のエンジン（環境ごとのバイナリ）
+.agents/skills/impeccable/scripts/bin/
