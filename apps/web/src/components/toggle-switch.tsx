@@ -16,7 +16,7 @@ export function ToggleSwitch({
       aria-label={checked ? "オン" : "オフ"}
     >
       <span
-        className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-pure-white transition-transform duration-200 ${
+        className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-card transition-transform duration-200 ${
           checked ? "translate-x-4" : ""
         }`}
       />

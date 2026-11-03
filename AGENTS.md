@@ -66,7 +66,7 @@ pnpm build
 | `.agents/rules/review.md` | 常時。プルリクエスト前の AI 相互レビュー |
 | `.agents/rules/architecture.md` | `apps/api/src/**/*.ts`。feature の置き場所、層、機能境界 |
 | `.agents/rules/testing.md` | `apps/api/src/**/*.test.ts` と `apps/api/vitest.config.ts`。単体テストの置き場所と骨抜き禁止 |
-| `.agents/rules/design.md` | `apps/web/**/*.{tsx,css}`。色・余白・角丸は `docs/design-system.md` と `apps/web/src/index.css` に合わせ、新規発明しない |
+| `.agents/skills/impeccable` | `apps/web` の見た目を変えるとき。`/impeccable` で呼ぶ。文脈は `apps/web/PRODUCT.md` と `apps/web/DESIGN.md`、値の正本は `apps/web/src/index.css` |
 | `.agents/rules/line-security.md` | `apps/api/src/{features,lib}/**/*.ts` と `apps/web/src/**/*.{ts,tsx}`。認証、LINE webhook、画像、ダイジェスト、Web の API 呼び出しの境界 |
 | `.agents/rules/logging.md` | `apps/api/src/**/*.ts`。JSON 1行。本文と秘密は出さない |
 | `.agents/rules/db.md` | `apps/api/migrations/**`、`apps/api/src/db/**`、`repository.ts`。マイグレーションは前進のみ |

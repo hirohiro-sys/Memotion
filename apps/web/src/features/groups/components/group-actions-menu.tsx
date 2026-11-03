@@ -27,7 +27,7 @@ export function GroupActionsMenu({
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner align="end" sideOffset={6} className="z-50">
-          <Menu.Popup className="min-w-40 rounded-xl border border-border bg-popover p-1 text-popover-foreground outline-none transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0">
+          <Menu.Popup className="min-w-40 rounded-lg border border-border bg-popover p-1 shadow-pop text-popover-foreground outline-none transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0">
             <Menu.Item
               onClick={onRename}
               className={cn(ITEM, "text-foreground")}

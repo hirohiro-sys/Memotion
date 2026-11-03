@@ -205,7 +205,7 @@ export function SettingsView({
                         className={cn(
                           "inline-flex size-8 items-center justify-center rounded-full text-caption font-medium transition-colors duration-200",
                           notifications.techWeeklyDay === index
-                            ? "bg-sky-tint text-primary"
+                            ? "bg-accent text-primary"
                             : PILL_IDLE,
                         )}
                       >

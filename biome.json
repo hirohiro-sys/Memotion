@@ -12,7 +12,9 @@
       "!**/mockServiceWorker.js",
       "!**/pnpm-lock.yaml",
       "!**/public/*.svg",
-      "!**/migrations/meta"
+      "!**/migrations/meta",
+      "!**/.agents/skills/impeccable",
+      "!**/.impeccable"
     ]
   },
   "formatter": {
