@@ -17,7 +17,7 @@ alwaysApply: true
 1. セキュリティ: `.agents/rules/line-security.md`。認可漏れ、署名検証前の解釈、画像の公開、機密（`.dev.vars`）の露出
 2. テスト: `.agents/rules/testing.md`。API の振る舞い変更に対応する `*.test.ts` があるか、骨抜きでないか。Web だけの変更はテスト不足にしない
 3. 設計: `.agents/rules/architecture.md`。1ファイル1責務、機能境界、`index.ts` にロジックを書かない
-4. ルール準拠: `.agents/rules/` の該当ルール。見た目は `design.md`、公開契約は `packages/shared` の Zod
+4. ルール準拠: `.agents/rules/` の該当ルール。見た目は `apps/web/DESIGN.md`、公開契約は `packages/shared` の Zod
 
 Biome や型で既に落ちる指摘、リネーム、好みの見た目は出さない。
 

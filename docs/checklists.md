@@ -7,7 +7,7 @@
 - [ ] Git 管理を敷いた（`git init`、初期コミット、リモート。`.gitignore` に `.env` と `.dev.vars`）
 - [ ] `AGENTS.md` に地図を書いた（技術スタック、ディレクトリ構成、主要コマンド、`.agents/rules/` への誘導）
 - [ ] フォルダ構成を AI と相談して決めた（1ファイル1責務。どこに何があるかわかる構成。正本は `.agents/rules/architecture.md`）
-- [ ] ルールファイルを置いた。中核はテスト・レビュー・アーキテクチャ（`.agents/rules/testing.md`、`review.md`、`architecture.md`）。このリポジトリでは加えて `logging.md`、`db.md`、`design.md`、`line-security.md`
+- [ ] ルールファイルを置いた。中核はテスト・レビュー・アーキテクチャ（`.agents/rules/testing.md`、`review.md`、`architecture.md`）。このリポジトリでは加えて `logging.md`、`db.md`、`line-security.md`（見た目は impeccable と `apps/web/DESIGN.md`）
 - [ ] テストが1コマンドで走る（`pnpm --filter @repo/api test`。コマンドは `testing.md` と `AGENTS.md` に記載。Playwright はない。Web はブラウザで確認する）
 - [ ] 秘密は自分で管理した（ローカルは `apps/api/.dev.vars`。`.gitignore` に `.env` と `.dev.vars`。鍵の値は AI に渡さない。`.cursorignore` で `.dev.vars` を読ませない）
 
