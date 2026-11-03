@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-03T00:00:00Z",
+  "title": "Design System: Memotion",
+  "extensions": {
+    "colorMeta": {
+      "notion-blue": { "role": "primary", "displayName": "Notion Blue", "canonical": "#0075de" },
+      "paper-warmth": { "role": "neutral", "displayName": "Paper Warmth", "canonical": "#f6f5f4" },
+      "sky-tint": { "role": "secondary", "displayName": "Sky Tint", "canonical": "#e6f3fe" }
+    },
+    "motion": [
+      { "name": "ease-standard", "value": "200ms ease-in-out", "purpose": "ボタンなどの状態遷移。" }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "主アクション。1画面に1つ。",
+      "html": "<button class=\"ds-btn-primary\">保存</button>",
+      "css": ".ds-btn-primary{background:#0075de;color:#fff;font:500 14px/1.43 Inter,system-ui,sans-serif;padding:6px 15px;border:1px solid transparent;border-radius:8px;transition:all 200ms ease-in-out}.ds-btn-primary:hover{background:rgb(0 117 222 / .8)}.ds-btn-primary:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(0 117 222 / .5)}.ds-btn-primary:active{transform:translateY(1px)}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "副次アクション。",
+      "html": "<button class=\"ds-btn-secondary\">キャンセル</button>",
+      "css": ".ds-btn-secondary{background:#e6f3fe;color:#0075de;font:500 14px/1.43 Inter,system-ui,sans-serif;padding:6px 15px;border:1px solid transparent;border-radius:8px;transition:all 200ms ease-in-out}.ds-btn-secondary:hover{background:#e6f3fe}.ds-btn-secondary:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(0 117 222 / .5)}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "白い面に1pxの罫線。影なし。",
+      "html": "<div class=\"ds-card\">メモのカード</div>",
+      "css": ".ds-card{background:#fff;color:#000;border:1px solid rgb(0 0 0 / .08);border-radius:12px;padding:24px;font:400 16px/1.5 Inter,system-ui,sans-serif}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Afternoon Notebook",
+    "overview": "午後の光の下に置いた、使い込んだ紙のノート。暖かい off-white の地に、白いカードを1pxの罫線で置く。影や飾りは使わない。",
+    "keyCharacteristics": [
+      "暖かい off-white の紙地に、白いカードを 1px の罫線で置く",
+      "影・グラデーションなしのフラットな面",
+      "主アクションの青は 1 画面に 1 つ"
+    ],
+    "rules": [
+      { "name": "The One Blue Rule", "body": "強い色は Notion Blue だけ。主アクションは 1 画面に 1 つ。", "section": "colors" },
+      { "name": "The Flat Rule", "body": "カードに shadow-* を付けない。グラデーションも使わない。", "section": "elevation" }
+    ],
+    "dos": ["Do ページの地に bg-background を使う。", "Do 主アクションは画面に 1 つにする。"],
+    "donts": ["Don't ページ背景を #ffffff にしない。", "Don't hex をコンポーネントに直書きしない。"]
+  }
+}
