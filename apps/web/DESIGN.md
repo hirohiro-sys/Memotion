@@ -1,214 +1,198 @@
 ---
 name: Memotion
-description: 午後の光の下の、使い込んだ紙のノート。暖かい off-white の地に、青 1 色だけを置く。
+description: 仕事道具のように整った、静かなメモの作業台。インクの青緑が主操作の 1 色。
 colors:
-  paper-warmth: "#f6f5f4"
-  pure-white: "#ffffff"
-  ink-black: "#000000"
-  charcoal: "#111111"
-  stone: "#757575"
-  graphite: "#615d59"
-  slate: "#696969"
-  notion-blue: "#0075de"
-  signal-blue: "#097fe8"
-  sky-tint: "#e6f3fe"
-  sky-wash: "#62aef0"
-  marigold: "#ffb110"
-  saffron: "#e89d01"
-  coral: "#f64932"
-  vermillion: "#e32d14"
-  mocha: "#b18164"
-  midnight-ink: "#02093a"
+  background: "#f8f9fa"
+  card: "#ffffff"
+  sidebar: "#f1f3f5"
+  foreground: "#16191f"
+  graphite: "#3a404a"
+  stone: "#5f6672"
+  border: "#e2e5e9"
+  input: "#d5d9de"
+  primary: "#0b6b6e"
+  primary-soft: "#e3f1f1"
+  destructive: "#c7371f"
+  tag-tweet: "#fbe8ee"
+  tag-tweet-fg: "#8f1a3d"
+  tag-tech: "#e5edfb"
+  tag-tech-fg: "#1c4b9c"
+  tag-todo: "#fbefd5"
+  tag-todo-fg: "#7a4f00"
+  tag-schedule: "#ece7fa"
+  tag-schedule-fg: "#533a9e"
+  tag-other: "#eceff3"
+  tag-other-fg: "#434c5c"
 typography:
   caption:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Inter Variable, Inter, Hiragino Kaku Gothic ProN, Hiragino Sans, BIZ UDPGothic, Yu Gothic UI, Meiryo, sans-serif"
     fontSize: "12px"
-    lineHeight: 1.33
-    letterSpacing: "0.12px"
+    lineHeight: 1.4
+    letterSpacing: "0.01em"
   body-sm:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Inter Variable, Inter, Hiragino Kaku Gothic ProN, Hiragino Sans, BIZ UDPGothic, Yu Gothic UI, Meiryo, sans-serif"
     fontSize: "14px"
-    lineHeight: 1.43
+    lineHeight: 1.5
   body:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "16px"
-    lineHeight: 1.5
+    fontFamily: "Inter Variable, Inter, Hiragino Kaku Gothic ProN, Hiragino Sans, BIZ UDPGothic, Yu Gothic UI, Meiryo, sans-serif"
+    fontSize: "15px"
+    lineHeight: 1.6
   heading-sm:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "22px"
-    lineHeight: 1.27
-    letterSpacing: "-0.242px"
+    fontFamily: "Inter Variable, Inter, Hiragino Kaku Gothic ProN, Hiragino Sans, BIZ UDPGothic, Yu Gothic UI, Meiryo, sans-serif"
+    fontSize: "20px"
+    lineHeight: 1.3
+    letterSpacing: "-0.01em"
   heading:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "40px"
-    lineHeight: 1.5
-  display:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "72px"
-    lineHeight: 1.21
-    letterSpacing: "-2.016px"
-  editorial:
-    fontFamily: "Iowan Old Style, Palatino Linotype, Palatino, Georgia, serif"
-    fontSize: "18px"
-    lineHeight: 1.56
+    fontFamily: "Inter Variable, Inter, Hiragino Kaku Gothic ProN, Hiragino Sans, BIZ UDPGothic, Yu Gothic UI, Meiryo, sans-serif"
+    fontSize: "28px"
+    lineHeight: 1.25
+    letterSpacing: "-0.02em"
 rounded:
   small: "4px"
+  control: "6px"
   button: "8px"
-  card: "12px"
-  pill: "9999px"
-spacing:
-  element-gap: "8px"
-  card-padding: "24px"
-  section-gap: "80px"
+  card: "10px"
 components:
   button-primary:
-    backgroundColor: "{colors.notion-blue}"
-    textColor: "{colors.pure-white}"
+    backgroundColor: "{colors.primary}"
+    textColor: "#ffffff"
     typography: "{typography.body-sm}"
     rounded: "{rounded.button}"
     padding: "6px 15px"
   button-secondary:
-    backgroundColor: "{colors.sky-tint}"
-    textColor: "{colors.notion-blue}"
+    backgroundColor: "{colors.primary-soft}"
+    textColor: "{colors.primary}"
     typography: "{typography.body-sm}"
     rounded: "{rounded.button}"
     padding: "6px 15px"
-  button-outline:
-    backgroundColor: "transparent"
-    textColor: "{colors.ink-black}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.small}"
-    padding: "6px 15px"
   card:
-    backgroundColor: "{colors.pure-white}"
-    textColor: "{colors.ink-black}"
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.foreground}"
     rounded: "{rounded.card}"
-    padding: "24px"
+    padding: "16px"
+  tag-badge:
+    backgroundColor: "{colors.tag-tech}"
+    textColor: "{colors.tag-tech-fg}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.control}"
+    padding: "2px 6px"
 ---
 
 # Design System: Memotion
 
 ## Overview
 
-**Creative North Star: "The Afternoon Notebook"**
+**Creative North Star: "The Quiet Workbench"**
 
-午後の光の下に置いた、使い込んだ紙のノート。暖かい off-white の地（#f6f5f4）は、冷たい白ではなく、手触りのある紙の色として働く。区切りは 1px の細い罫線と 12px の角で作り、影や飾りは使わない。ノートの罫線で区切った節のように、情報を静かに並べる。
+仕事道具のように整った、静かな作業台。派手な世界観は持たず、整った格子、実在の文字階層、主操作 1 色の青緑で、信頼感を出す。基準は Notion と Craft。定番を、最高の仕上げで作る。
 
-色は句読点として少しだけ使う。主アクションの青（#0075de）が唯一の強い色で、黄・珊瑚・茶は付箋のように、種類や状態を見分けたい場所にだけ現れる。動きは 200ms の ease 遷移で、軽く、飾らない。
+面は青みを帯びた中性色で、ライトは明るい灰白、ダークは青みのある黒。両者は同じ重さで作る。枠は 1px の細い罫線で、影は浮くもの（ダイアログ、メニュー）にしか付けない。種類（つぶやき、技術、やること、予定、その他）は、淡い面と濃い文字の 5 色で見分ける。
 
-このシステムは、既存の `apps/web/src/index.css` と `Button` コンポーネントから読み取った記録で、新しい方向を決めるものではない。値の正本は `index.css`。
+2026-11-03 の全面刷新で、旧「午後の紙のノート」から作り直した。構成と機能は変えていない。値の正本は `apps/web/src/index.css`。
 
 **Key Characteristics:**
-- 暖かい off-white の紙地に、白いカードを 1px の罫線で置く
-- 影・グラデーションなしのフラットな面
-- 主アクションの青は 1 画面に 1 つ
-- 角は 4 / 8 / 12px とピル（9999px）の 4 段階
-- ライトとダークの両方を持ち、ダークは Charcoal 系の面で、黒ベタにしない
+- 青みを帯びた中性の面と、1px の細い罫線
+- 主操作は深いインクの青緑 1 色。画面の約 10% を超えない
+- タグは 5 色の淡い面と濃い文字の組。角は 6px の小さな角丸で、丸薬にしない
+- 影は浮くものだけ。カードは平らなまま
+- ライトとダークを同じ重さで仕上げる
 
 ## Colors
 
-近モノクロの紙地に、青 1 色と、付箋のような暖色の小さな差し色。
+近モノクロの面に、青緑 1 色と、タグの 5 色。
 
 ### Primary
-- **Notion Blue** (#0075de): 主アクション、アクティブなナビ、フォーカスリング。1 画面に主アクションは 1 つ。画面の約 10% を超えない。
+- **Ink Teal** (#0b6b6e): 主操作、選択中のタブとチップ、フォーカスリング。ダークでは #3fb8b0（上に濃い緑の文字 #06211f）。
 
 ### Secondary
-- **Sky Tint** (#e6f3fe): 副次アクション、淡い選択状態、ホバーの背景。ダークでは Notion Blue を Charcoal に 38% 混ぜた色に変わる。
-- **Sky Wash** (#62aef0): ダークのフォーカスリングと強調文字。ダークの二次ボタン文字。
-- **Signal Blue** (#097fe8): 装飾的な青の変化。
+- **Teal Wash** (#e3f1f1): 副次ボタン、ホバー、選択の淡い背景。ダークは #16302f。
 
-### Tertiary
-- **Marigold** (#ffb110): 目を引く暖色の強調、付箋のような注意の場所。
-- **Saffron** (#e89d01): Marigold の沈んだ変化。
-- **Coral** (#f64932): 装飾的な暖色。ダークでは危険操作の色として使う。
-- **Vermillion** (#e32d14): 危険操作（destructive）の色。
-- **Mocha** (#b18164): 土っぽい暖色の差し色。
+### Tag (種類)
+- **つぶやき** Rose (#fbe8ee / #8f1a3d)
+- **技術** Blue (#e5edfb / #1c4b9c)
+- **やること** Amber (#fbefd5 / #7a4f00)
+- **予定** Violet (#ece7fa / #533a9e)
+- **その他** Slate (#eceff3 / #434c5c)
+
+ダークでは、面を暗く、文字を明るい同系色に差し替える（`.dark` のトークン）。
 
 ### Neutral
-- **Paper Warmth** (#f6f5f4): ページの地。ページ背景に `#ffffff` を使わない。
-- **Pure White** (#ffffff): カード、ポップオーバー、サイドバーの面。
-- **Ink Black** (#000000): 本文、見出し。95%、90%、60% のアルファで階層を作り、新しい灰色を足さない。
-- **Charcoal** (#111111): ダークの地。
-- **Stone** (#757575): 補助テキスト、無効状態のラベル。
-- **Graphite** (#615d59): 暖色寄りの本文用グレー。
-- **Slate** (#696969): カード内の補助テキスト。
-- **Midnight Ink** (#02093a): 装飾の帯や、強調の背景。ダークのページ全面には使わない。
+- **Cloud** (#f8f9fa): ページの地。
+- **Surface** (#ffffff): カード、ポップオーバー。
+- **Rail** (#f1f3f5): サイドバー。
+- **Ink** (#16191f): 本文、見出し。
+- **Graphite** (#3a404a): 本文の補助。
+- **Stone** (#5f6672): 補助テキスト。白地で 5:1 以上。
+- **Hairline** (#e2e5e9): 罫線。入力の枠は #d5d9de。
+- **Alert Red** (#c7371f): 破壊的操作。
 
 ### Named Rules
-**The One Blue Rule.** 強い色は Notion Blue だけ。主アクションは 1 画面に 1 つで、その希少さが目印になる。
-**The Token Only Rule.** 色は `bg-primary` や `bg-marigold` などのトークンで指す。`bg-[#0075de]` のような hex の直書きをしない。
+**The One Teal Rule.** 強い色は青緑だけ。種類の色は、小さなタグの面にとどめる。
+**The Token Only Rule.** 色は `bg-primary`、`text-stone`、`bg-tag-tech` のようなトークンで指す。hex を直書きしない。
 
 ## Typography
 
-**Display Font:** Inter Variable（fallback: Inter, ui-sans-serif, system-ui）
-**Body Font:** Inter Variable（同上）
-**Editorial Font:** Iowan Old Style（fallback: Palatino, Georgia, serif）
+**Font:** Inter Variable に、日本語はヒラギノ角ゴ（Hiragino Kaku Gothic ProN）、BIZ UDPGothic、游ゴシックの順で落とす。
 
-**Character:** 幾何学的で人間味のあるサンセリフ 1 つを軸にし、serif は編集者の一文のような場所だけに使う。大きいサイズほど字間を詰めて、締まった印象にする。数字は lining numerals（`"lnum"`）。
+**Character:** 実用的で読みやすい 1 書体。階層は大きさと太さで作り、字間は大きい見出しだけ少し詰める。数字は `tabular-nums` で揃える。
 
 ### Hierarchy
-- **Display** (600〜700, 72px, 1.21, -2.016px): ランディングの見出しのみ。製品 UI では使わない。
-- **Heading** (600, 40px / 22px, 1.5 / 1.27): ページ・節の見出し。22px は `heading-sm`。
-- **Body** (400, 16px, 1.5): 本文。`text-body`。
-- **Body Small** (400〜500, 14px, 1.43): ボタン、一覧、補助の本文。`text-body-sm`。
-- **Caption** (400, 12px, 1.33, 0.12px): メタ情報、日時。
-- **Editorial** (400, 18px, 1.56): 編集者の一文。serif を使うのはここだけ。
-
-### Named Rules
-**The One Serif Rule.** serif は短い一文の強調だけに使い、見出し階層を二重にしない。
+- **Heading** (600, 28px, 1.25, -0.02em): ログインなどの大見出し。
+- **Heading Small** (600, 20px, 1.3): ページ名（トップバー）。
+- **Body** (400, 15px, 1.6): 本文。
+- **Body Small** (400〜500, 14px, 1.5): ボタン、一覧、入力。
+- **Caption** (400〜500, 12px, 1.4): メタ情報、日時、タグ。
 
 ## Layout
 
-ページ最大幅は 1440px。カード内の余白は 24px、要素間の基本の隙間は 8px、セクション間は 80px。リズムは Tailwind の標準スケール（`p-4` など）で組み、`@theme` に `--spacing-*` を足さない（足すと標準の余白が壊れる）。
-
-ナビはサイドバー（白い面）とトップバー。モバイルでは PWA としても使うので、縦のスクロールを前提にする。
+サイドバー（開いて 260px、畳むと 64px）と、上のページ名バー（高さ 56px）。本体は最大幅 1440px で、メモは 3 列のカード格子。余白は Tailwind の標準スケールで組み、`@theme` に `--spacing-*` を足さない。モバイルではサイドバーが引き出しになる。
 
 ## Elevation & Depth
 
-影を使わないフラットなシステム。奥行きは、紙地（#f6f5f4）の上に白いカードを置いた色の差と、1px の細い罫線（ライトは黒 8%、ダークは白 14%）で表す。ホバーなどの状態も影ではなく、背景色の変化で示す。
+カードは平ら。奥行きは、地（#f8f9fa）と白いカードの差と、1px の罫線で表す。ダイアログとメニューだけ、`shadow-pop`（細い 1px の影と、広くやわらかい影の 2 段）を持つ。
 
 ### Named Rules
-**The Flat Rule.** カードに `shadow-*` を付けない。グラデーションも使わない。
+**The Float Only Rule.** 影は、画面の上に浮くもの（ダイアログ、メニュー）にだけ付ける。
 
 ## Shapes
 
-角は 4 段階。**Small** (4px) は outline ボタンや小さな要素。**Button** (8px) は標準のボタン。**Card** (12px) はカードとパネル。**Pill** (9999px) はタグと状態表示。細い 1px の罫線で面を区切り、装飾的な形は使わない。
+角は 4 段階。**Small** (4px)、**Control** (6px、タグとチップ)、**Button** (8px、ボタンと入力)、**Card** (10px)。タグとチップは丸薬にしない。
 
 ## Components
 
 ### Buttons
-- **Shape:** 8px の角（`rounded-lg`）。outline と xs は 4〜6px。
-- **Primary:** Notion Blue の面に白い文字、余白 6px 15px。ホバーで 80% の濃さ。
-- **Secondary:** Sky Tint の面に青い文字。ホバーで Sky Tint。
-- **Ghost:** 透明な面。ホバーで淡い灰色の面。
-- **Destructive:** 危険色の 10% の面に危険色の文字。
-- **Hover / Focus:** 遷移は 200ms ease。フォーカスは `ring` の 3px の輪郭。押下で 1px 下がる。無効は 50% の透明度。
+- **Shape:** 8px の角。xs は 6px。
+- **Primary:** Ink Teal の面に白い文字、余白 6px 15px。ホバーで 80% の濃さ。
+- **Secondary:** Teal Wash の面に青緑の文字。
+- **Ghost:** 透明。ホバーで淡い灰色。
+- **Destructive:** Alert Red の 10% の面に赤い文字。
+- **Focus:** 2px の青緑のアウトライン。押下で 1px 下がる。遷移は 200ms。
 
 ### Cards / Containers
-- **Corner Style:** 12px
-- **Background:** Pure White（ダークは Charcoal に白を 13% 混ぜた色）
-- **Shadow Strategy:** なし。
-- **Border:** 1px、黒 8%。
-- **Internal Padding:** 24px（`p-6`）
+- **Corner Style:** 10px
+- **Background:** Surface（ダークは #171b23）
+- **Border:** 1px。ホバーで `input` の色。選択中は青緑の枠と 1px のリング。
+- **Internal Padding:** 16px
+
+### Tag Badge
+- **Style:** 種類ごとの淡い面と濃い文字、6px の角、12px の文字。
 
 ### Navigation
-サイドバーは白い面で、アクティブな項目は Sky Tint。ブランドロックはマークと `Memotion` の文字。ライトとダークの切替を持つ。
-
-### Tags / Status
-`rounded-full` のピル。
+- サイドバーは Rail の面。選択中の項目は一段濃い面と太い文字。ページ名バーは地と同じ色で、下に 1px の罫線だけ。
+- メモ／グループのタブは、選択中に下 2px の青緑の線。
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** ページの地に `bg-background`（ライトは #f6f5f4、ダークは Charcoal 系）を使う。
-- **Do** カードは `bg-card rounded-xl border border-border p-6` で組む。
-- **Do** 主アクションは画面に 1 つにする。次点は secondary、その他は ghost。
-- **Do** 文字は `text-foreground`、`text-stone`、`text-graphite` で階層を作る。
-- **Do** ダーク対応は `.dark` のトークン差し替えに任せ、コンポーネント側に `dark:` の色を足さない。
+- **Do** ページの地は `bg-background`、カードは `bg-card rounded-xl border border-border`。
+- **Do** 主操作は画面に 1 つ。次点は secondary、その他は ghost。
+- **Do** 文字は `text-foreground`、`text-graphite`、`text-stone` で階層を作る。
+- **Do** 種類の色は `bg-tag-*` と `text-tag-*-fg` の組で使う。
+- **Do** ダーク対応は `.dark` のトークン差し替えに任せ、コンポーネントに `dark:` の色を足さない。
 
 ### Don't:
-- **Don't** ページ背景を `#ffffff` にしない。
-- **Don't** カードに `shadow-*` を付けない。グラデーションを使わない。
+- **Don't** カードに影を付けない。影は `shadow-pop` で、浮くものだけ。
 - **Don't** hex をコンポーネントに直書きしない。
+- **Don't** タグやチップを `rounded-full` にしない。
 - **Don't** `@theme` に `--spacing-*` を足さない。
-- **Don't** 製品 UI に 72px の見出し、ヒーロー pill、キャラクターマークを置かない。
+- **Don't** 見出しの上に、小さな説明ラベル（kicker）を置かない。

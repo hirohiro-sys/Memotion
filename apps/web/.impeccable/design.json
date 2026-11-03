@@ -4,31 +4,34 @@
   "title": "Design System: Memotion",
   "extensions": {
     "colorMeta": {
-      "notion-blue": { "role": "primary", "displayName": "Notion Blue", "canonical": "#0075de" },
-      "paper-warmth": { "role": "neutral", "displayName": "Paper Warmth", "canonical": "#f6f5f4" },
-      "sky-tint": { "role": "secondary", "displayName": "Sky Tint", "canonical": "#e6f3fe" }
+      "primary": { "role": "primary", "displayName": "Ink Teal", "canonical": "#0b6b6e" },
+      "background": { "role": "neutral", "displayName": "Cloud", "canonical": "#f8f9fa" },
+      "primary-soft": { "role": "secondary", "displayName": "Teal Wash", "canonical": "#e3f1f1" }
     },
-    "motion": [
-      { "name": "ease-standard", "value": "200ms ease-in-out", "purpose": "ボタンなどの状態遷移。" }
+    "shadows": [
+      { "name": "shadow-pop", "value": "0 1px 2px rgb(16 24 40 / 0.06), 0 8px 24px -4px rgb(16 24 40 / 0.14)", "purpose": "ダイアログとメニューだけ。" }
     ],
-    "breakpoints": []
+    "motion": [
+      { "name": "ease-standard", "value": "200ms ease-in-out", "purpose": "状態の遷移。" }
+    ],
+    "breakpoints": [{ "name": "md", "value": "768px" }]
   },
   "components": [
     {
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "主アクション。1画面に1つ。",
+      "description": "主操作。1画面に1つ。",
       "html": "<button class=\"ds-btn-primary\">保存</button>",
-      "css": ".ds-btn-primary{background:#0075de;color:#fff;font:500 14px/1.43 Inter,system-ui,sans-serif;padding:6px 15px;border:1px solid transparent;border-radius:8px;transition:all 200ms ease-in-out}.ds-btn-primary:hover{background:rgb(0 117 222 / .8)}.ds-btn-primary:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(0 117 222 / .5)}.ds-btn-primary:active{transform:translateY(1px)}"
+      "css": ".ds-btn-primary{background:#0b6b6e;color:#fff;font:500 14px/1.5 Inter,system-ui,sans-serif;padding:6px 15px;border:1px solid transparent;border-radius:8px;transition:all 200ms ease-in-out}.ds-btn-primary:hover{background:rgb(11 107 110 / .8)}.ds-btn-primary:focus-visible{outline:2px solid #0b6b6e;outline-offset:2px}.ds-btn-primary:active{transform:translateY(1px)}"
     },
     {
-      "name": "Secondary Button",
-      "kind": "button",
-      "refersTo": "button-secondary",
-      "description": "副次アクション。",
-      "html": "<button class=\"ds-btn-secondary\">キャンセル</button>",
-      "css": ".ds-btn-secondary{background:#e6f3fe;color:#0075de;font:500 14px/1.43 Inter,system-ui,sans-serif;padding:6px 15px;border:1px solid transparent;border-radius:8px;transition:all 200ms ease-in-out}.ds-btn-secondary:hover{background:#e6f3fe}.ds-btn-secondary:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(0 117 222 / .5)}"
+      "name": "Tag Badge",
+      "kind": "chip",
+      "refersTo": "tag-badge",
+      "description": "種類を示す淡い面と濃い文字。",
+      "html": "<span class=\"ds-tag\">技術</span>",
+      "css": ".ds-tag{background:#e5edfb;color:#1c4b9c;font:500 12px/1.4 Inter,system-ui,sans-serif;padding:2px 6px;border-radius:6px}"
     },
     {
       "name": "Card",
@@ -36,22 +39,18 @@
       "refersTo": "card",
       "description": "白い面に1pxの罫線。影なし。",
       "html": "<div class=\"ds-card\">メモのカード</div>",
-      "css": ".ds-card{background:#fff;color:#000;border:1px solid rgb(0 0 0 / .08);border-radius:12px;padding:24px;font:400 16px/1.5 Inter,system-ui,sans-serif}"
+      "css": ".ds-card{background:#fff;color:#16191f;border:1px solid #e2e5e9;border-radius:10px;padding:16px;font:400 14px/1.5 Inter,system-ui,sans-serif}.ds-card:hover{border-color:#d5d9de}"
     }
   ],
   "narrative": {
-    "northStar": "The Afternoon Notebook",
-    "overview": "午後の光の下に置いた、使い込んだ紙のノート。暖かい off-white の地に、白いカードを1pxの罫線で置く。影や飾りは使わない。",
-    "keyCharacteristics": [
-      "暖かい off-white の紙地に、白いカードを 1px の罫線で置く",
-      "影・グラデーションなしのフラットな面",
-      "主アクションの青は 1 画面に 1 つ"
-    ],
+    "northStar": "The Quiet Workbench",
+    "overview": "仕事道具のように整った、静かな作業台。基準は Notion と Craft。主操作は深いインクの青緑 1 色。",
+    "keyCharacteristics": ["青みを帯びた中性の面と 1px の罫線", "主操作は青緑 1 色", "ライトとダークを同じ重さで仕上げる"],
     "rules": [
-      { "name": "The One Blue Rule", "body": "強い色は Notion Blue だけ。主アクションは 1 画面に 1 つ。", "section": "colors" },
-      { "name": "The Flat Rule", "body": "カードに shadow-* を付けない。グラデーションも使わない。", "section": "elevation" }
+      { "name": "The One Teal Rule", "body": "強い色は青緑だけ。種類の色は小さなタグの面にとどめる。", "section": "colors" },
+      { "name": "The Float Only Rule", "body": "影は、浮くもの（ダイアログ、メニュー）にだけ付ける。", "section": "elevation" }
     ],
-    "dos": ["Do ページの地に bg-background を使う。", "Do 主アクションは画面に 1 つにする。"],
-    "donts": ["Don't ページ背景を #ffffff にしない。", "Don't hex をコンポーネントに直書きしない。"]
+    "dos": ["Do 主操作は画面に 1 つ。", "Do 色はトークンで指す。"],
+    "donts": ["Don't カードに影を付けない。", "Don't タグを rounded-full にしない。"]
   }
 }

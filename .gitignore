@@ -11,3 +11,6 @@ dist
 
 # impeccable のエンジン（環境ごとのバイナリ）
 .agents/skills/impeccable/scripts/bin/
+**/.impeccable/mocks/
+**/.impeccable/questions/
+**/.impeccable/hook.cache.json
