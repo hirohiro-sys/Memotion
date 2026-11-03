@@ -8,63 +8,28 @@
 @theme {
   --font-sans:
     "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, sans-serif;
-  --font-notioninter:
-    "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
-  --font-lyon-text:
-    "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
-    "Times New Roman", serif;
+    "Hiragino Kaku Gothic ProN", "Hiragino Sans", "BIZ UDPGothic",
+    "Yu Gothic UI", Meiryo, sans-serif;
 
   --text-caption: 12px;
-  --text-caption--line-height: 1.33;
-  --text-caption--letter-spacing: 0.12px;
+  --text-caption--line-height: 1.4;
+  --text-caption--letter-spacing: 0.01em;
   --text-body-sm: 14px;
-  --text-body-sm--line-height: 1.43;
-  --text-body: 16px;
-  --text-body--line-height: 1.5;
-  --text-subheading: 20px;
-  --text-subheading--line-height: 1;
-  --text-heading-sm: 22px;
-  --text-heading-sm--line-height: 1.27;
-  --text-heading-sm--letter-spacing: -0.242px;
-  --text-heading: 40px;
-  --text-heading--line-height: 1.5;
-  --text-heading-lg: 48px;
-  --text-heading-lg--line-height: 1.5;
-  --text-display-sm: 54px;
-  --text-display-sm--line-height: 1.04;
-  --text-display-sm--letter-spacing: -1.89px;
-  --text-display: 72px;
-  --text-display--line-height: 1.21;
-  --text-display--letter-spacing: -2.016px;
-  --text-display-lg: 96px;
-  --text-display-lg--line-height: 1.04;
-  --text-display-lg--letter-spacing: -4.608px;
-
-  --color-notion-blue: #0075de;
-  --color-paper-warmth: #f6f5f4;
-  --color-pure-white: #ffffff;
-  --color-ink-black: #000000;
-  --color-charcoal: #111111;
-  --color-stone: #757575;
-  --color-graphite: #615d59;
-  --color-slate: #696969;
-  --color-sky-tint: #e6f3fe;
-  --color-marigold: #ffb110;
-  --color-coral: #f64932;
-  --color-saffron: #e89d01;
-  --color-vermillion: #e32d14;
-  --color-mocha: #b18164;
-  --color-signal-blue: #097fe8;
-  --color-sky-wash: #62aef0;
-  --color-midnight-ink: #02093a;
+  --text-body-sm--line-height: 1.5;
+  --text-body: 15px;
+  --text-body--line-height: 1.6;
+  --text-subheading: 18px;
+  --text-subheading--line-height: 1.4;
+  --text-heading-sm: 20px;
+  --text-heading-sm--line-height: 1.3;
+  --text-heading-sm--letter-spacing: -0.01em;
+  --text-heading: 28px;
+  --text-heading--line-height: 1.25;
+  --text-heading--letter-spacing: -0.02em;
 }
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans:
-    "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -96,160 +61,130 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+
+  --color-stone: var(--stone);
+  --color-graphite: var(--graphite);
+
+  --color-tag-tweet: var(--tag-tweet);
+  --color-tag-tweet-fg: var(--tag-tweet-fg);
+  --color-tag-tech: var(--tag-tech);
+  --color-tag-tech-fg: var(--tag-tech-fg);
+  --color-tag-todo: var(--tag-todo);
+  --color-tag-todo-fg: var(--tag-todo-fg);
+  --color-tag-schedule: var(--tag-schedule);
+  --color-tag-schedule-fg: var(--tag-schedule-fg);
+  --color-tag-other: var(--tag-other);
+  --color-tag-other-fg: var(--tag-other-fg);
+
   --radius-sm: 4px;
-  --radius-md: 4px;
+  --radius-md: 6px;
   --radius-lg: 8px;
-  --radius-xl: 12px;
+  --radius-xl: 10px;
   --radius-2xl: 12px;
   --radius-3xl: 12px;
   --radius-4xl: 12px;
   --radius-full: 9999px;
+
+  --shadow-pop:
+    0 1px 2px rgb(16 24 40 / 0.06), 0 8px 24px -4px rgb(16 24 40 / 0.14);
 }
 
+/* インクの青緑 1 色が主操作。面は青みを帯びた中性色で、ライトとダークの重さを揃える。 */
 :root {
-  --color-notion-blue: #0075de;
-  --color-paper-warmth: #f6f5f4;
-  --color-pure-white: #ffffff;
-  --color-ink-black: #000000;
-  --color-charcoal: #111111;
-  --color-stone: #757575;
-  --color-graphite: #615d59;
-  --color-slate: #696969;
-  --color-sky-tint: #e6f3fe;
-  --color-marigold: #ffb110;
-  --color-coral: #f64932;
-  --color-saffron: #e89d01;
-  --color-vermillion: #e32d14;
-  --color-mocha: #b18164;
-  --color-signal-blue: #097fe8;
-  --color-sky-wash: #62aef0;
-  --color-midnight-ink: #02093a;
-
-  --font-notioninter:
-    "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
-  --font-lyon-text:
-    "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-
-  --page-max-width: 1440px;
-  --section-gap: 80px;
-  --card-padding: 24px;
-  --element-gap: 8px;
-  --radius-cards: 12px;
-  --radius-pills: 9999px;
-  --radius-small: 4px;
-  --radius-buttons: 8px;
-
-  --background: #f6f5f4;
-  --foreground: #000000;
+  --background: #f8f9fa;
+  --foreground: #16191f;
   --card: #ffffff;
-  --card-foreground: #000000;
+  --card-foreground: #16191f;
   --popover: #ffffff;
-  --popover-foreground: #000000;
-  --primary: #0075de;
+  --popover-foreground: #16191f;
+  --primary: #0b6b6e;
   --primary-foreground: #ffffff;
-  --secondary: #e6f3fe;
-  --secondary-foreground: #0075de;
-  --muted: color-mix(
-    in srgb,
-    var(--color-ink-black) 4%,
-    var(--color-paper-warmth)
-  );
-  --muted-foreground: #757575;
-  --accent: #e6f3fe;
-  --accent-foreground: #0075de;
-  --destructive: #e32d14;
-  --border: rgb(0 0 0 / 0.08);
-  --input: rgb(0 0 0 / 0.08);
-  --ring: #0075de;
-  --chart-1: #0075de;
-  --chart-2: #ffb110;
-  --chart-3: #f64932;
-  --chart-4: #62aef0;
-  --chart-5: #b18164;
+  --secondary: #e3f1f1;
+  --secondary-foreground: #0b5557;
+  --muted: #eff1f3;
+  --muted-foreground: #5f6672;
+  --accent: #e3f1f1;
+  --accent-foreground: #0b5557;
+  --destructive: #c7371f;
+  --border: #e2e5e9;
+  --input: #d5d9de;
+  --ring: #0b6b6e;
+  --chart-1: #0b6b6e;
+  --chart-2: #1c4b9c;
+  --chart-3: #7a4f00;
+  --chart-4: #533a9e;
+  --chart-5: #8f1a3d;
   --radius: 8px;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #000000;
-  --sidebar-primary: #0075de;
+  --sidebar: #f1f3f5;
+  --sidebar-foreground: #16191f;
+  --sidebar-primary: #0b6b6e;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e6f3fe;
-  --sidebar-accent-foreground: #000000;
-  --sidebar-border: rgb(0 0 0 / 0.08);
-  --sidebar-ring: #0075de;
+  --sidebar-accent: #e4e8ec;
+  --sidebar-accent-foreground: #16191f;
+  --sidebar-border: #e2e5e9;
+  --sidebar-ring: #0b6b6e;
+
+  --stone: #5f6672;
+  --graphite: #3a404a;
+
+  --tag-tweet: #fbe8ee;
+  --tag-tweet-fg: #8f1a3d;
+  --tag-tech: #e5edfb;
+  --tag-tech-fg: #1c4b9c;
+  --tag-todo: #fbefd5;
+  --tag-todo-fg: #7a4f00;
+  --tag-schedule: #ece7fa;
+  --tag-schedule-fg: #533a9e;
+  --tag-other: #eceff3;
+  --tag-other-fg: #434c5c;
 }
 
 .dark {
-  --background: color-mix(
-    in srgb,
-    var(--color-pure-white) 4%,
-    var(--color-charcoal)
-  );
-  --foreground: var(--color-pure-white);
-  --card: color-mix(
-    in srgb,
-    var(--color-pure-white) 13%,
-    var(--color-charcoal)
-  );
-  --card-foreground: var(--color-pure-white);
-  --popover: color-mix(
-    in srgb,
-    var(--color-pure-white) 13%,
-    var(--color-charcoal)
-  );
-  --popover-foreground: var(--color-pure-white);
-  --primary: var(--color-notion-blue);
-  --primary-foreground: var(--color-pure-white);
-  --secondary: color-mix(
-    in srgb,
-    var(--color-notion-blue) 28%,
-    var(--color-charcoal)
-  );
-  --secondary-foreground: var(--color-sky-wash);
-  --muted: color-mix(
-    in srgb,
-    var(--color-pure-white) 20%,
-    var(--color-charcoal)
-  );
-  --muted-foreground: rgb(255 255 255 / 0.62);
-  --accent: color-mix(
-    in srgb,
-    var(--color-notion-blue) 28%,
-    var(--color-charcoal)
-  );
-  --accent-foreground: var(--color-sky-wash);
-  --destructive: var(--color-coral);
-  --border: rgb(255 255 255 / 0.14);
-  --input: rgb(255 255 255 / 0.16);
-  --ring: var(--color-sky-wash);
-  --chart-1: var(--color-sky-wash);
-  --chart-2: var(--color-marigold);
-  --chart-3: var(--color-coral);
-  --chart-4: var(--color-signal-blue);
-  --chart-5: var(--color-mocha);
-  --sidebar: color-mix(
-    in srgb,
-    var(--color-pure-white) 13%,
-    var(--color-charcoal)
-  );
-  --sidebar-foreground: var(--color-pure-white);
-  --sidebar-primary: var(--color-notion-blue);
-  --sidebar-primary-foreground: var(--color-pure-white);
-  --sidebar-accent: color-mix(
-    in srgb,
-    var(--color-pure-white) 20%,
-    var(--color-charcoal)
-  );
-  --sidebar-accent-foreground: var(--color-pure-white);
-  --sidebar-border: rgb(255 255 255 / 0.14);
-  --sidebar-ring: var(--color-sky-wash);
+  --background: #0f1218;
+  --foreground: #e9ecf1;
+  --card: #171b23;
+  --card-foreground: #e9ecf1;
+  --popover: #1b2029;
+  --popover-foreground: #e9ecf1;
+  --primary: #3fb8b0;
+  --primary-foreground: #06211f;
+  --secondary: #16302f;
+  --secondary-foreground: #8fdcd6;
+  --muted: #1f2530;
+  --muted-foreground: #9aa3b2;
+  --accent: #16302f;
+  --accent-foreground: #8fdcd6;
+  --destructive: #ef6b52;
+  --border: #2a303b;
+  --input: #343b48;
+  --ring: #3fb8b0;
+  --chart-1: #3fb8b0;
+  --chart-2: #9ec1f7;
+  --chart-3: #f0c46a;
+  --chart-4: #c2b3f2;
+  --chart-5: #f2a3b8;
+  --sidebar: #12161d;
+  --sidebar-foreground: #e9ecf1;
+  --sidebar-primary: #3fb8b0;
+  --sidebar-primary-foreground: #06211f;
+  --sidebar-accent: #1f2530;
+  --sidebar-accent-foreground: #e9ecf1;
+  --sidebar-border: #2a303b;
+  --sidebar-ring: #3fb8b0;
 
-  --color-stone: rgb(255 255 255 / 0.62);
-  --color-graphite: rgb(255 255 255 / 0.78);
-  --color-slate: rgb(255 255 255 / 0.55);
-  --color-sky-tint: color-mix(
-    in srgb,
-    var(--color-notion-blue) 38%,
-    var(--color-charcoal)
-  );
+  --stone: #9aa3b2;
+  --graphite: #c3c9d4;
+
+  --tag-tweet: #3a1b26;
+  --tag-tweet-fg: #f2a3b8;
+  --tag-tech: #1b2a47;
+  --tag-tech-fg: #9ec1f7;
+  --tag-todo: #3a2d12;
+  --tag-todo-fg: #f0c46a;
+  --tag-schedule: #2b2447;
+  --tag-schedule-fg: #c2b3f2;
+  --tag-other: #262c37;
+  --tag-other-fg: #b4bcc9;
 }
 
 @layer base {
@@ -267,8 +202,13 @@
   }
   html {
     @apply font-sans antialiased;
-    font-feature-settings:
-      "lnum",
-      "locl" 0;
+    scrollbar-color: var(--input) transparent;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 28%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 }

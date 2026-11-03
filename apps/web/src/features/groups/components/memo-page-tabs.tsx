@@ -22,7 +22,7 @@ export function MemoPageTabs({ view }: { view: "memos" | "groups" }) {
               className={cn(
                 "-mb-px border-b-2 pb-2 text-body-sm font-medium transition-colors duration-200",
                 active
-                  ? "border-foreground text-foreground"
+                  ? "border-primary text-foreground"
                   : "border-transparent text-stone hover:text-foreground",
               )}
             >

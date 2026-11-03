@@ -15,9 +15,9 @@ export function TagBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full font-medium",
+        "inline-flex items-center rounded-md font-medium",
         meta.className,
-        compact ? "px-2 py-0.5 text-[10px]" : "px-3 py-1 text-caption",
+        compact ? "px-1.5 py-0.5 text-caption" : "px-3 py-1 text-caption",
       )}
     >
       {meta.label}

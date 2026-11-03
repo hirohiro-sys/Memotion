@@ -288,14 +288,13 @@ export function MemoList() {
           </div>
           <Button
             type="button"
-            variant="ghost"
             size="icon-lg"
             disabled={busy || composing}
             onClick={() => setComposing(true)}
             aria-label="追加"
-            className="size-10  text-foreground hover:bg-foreground/8"
+            className="size-10"
           >
-            <Plus className="size-6" />
+            <Plus className="size-5" />
           </Button>
         </div>
 
@@ -306,7 +305,7 @@ export function MemoList() {
             className={cn(
               PILL_BASE,
               filterTags.size === 0
-                ? "bg-foreground text-background"
+                ? "bg-primary text-primary-foreground"
                 : PILL_IDLE,
             )}
           >

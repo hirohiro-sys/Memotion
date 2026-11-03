@@ -227,8 +227,8 @@ function SidebarColumn({
                     ? "mx-auto size-10 justify-center"
                     : "w-full gap-2.5 px-4 py-3",
                   isActive
-                    ? "bg-muted font-medium text-foreground"
-                    : "text-foreground/50 hover:bg-muted hover:text-foreground",
+                    ? "bg-sidebar-accent font-medium text-foreground"
+                    : "text-graphite hover:bg-sidebar-accent hover:text-foreground",
                 )}
               >
                 <Icon className="size-4 shrink-0" />
@@ -277,7 +277,7 @@ function SidebarColumn({
           )}
         >
           <div
-            className="flex size-8 items-center justify-center rounded-lg bg-sky-tint text-primary"
+            className="flex size-8 items-center justify-center rounded-lg bg-accent text-primary"
             title={compact ? "ログイン中" : undefined}
           >
             <User className="size-4" />
@@ -355,7 +355,7 @@ export function Sidebar({
     <>
       <aside
         className={cn(
-          "sticky top-0 z-20 hidden h-screen shrink-0 flex-col overflow-x-hidden border-r border-border bg-card transition-[width] duration-200 md:flex",
+          "sticky top-0 z-20 hidden h-screen shrink-0 flex-col overflow-x-hidden border-r border-sidebar-border bg-sidebar transition-[width] duration-200 md:flex",
           collapsed ? "w-16" : "w-[260px]",
         )}
       >
@@ -374,7 +374,7 @@ export function Sidebar({
             aria-label="メニューを閉じる"
             onClick={onCloseMobile}
           />
-          <aside className="absolute top-0 bottom-0 left-0 flex w-[260px] flex-col bg-card">
+          <aside className="absolute top-0 bottom-0 left-0 flex w-[260px] flex-col bg-sidebar">
             <button
               type="button"
               onClick={onCloseMobile}

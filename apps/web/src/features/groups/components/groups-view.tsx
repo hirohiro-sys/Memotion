@@ -128,7 +128,7 @@ function OnlineGroupsView({ groupId }: { groupId?: string }) {
       return (
         <div className="flex justify-center px-4 pt-6 md:px-8 md:pt-10">
           <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center">
-            <span className="mx-auto mb-4 flex size-10 items-center justify-center rounded-lg bg-sky-tint text-primary">
+            <span className="mx-auto mb-4 flex size-10 items-center justify-center rounded-lg bg-accent text-primary">
               <FolderOpen className="size-5" />
             </span>
             <p className="text-body font-medium text-foreground">

@@ -59,7 +59,9 @@ export function MemoCard({
     <article
       className={cn(
         "flex h-full flex-col rounded-xl border bg-card p-4 transition-colors duration-200",
-        selected ? "border-primary" : "border-border",
+        selected
+          ? "border-primary ring-1 ring-primary"
+          : "border-border hover:border-input",
       )}
     >
       <div className="mb-2 flex items-start justify-between gap-3">
