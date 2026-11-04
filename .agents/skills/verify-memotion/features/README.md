@@ -37,7 +37,10 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 ## Features
 
 - [Dev login](./dev-login.md) opens the app as the local dev user.
-- [Memo list](./memo-list.md) shows, filters, and searches the signed-in user's memos.
+- [Memo list](./memo-list.md) shows the signed-in user's memos, filters them by tag, and deletes selected ones.
+- [Memo search](./memo-search.md) narrows the list by text, link, and the date and time on a schedule card.
 - [Create a memo](./create-memo.md) saves a memo from the list and shows it again.
-- [Groups](./groups.md) opens the group tab and creates a named group.
-- [Settings](./settings.md) opens notification settings for the signed-in user.
+- [Schedule and calendar](./schedule.md) saves a schedule and shows it on the calendar.
+- [Daily reports](./daily-reports.md) creates a report from selected memos, lists it, edits it, and shows it on the calendar.
+- [Groups](./groups.md) creates, renames, fills, and deletes groups.
+- [Settings](./settings.md) shows notification switches, the connpass card, the install guide, and log out.
