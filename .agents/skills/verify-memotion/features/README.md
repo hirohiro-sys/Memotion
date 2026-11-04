@@ -4,8 +4,8 @@ This directory is the maintained source for verifying Memotion's user-facing web
 
 ## Baseline preconditions
 
-- Launch with `.cursor/skills/verify-memotion/scripts/launch.sh` so the app is at `http://127.0.0.1:5173` and the API is at `http://127.0.0.1:8787`.
-- `.cursor/skills/verify-memotion/scripts/doctor.sh` exits 0 and reports `usr_dev_local`.
+- Launch with `.agents/skills/verify-memotion/scripts/launch.sh` so the app is at `http://127.0.0.1:5173` and the API is at `http://127.0.0.1:8787`.
+- `.agents/skills/verify-memotion/scripts/doctor.sh` exits 0 and reports `usr_dev_local`.
 - Ports 5173 and 8787 are owned by that launch. Never drive an instance this run did not start.
 - Local D1 persists in `apps/api/.wrangler`. Do not reset it, and do not pass `--remote`.
 
@@ -13,7 +13,7 @@ This directory is the maintained source for verifying Memotion's user-facing web
 
 - Start every recipe from the baseline state unless its preconditions say otherwise.
 - Prefer ARIA roles and accessible names over CSS selectors or screen coordinates.
-- Drive the browser as the user. Use `curl` with `.cursor/skills/verify-memotion/run/cookies.txt` only to read back a row the browser saved.
+- Drive the browser as the user. Use `curl` with `.agents/skills/verify-memotion/run/cookies.txt` only to read back a row the browser saved.
 - Keep proof artifacts. Cleanup removes the fixture memo and the `run/` directory, not `artifacts/`.
 
 ## Proof and skip reporting
@@ -31,13 +31,16 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 
 1. `Sub-features` lists short IDs with one line for each behavior.
 2. `How to get to it (user POV)` lists every user entry point.
-3. `Driving it with the Cursor browser` starts with `Preconditions:` and uses labeled bullets that pair each user action with the handle and the observable result.
+3. `Driving it with the browser` starts with `Preconditions:` and uses labeled bullets that pair each user action with the handle and the observable result.
 4. `Gotchas` lists traps that can waste or invalidate a verification run.
 
 ## Features
 
 - [Dev login](./dev-login.md) opens the app as the local dev user.
-- [Memo list](./memo-list.md) shows, filters, and searches the signed-in user's memos.
+- [Memo list](./memo-list.md) shows the signed-in user's memos, filters them by tag, and deletes selected ones.
+- [Memo search](./memo-search.md) narrows the list by text, link, and the date and time on a schedule card.
 - [Create a memo](./create-memo.md) saves a memo from the list and shows it again.
-- [Groups](./groups.md) opens the group tab and creates a named group.
-- [Settings](./settings.md) opens notification settings for the signed-in user.
+- [Schedule and calendar](./schedule.md) saves a schedule and shows it on the calendar.
+- [Daily reports](./daily-reports.md) creates a report from selected memos, lists it, edits it, and shows it on the calendar.
+- [Groups](./groups.md) creates, renames, fills, and deletes groups.
+- [Settings](./settings.md) shows notification switches, the connpass card, the install guide, and log out.
