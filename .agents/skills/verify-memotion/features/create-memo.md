@@ -13,7 +13,7 @@ Create a memo lets the user type a note on the memo list, save it, and see that 
 
 - On the memo list, choose the button `追加`.
 
-## Driving it with the Cursor browser
+## Driving it with the browser
 
 Preconditions:
 
@@ -24,7 +24,7 @@ Preconditions:
 - **Open the composer.** Choose the button `追加`. A textbox named `メモを入力...` appears, with a button `送信` and a button `キャンセル`.
 - **Enter text.** Fill the textbox `メモを入力...` with `verify-memotion`. The button `送信` is enabled.
 - **Save.** Choose `送信`. The composer closes and the list shows `verify-memotion`. `まだメモがありません` is gone.
-- **Confirm the row.** Run `curl -sS -b .cursor/skills/verify-memotion/run/cookies.txt http://127.0.0.1:5173/api/memos` and save the body to `artifacts/create-memo/memos.json`. It contains `verify-memotion`. Then run `pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --local --command "SELECT id, content FROM memos WHERE content = 'verify-memotion'"` and save the output to `artifacts/create-memo/d1.txt`. The row's content is `verify-memotion`. Do not add `--remote`.
+- **Confirm the row.** Run `curl -sS -b .agents/skills/verify-memotion/run/cookies.txt http://127.0.0.1:5173/api/memos` and save the body to `artifacts/create-memo/memos.json`. It contains `verify-memotion`. Then run `pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --local --command "SELECT id, content FROM memos WHERE content = 'verify-memotion'"` and save the output to `artifacts/create-memo/d1.txt`. The row's content is `verify-memotion`. Do not add `--remote`.
 - **Proof.** Save the list snapshot to `artifacts/create-memo/list.aria.txt` and a screenshot to `artifacts/create-memo/list.png`. Both show `verify-memotion` and the heading `メモ一覧`.
 - **Remove the fixture.** After those files exist, choose the checkbox `このメモを選択` on that memo, choose `削除`, then choose `削除する`. The list no longer shows `verify-memotion`. Leave the artifact files in place.
 

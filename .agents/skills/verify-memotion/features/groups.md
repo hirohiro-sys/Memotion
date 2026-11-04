@@ -13,7 +13,7 @@ Groups lets the user leave the memo list, see their groups, and create a named g
 - On the memo page, choose the tab `グループ`.
 - Open `http://127.0.0.1:5173/?view=groups`.
 
-## Driving it with the Cursor browser
+## Driving it with the browser
 
 Preconditions:
 

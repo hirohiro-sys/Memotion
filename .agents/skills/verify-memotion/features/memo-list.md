@@ -16,7 +16,7 @@ The memo list shows the signed-in user's memos, filters them by tag, and searche
 - Choose the sidebar link `メモ一覧`.
 - On the page, choose the tab `メモ`.
 
-## Driving it with the Cursor browser
+## Driving it with the browser
 
 Preconditions:
 

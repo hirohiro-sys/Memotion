@@ -14,7 +14,7 @@ Settings shows the signed-in user's notification switches and lets them log out.
 - On a narrow window, choose `メニューを開く`, then `設定`.
 - Open `http://127.0.0.1:5173/settings` while signed in.
 
-## Driving it with the Cursor browser
+## Driving it with the browser
 
 Preconditions:
 

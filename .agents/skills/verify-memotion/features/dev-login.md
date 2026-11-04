@@ -13,7 +13,7 @@ Dev login lets a person on this computer open Memotion without LINE and land on 
 - Open `http://127.0.0.1:5173/login` and choose `開発用ログイン`.
 - Open `http://127.0.0.1:5173/api/auth/dev` directly. The server redirects to the memo list.
 
-## Driving it with the Cursor browser
+## Driving it with the browser
 
 Preconditions:
 
@@ -22,7 +22,7 @@ Preconditions:
 
 - **Open login.** Go to `http://127.0.0.1:5173/login`. The heading reads `Memotion` and the link `開発用ログイン` is visible. The button `LINEでログイン` is also visible.
 - **Enter.** Choose `開発用ログイン`. The URL becomes `http://127.0.0.1:5173/` and the heading reads `メモ一覧`.
-- **Confirm the session.** Read `GET /api/me` with `.cursor/skills/verify-memotion/run/cookies.txt`. The body is `{"id":"usr_dev_local"}`.
+- **Confirm the session.** Read `GET /api/me` with `.agents/skills/verify-memotion/run/cookies.txt`. The body is `{"id":"usr_dev_local"}`.
 - **Proof.** Save the memo-list snapshot to `artifacts/dev-login/list.aria.txt` and a screenshot to `artifacts/dev-login/list.png`. Both show the heading `メモ一覧`.
 
 ## Gotchas
