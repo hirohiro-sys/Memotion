@@ -374,6 +374,38 @@ export async function updateMemoSchedule(
   return row ? { ...row, tag: "schedule" } : null;
 }
 
+// タグを付け直す。確認と同じ条件（自分のメモ、グループなし、タグが schedule でない）を
+// WHERE に入れた1文で更新する。条件に合わなければ null。
+export async function updateMemoTag(
+  db: Database,
+  values: { userId: string; memoId: string; tagId: string; tag: string },
+): Promise<MemoRow | null> {
+  const [row] = await db
+    .update(memos)
+    .set({ tagId: values.tagId })
+    .where(
+      and(
+        eq(memos.id, values.memoId),
+        eq(memos.userId, values.userId),
+        isNull(memos.groupId),
+        notInArray(memos.tagId, tagIdsBySlug(db, ["schedule"])),
+      ),
+    )
+    .returning({
+      id: memos.id,
+      content: memos.content,
+      url: memos.url,
+      imageKey: memos.imageKey,
+      mediaType: memos.mediaType,
+      source: memos.source,
+      createdAt: memos.createdAt,
+      groupId: memos.groupId,
+      scheduledDate: memos.scheduledDate,
+      scheduledTime: memos.scheduledTime,
+    });
+  return row ? { ...row, tag: values.tag } : null;
+}
+
 export type ScheduleOnDateRow = {
   scheduledTime: string | null;
   content: string;

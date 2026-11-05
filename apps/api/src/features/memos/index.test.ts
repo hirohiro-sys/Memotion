@@ -1,5 +1,6 @@
 import {
   apiErrorSchema,
+  changeMemoTagRequestSchema,
   createMemoRequestSchema,
   deleteMemosRequestSchema,
   MAX_BULK_DELETE,
@@ -402,10 +403,28 @@ describe("setScheduleRequestSchema", () => {
   });
 });
 
-describe("apiErrorSchema schedule codes", () => {
-  it.each(["schedule_date_past", "not_schedulable"])("keeps %s", (code) => {
-    expect(apiErrorSchema.parse({ message: "x", code }).code).toBe(code);
+describe("changeMemoTagRequestSchema", () => {
+  it.each(["tweet", "tech", "todo", "other"])("accepts %s", (tag) => {
+    expect(changeMemoTagRequestSchema.parse({ tag })).toEqual({ tag });
   });
+
+  it.each([
+    ["schedule", { tag: "schedule" }],
+    ["an unknown tag", { tag: "memo" }],
+    ["a missing tag", {}],
+    ["a non-string tag", { tag: 1 }],
+  ])("rejects %s", (_label, body) => {
+    expect(changeMemoTagRequestSchema.safeParse(body).success).toBe(false);
+  });
+});
+
+describe("apiErrorSchema schedule codes", () => {
+  it.each(["schedule_date_past", "not_schedulable", "memo_tag_not_changeable"])(
+    "keeps %s",
+    (code) => {
+      expect(apiErrorSchema.parse({ message: "x", code }).code).toBe(code);
+    },
+  );
 });
 
 const SESSION_SECRET = "test-secret";
@@ -485,6 +504,41 @@ describe("PUT /api/memos/:id/schedule", () => {
       message: "schedule date is past",
       code: "schedule_date_past",
     });
+  });
+});
+
+function patchTag(id: string, body: string, cookie?: string) {
+  return memoRoutes.request(
+    `/api/memos/${id}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(cookie ? { Cookie: cookie } : {}),
+      },
+      body,
+    },
+    env,
+  );
+}
+
+describe("PATCH /api/memos/:id", () => {
+  it("rejects a request without a session with 401, even with invalid JSON", async () => {
+    const valid = await patchTag("memo_1", JSON.stringify({ tag: "tech" }));
+    expect(valid.status).toBe(401);
+    const invalid = await patchTag("memo_1", "{");
+    expect(invalid.status).toBe(401);
+  });
+
+  it.each([
+    ["schedule as the target", "memo_1", JSON.stringify({ tag: "schedule" })],
+    ["an unknown tag", "memo_1", JSON.stringify({ tag: "memo" })],
+    ["a missing tag", "memo_1", JSON.stringify({})],
+    ["a 65-character id", "a".repeat(65), JSON.stringify({ tag: "tech" })],
+    ["invalid JSON", "memo_1", "{"],
+  ])("rejects %s with 400", async (_label, id, body) => {
+    const res = await patchTag(id, body, await sessionCookie());
+    expect(res.status).toBe(400);
   });
 });
 

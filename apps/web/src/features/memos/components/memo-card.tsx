@@ -8,6 +8,7 @@ import { cn } from "@/utils/cn";
 import { formatDate } from "@/utils/format";
 import { useOnlineStatus } from "../offline/use-online-status";
 import { TagBadge } from "./tag-badge";
+import { TagChangeMenu } from "./tag-change-menu";
 
 export function MemoCard({
   memo,
@@ -65,7 +66,11 @@ export function MemoCard({
       )}
     >
       <div className="mb-2 flex items-start justify-between gap-3">
-        <TagBadge tag={memo.tag} size="xs" />
+        {memo.tag === "schedule" ? (
+          <TagBadge tag={memo.tag} size="xs" />
+        ) : (
+          <TagChangeMenu memo={memo} busy={busy} />
+        )}
         <input
           type="checkbox"
           checked={selected}
