@@ -35,7 +35,7 @@ export function detectMediaType(text: string): Exclude<MemoMediaType, "image"> {
   return URL_PATTERN.test(text) ? "url" : "text";
 }
 
-// タグは Web で付け直すので、LINE からは常に tweet で保存し、本文の #tag は解釈しない。
+// LINE では分類しない。本文の #tag も解釈せず、常に tweet で保存する。
 export function classify(input: {
   text?: string | null;
   isImage?: boolean;

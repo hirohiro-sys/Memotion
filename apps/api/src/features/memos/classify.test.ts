@@ -64,7 +64,7 @@ describe("classify: leading hashtags are body text, not tags", () => {
     });
   });
 
-  it("keeps the mediaType of a tagged URL independent of the tag", () => {
+  it("treats a URL behind a hashtag as text because the whole body is not a URL", () => {
     expect(classify({ text: "#tech https://example.com" })).toEqual({
       save: true,
       tag: "tweet",
@@ -73,24 +73,54 @@ describe("classify: leading hashtags are body text, not tags", () => {
     });
   });
 
-  it("saves inputs that used to be unknown_tag or empty_after_tag", () => {
-    for (const text of ["#tweets", "#work 買う", "#tweet", "#tweet   "]) {
-      const result = classify({ text });
-      expect(result.save).toBe(true);
-    }
-    expect(classify({ text: "#tweet   " })).toMatchObject({
-      content: "#tweet",
+  it.each([
+    ["#tweets", "#tweets"],
+    ["#work 買う", "#work 買う"],
+    ["#tweet", "#tweet"],
+    ["#tweet   ", "#tweet"],
+    ["#", "#"],
+    ["＃todo", "＃todo"],
+  ])(
+    "saves %j, which used to be unknown_tag or empty_after_tag, as %j",
+    (text, content) => {
+      expect(classify({ text })).toEqual({
+        save: true,
+        tag: "tweet",
+        mediaType: "text",
+        content,
+      });
+    },
+  );
+});
+
+describe("classify: surrounding whitespace", () => {
+  it("trims a trailing newline and still detects the URL", () => {
+    expect(classify({ text: "https://example.com\n" })).toEqual({
+      save: true,
+      tag: "tweet",
+      mediaType: "url",
+      content: "https://example.com",
+    });
+  });
+
+  it("treats two URLs split by a newline as text", () => {
+    expect(classify({ text: "https://a.com\nhttps://b.com" })).toMatchObject({
+      save: true,
+      mediaType: "text",
     });
   });
 });
 
 describe("classify: empty bodies", () => {
-  it("rejects whitespace-only text", () => {
-    expect(classify({ text: "   " })).toEqual({
-      save: false,
-      reason: "empty",
-    });
-  });
+  it.each(["   ", "　　", "\n\n", " \t\n　"])(
+    "rejects whitespace-only text %j",
+    (text) => {
+      expect(classify({ text })).toEqual({
+        save: false,
+        reason: "empty",
+      });
+    },
+  );
 
   it("rejects missing text", () => {
     expect(classify({})).toEqual({ save: false, reason: "empty" });
