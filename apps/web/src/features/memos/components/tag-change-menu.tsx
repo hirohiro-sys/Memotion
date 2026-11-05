@@ -3,32 +3,53 @@ import {
   type ChangeableMemoTag,
   changeableMemoTagSchema,
   type Memo,
+  type MemoTag,
 } from "@repo/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { Check, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "@/components/ui/toast";
 import { TAG_META, TAG_ORDER } from "@/config/tag-meta";
 import { cn } from "@/utils/cn";
 import { ChangeMemoTagError, changeMemoTag } from "../api/change-memo-tag";
 import { useOnlineStatus } from "../offline/use-online-status";
 
-const CHANGEABLE_TAGS = TAG_ORDER.filter(
-  (tag): tag is ChangeableMemoTag =>
-    changeableMemoTagSchema.safeParse(tag).success,
-);
-
 const ITEM =
   "flex cursor-default items-center gap-2 rounded-md px-2.5 py-1.5 text-body-sm outline-none select-none transition-colors duration-200 data-highlighted:bg-muted";
 
-// カードのタグ表示。押すとタグを付け直すメニューが開く。予定への変更は「予定にする」が受け持つ。
-export function TagChangeMenu({ memo, busy }: { memo: Memo; busy: boolean }) {
+// カードのタグ表示。押すとタグを付け直すメニューが開く。「予定」は日時が要るので、
+// 選ぶとメニューを閉じ終えてから onSchedule で日時ダイアログを開く。
+export function TagChangeMenu({
+  memo,
+  busy,
+  onSchedule,
+}: {
+  memo: Memo;
+  busy: boolean;
+  onSchedule: () => void;
+}) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const online = useOnlineStatus();
   const [submitting, setSubmitting] = useState(false);
+  const scheduleRequested = useRef(false);
   const meta = TAG_META[memo.tag];
+
+  function handlePick(tag: MemoTag) {
+    if (tag === "schedule") {
+      scheduleRequested.current = true;
+      return;
+    }
+    const changeable = changeableMemoTagSchema.safeParse(tag);
+    if (changeable.success) void handleSelect(changeable.data);
+  }
+
+  function handleOpenChangeComplete(open: boolean) {
+    if (open || !scheduleRequested.current) return;
+    scheduleRequested.current = false;
+    onSchedule();
+  }
 
   async function handleSelect(tag: ChangeableMemoTag) {
     if (tag === memo.tag || submitting) return;
@@ -61,7 +82,7 @@ export function TagChangeMenu({ memo, busy }: { memo: Memo; busy: boolean }) {
   }
 
   return (
-    <Menu.Root>
+    <Menu.Root onOpenChangeComplete={handleOpenChangeComplete}>
       <Menu.Trigger
         disabled={busy || !online || submitting}
         aria-label={`タグを変更（現在: ${meta.label}）`}
@@ -77,10 +98,10 @@ export function TagChangeMenu({ memo, busy }: { memo: Memo; busy: boolean }) {
       <Menu.Portal>
         <Menu.Positioner align="start" sideOffset={6} className="z-50">
           <Menu.Popup className="min-w-40 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-pop outline-none transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0">
-            {CHANGEABLE_TAGS.map((tag) => (
+            {TAG_ORDER.map((tag) => (
               <Menu.Item
                 key={tag}
-                onClick={() => void handleSelect(tag)}
+                onClick={() => handlePick(tag)}
                 className={cn(ITEM, "text-foreground")}
               >
                 <span className="flex-1">{TAG_META[tag].label}</span>

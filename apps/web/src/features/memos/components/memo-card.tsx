@@ -29,13 +29,6 @@ export function MemoCard({
   useEffect(() => {
     if (!online) setScheduleOpen(false);
   }, [online]);
-  // つぶやきは「予定にする」、予定は「日時を変更」。ほかのタグには出さない。
-  const scheduleAction =
-    memo.tag === "tweet"
-      ? "予定にする"
-      : memo.tag === "schedule"
-        ? "日時を変更"
-        : null;
   const contentRef = useRef<HTMLParagraphElement>(null);
 
   useLayoutEffect(() => {
@@ -69,7 +62,11 @@ export function MemoCard({
         {memo.tag === "schedule" ? (
           <TagBadge tag={memo.tag} size="xs" />
         ) : (
-          <TagChangeMenu memo={memo} busy={busy} />
+          <TagChangeMenu
+            memo={memo}
+            busy={busy}
+            onSchedule={() => setScheduleOpen(true)}
+          />
         )}
         <input
           type="checkbox"
@@ -146,7 +143,7 @@ export function MemoCard({
         ))}
 
       <div className="mt-auto flex items-center justify-between gap-2">
-        {scheduleAction ? (
+        {memo.tag === "schedule" ? (
           <Button
             type="button"
             variant="ghost"
@@ -157,7 +154,7 @@ export function MemoCard({
             className="-ml-2.5 text-stone"
           >
             <CalendarDays />
-            {scheduleAction}
+            日時を変更
           </Button>
         ) : (
           <span />
@@ -168,13 +165,11 @@ export function MemoCard({
         </span>
       </div>
 
-      {scheduleAction ? (
-        <ScheduleDialog
-          memo={memo}
-          open={scheduleOpen && online}
-          onOpenChange={setScheduleOpen}
-        />
-      ) : null}
+      <ScheduleDialog
+        memo={memo}
+        open={scheduleOpen && online}
+        onOpenChange={setScheduleOpen}
+      />
     </article>
   );
 }

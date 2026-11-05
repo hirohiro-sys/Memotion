@@ -72,7 +72,10 @@ export function ScheduleDialog({
         scheduledDate: draft.date,
         scheduledTime: draft.time === "" ? null : draft.time,
       });
-      await queryClient.invalidateQueries({ queryKey: ["memos"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["memos"] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+      ]);
       onOpenChange(false);
     } catch (error) {
       if (error instanceof SetScheduleError) {
@@ -114,7 +117,7 @@ export function ScheduleDialog({
           </AlertDialogTitle>
           <AlertDialogDescription className="mb-4">
             {converting
-              ? "日付は必須、時刻は任意です。予定からつぶやきには戻せません。"
+              ? "日付は必須、時刻は任意です。予定から他のタグには戻せません。"
               : "日付は必須、時刻は任意です。"}
           </AlertDialogDescription>
           <ScheduleFields
