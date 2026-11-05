@@ -30,29 +30,15 @@ describe("decideScheduleSet", () => {
     expect(decideScheduleSet({ memo: null })).toBe("not_found");
   });
 
-  it("accepts tweet and schedule outside a group", () => {
-    expect(decideScheduleSet({ memo: { tag: "tweet", groupId: null } })).toBe(
-      "ok",
-    );
-    expect(
-      decideScheduleSet({ memo: { tag: "schedule", groupId: null } }),
-    ).toBe("ok");
+  it("accepts a memo outside a group whatever its tag", () => {
+    expect(decideScheduleSet({ memo: { groupId: null } })).toBe("ok");
   });
 
-  it.each(["tech", "todo", "other"])("rejects %s outside a group", (tag) => {
-    expect(decideScheduleSet({ memo: { tag, groupId: null } })).toBe(
+  it("rejects a memo inside a group", () => {
+    expect(decideScheduleSet({ memo: { groupId: "group_1" } })).toBe(
       "not_schedulable",
     );
   });
-
-  it.each(["tweet", "schedule", "other"])(
-    "rejects %s inside a group",
-    (tag) => {
-      expect(decideScheduleSet({ memo: { tag, groupId: "group_1" } })).toBe(
-        "not_schedulable",
-      );
-    },
-  );
 });
 
 describe("validateCreateSchedule", () => {
