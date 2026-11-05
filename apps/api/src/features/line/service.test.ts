@@ -40,7 +40,7 @@ describe("decideLineEvent", () => {
         type: "message",
         replyToken: "r",
         source: { type: "user", userId: "U1" },
-        message: { type: "text", id: "m1", text: "#tweet眠い" },
+        message: { type: "text", id: "m1", text: "眠い" },
       }),
     ).toEqual({
       action: "process",
@@ -49,7 +49,7 @@ describe("decideLineEvent", () => {
       messageId: "m1",
       messageType: "text",
       unsupported: false,
-      classify: { text: "#tweet眠い", isImage: false },
+      classify: { text: "眠い", isImage: false },
     });
   });
 
