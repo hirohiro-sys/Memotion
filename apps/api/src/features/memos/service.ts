@@ -1,4 +1,5 @@
 import {
+  type ChangeMemoTagRequest,
   type CreateMemoRequest,
   type Memo,
   memoListResponseSchema,
@@ -49,6 +50,7 @@ import {
   updateImportedScheduleStatement,
   updateMemoOgp,
   updateMemoSchedule,
+  updateMemoTag,
 } from "./repository";
 import { resolveCreatedAt } from "./resolve-created-at";
 import {
@@ -56,6 +58,7 @@ import {
   isPastScheduleDate,
   validateCreateSchedule,
 } from "./schedule";
+import { decideTagChange } from "./tag-change";
 
 const OGP_CLAIM_STALE_MS = 30_000;
 const OGP_BACKFILL_BUDGET_MS = 20_000;
@@ -291,6 +294,48 @@ export async function setScheduleForUser(
   // 確認のあとに状態が変わった。削除されていれば 404、グループに入ったなどなら 409。
   const current = await findMemoForUser(db, userId, memoId);
   return { ok: false, error: current ? "not_schedulable" : "not_found" };
+}
+
+// 保存済みメモのタグを付け直す。
+// 順番は「メモの取得（持ち主で絞る）→ 状態の判断 → 同じタグなら何もしない → 条件付きの更新」。
+export async function changeTagForUser(
+  db: Database,
+  userId: string,
+  memoId: string,
+  input: ChangeMemoTagRequest,
+): Promise<
+  | { ok: true; memo: Memo }
+  | { ok: false; error: "not_found" | "not_changeable" | "save_failed" }
+> {
+  const memo = await findMemoForUser(db, userId, memoId);
+  const decision = decideTagChange(memo, input.tag);
+  if (!decision.ok) return decision;
+  if (decision.unchanged && memo)
+    return { ok: true, memo: toMemoResponse(memo) };
+
+  const tag = await findTagBySlug(db, input.tag);
+  if (!tag) {
+    logJson({ event: "memo.tag", status: "failed", userId, memoId });
+    return { ok: false, error: "save_failed" };
+  }
+
+  let updated: MemoRow | null;
+  try {
+    updated = await updateMemoTag(db, {
+      userId,
+      memoId,
+      tagId: tag.id,
+      tag: tag.slug,
+    });
+  } catch {
+    logJson({ event: "memo.tag", status: "failed", userId, memoId });
+    return { ok: false, error: "save_failed" };
+  }
+  if (updated) return { ok: true, memo: toMemoResponse(updated) };
+
+  // 確認のあとに状態が変わった。削除されていれば 404、グループや予定になったなら 409。
+  const current = await findMemoForUser(db, userId, memoId);
+  return { ok: false, error: current ? "not_changeable" : "not_found" };
 }
 
 // 通知用。ある日（JST）の自分の予定。

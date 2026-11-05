@@ -1,4 +1,5 @@
 import {
+  changeMemoTagRequestSchema,
   createMemoRequestSchema,
   deleteMemosRequestSchema,
   deleteMemosResponseSchema,
@@ -12,6 +13,7 @@ import { readSessionUserId } from "../../lib/session";
 import {
   backfillOgpForUser,
   captureOgpForMemo,
+  changeTagForUser,
   createForUser,
   deleteManyForUser,
   getImageForUser,
@@ -109,6 +111,44 @@ memoRoutes.put("/api/memos/:id/schedule", async (c) => {
     if (result.error === "not_schedulable") {
       return c.json(
         { message: "not schedulable", code: "not_schedulable" },
+        409,
+      );
+    }
+    return c.json({ message: "save failed" }, 500);
+  }
+  return c.json(result.memo);
+});
+
+memoRoutes.patch("/api/memos/:id", async (c) => {
+  const userId = await readSessionUserId(c);
+  if (!userId) {
+    return c.json({ message: "unauthorized" }, 401);
+  }
+
+  const memoId = memoIdSchema.safeParse(c.req.param("id"));
+  let body: ReturnType<typeof changeMemoTagRequestSchema.parse>;
+  try {
+    body = changeMemoTagRequestSchema.parse(await c.req.json());
+  } catch {
+    return c.json({ message: "invalid request" }, 400);
+  }
+  if (!memoId.success) {
+    return c.json({ message: "invalid request" }, 400);
+  }
+
+  const result = await changeTagForUser(
+    createDb(c.env.DB),
+    userId,
+    memoId.data,
+    body,
+  );
+  if (!result.ok) {
+    if (result.error === "not_found") {
+      return c.json({ message: "not found" }, 404);
+    }
+    if (result.error === "not_changeable") {
+      return c.json(
+        { message: "tag not changeable", code: "memo_tag_not_changeable" },
         409,
       );
     }

@@ -507,6 +507,41 @@ describe("PUT /api/memos/:id/schedule", () => {
   });
 });
 
+function patchTag(id: string, body: string, cookie?: string) {
+  return memoRoutes.request(
+    `/api/memos/${id}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(cookie ? { Cookie: cookie } : {}),
+      },
+      body,
+    },
+    env,
+  );
+}
+
+describe("PATCH /api/memos/:id", () => {
+  it("rejects a request without a session with 401, even with invalid JSON", async () => {
+    const valid = await patchTag("memo_1", JSON.stringify({ tag: "tech" }));
+    expect(valid.status).toBe(401);
+    const invalid = await patchTag("memo_1", "{");
+    expect(invalid.status).toBe(401);
+  });
+
+  it.each([
+    ["schedule as the target", "memo_1", JSON.stringify({ tag: "schedule" })],
+    ["an unknown tag", "memo_1", JSON.stringify({ tag: "memo" })],
+    ["a missing tag", "memo_1", JSON.stringify({})],
+    ["a 65-character id", "a".repeat(65), JSON.stringify({ tag: "tech" })],
+    ["invalid JSON", "memo_1", "{"],
+  ])("rejects %s with 400", async (_label, id, body) => {
+    const res = await patchTag(id, body, await sessionCookie());
+    expect(res.status).toBe(400);
+  });
+});
+
 describe("POST /api/memos with a schedule", () => {
   it("rejects a past date with 400 and schedule_date_past", async () => {
     const res = await memoRoutes.request(
