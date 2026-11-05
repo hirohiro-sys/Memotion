@@ -67,7 +67,11 @@ export {
 } from "./group";
 export { type HealthResponse, healthResponseSchema } from "./health";
 export {
+  type ChangeableMemoTag,
+  type ChangeMemoTagRequest,
   type CreateMemoRequest,
+  changeableMemoTagSchema,
+  changeMemoTagRequestSchema,
   createMemoRequestSchema,
   type DeleteMemosRequest,
   type DeleteMemosResponse,

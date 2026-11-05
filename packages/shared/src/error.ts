@@ -4,6 +4,7 @@ export const apiErrorCodeSchema = z.enum([
   "group_not_found",
   "schedule_date_past",
   "not_schedulable",
+  "memo_tag_not_changeable",
   "connpass_user_not_found",
   "connpass_not_configured",
   "connpass_sync_too_soon",

@@ -1,5 +1,6 @@
 import {
   apiErrorSchema,
+  changeMemoTagRequestSchema,
   createMemoRequestSchema,
   deleteMemosRequestSchema,
   MAX_BULK_DELETE,
@@ -402,10 +403,28 @@ describe("setScheduleRequestSchema", () => {
   });
 });
 
-describe("apiErrorSchema schedule codes", () => {
-  it.each(["schedule_date_past", "not_schedulable"])("keeps %s", (code) => {
-    expect(apiErrorSchema.parse({ message: "x", code }).code).toBe(code);
+describe("changeMemoTagRequestSchema", () => {
+  it.each(["tweet", "tech", "todo", "other"])("accepts %s", (tag) => {
+    expect(changeMemoTagRequestSchema.parse({ tag })).toEqual({ tag });
   });
+
+  it.each([
+    ["schedule", { tag: "schedule" }],
+    ["an unknown tag", { tag: "memo" }],
+    ["a missing tag", {}],
+    ["a non-string tag", { tag: 1 }],
+  ])("rejects %s", (_label, body) => {
+    expect(changeMemoTagRequestSchema.safeParse(body).success).toBe(false);
+  });
+});
+
+describe("apiErrorSchema schedule codes", () => {
+  it.each(["schedule_date_past", "not_schedulable", "memo_tag_not_changeable"])(
+    "keeps %s",
+    (code) => {
+      expect(apiErrorSchema.parse({ message: "x", code }).code).toBe(code);
+    },
+  );
 });
 
 const SESSION_SECRET = "test-secret";

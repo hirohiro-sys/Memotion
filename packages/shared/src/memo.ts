@@ -74,6 +74,13 @@ export const createMemoRequestSchema = createMemoRequestBaseSchema.superRefine(
   },
 );
 
+// 保存後にタグを付け直せる先。予定にするのは日付が要るので、別の PUT /schedule で行う。
+export const changeableMemoTagSchema = memoTagSchema.exclude(["schedule"]);
+
+export const changeMemoTagRequestSchema = z.object({
+  tag: changeableMemoTagSchema,
+});
+
 export const MAX_BULK_DELETE = 500;
 
 export const deleteMemosRequestSchema = z.object({
@@ -89,6 +96,8 @@ export type MemoMediaType = z.infer<typeof memoMediaTypeSchema>;
 export type MemoSource = z.infer<typeof memoSourceSchema>;
 export type Memo = z.infer<typeof memoSchema>;
 export type MemoListResponse = z.infer<typeof memoListResponseSchema>;
+export type ChangeableMemoTag = z.infer<typeof changeableMemoTagSchema>;
+export type ChangeMemoTagRequest = z.infer<typeof changeMemoTagRequestSchema>;
 export type CreateMemoRequest = z.infer<typeof createMemoRequestSchema>;
 export type DeleteMemosRequest = z.infer<typeof deleteMemosRequestSchema>;
 export type DeleteMemosResponse = z.infer<typeof deleteMemosResponseSchema>;
