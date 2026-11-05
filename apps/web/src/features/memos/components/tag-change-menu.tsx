@@ -38,17 +38,21 @@ export function TagChangeMenu({
 
   function handlePick(tag: MemoTag) {
     if (tag === "schedule") {
-      scheduleRequested.current = true;
+      scheduleRequested.current = online;
       return;
     }
     const changeable = changeableMemoTagSchema.safeParse(tag);
     if (changeable.success) void handleSelect(changeable.data);
   }
 
+  function handleOpenChange(open: boolean) {
+    if (open) scheduleRequested.current = false;
+  }
+
   function handleOpenChangeComplete(open: boolean) {
     if (open || !scheduleRequested.current) return;
     scheduleRequested.current = false;
-    onSchedule();
+    if (online) onSchedule();
   }
 
   async function handleSelect(tag: ChangeableMemoTag) {
@@ -76,13 +80,17 @@ export function TagChangeMenu({
         }
       }
       toast.add({ title: "保存できませんでした。", type: "error" });
+      await queryClient.invalidateQueries({ queryKey: ["memos"] });
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Menu.Root onOpenChangeComplete={handleOpenChangeComplete}>
+    <Menu.Root
+      onOpenChange={handleOpenChange}
+      onOpenChangeComplete={handleOpenChangeComplete}
+    >
       <Menu.Trigger
         disabled={busy || !online || submitting}
         aria-label={`タグを変更（現在: ${meta.label}）`}
