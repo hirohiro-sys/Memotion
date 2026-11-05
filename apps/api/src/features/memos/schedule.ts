@@ -14,16 +14,13 @@ export function isPastScheduleDate(date: string, now: Date): boolean {
 
 export type ScheduleSetDecision = "ok" | "not_found" | "not_schedulable";
 
-// 「予定にする」と「日時を変更」ができるのは、グループに入っていない tweet か schedule のメモだけ。
+// 「予定にする」と「日時を変更」ができるのは、グループに入っていないメモだけ。タグは問わない。
 export function decideScheduleSet(input: {
-  memo: { tag: string; groupId: string | null } | null;
+  memo: { groupId: string | null } | null;
 }): ScheduleSetDecision {
   const { memo } = input;
   if (!memo) return "not_found";
-  if (memo.groupId !== null) return "not_schedulable";
-  return memo.tag === "tweet" || memo.tag === "schedule"
-    ? "ok"
-    : "not_schedulable";
+  return memo.groupId === null ? "ok" : "not_schedulable";
 }
 
 export type CreateScheduleDecision = "ok" | "invalid" | "past_date";

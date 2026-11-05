@@ -332,8 +332,8 @@ export async function assignMemosToGroup(
   return { added, skippedTodo, skippedSchedule };
 }
 
-// つぶやきを予定にする、または予定の日時を変える。確認と同じ条件（自分のメモ、グループなし、
-// タグが tweet か schedule）を WHERE に入れた1文で更新する。条件に合わなければ null。
+// メモを予定にする、または予定の日時を変える。確認と同じ条件（自分のメモ、グループなし）を
+// WHERE に入れた1文で更新する。タグは問わない。条件に合わなければ null。
 export async function updateMemoSchedule(
   db: Database,
   values: {
@@ -356,7 +356,6 @@ export async function updateMemoSchedule(
         eq(memos.id, values.memoId),
         eq(memos.userId, values.userId),
         isNull(memos.groupId),
-        inArray(memos.tagId, tagIdsBySlug(db, ["tweet", "schedule"])),
       ),
     )
     .returning({
