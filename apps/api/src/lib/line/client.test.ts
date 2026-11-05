@@ -22,7 +22,7 @@ describe("replyFailure", () => {
       replyFailure({
         accessToken: "token",
         replyToken: "reply-1",
-        text: "使えるタグは #tweet #tech #todo #other です。",
+        text: "本文が空です。テキスト（URL含む）か画像を送ってください。",
       }),
     ).resolves.toBe(true);
 
@@ -39,7 +39,7 @@ describe("replyFailure", () => {
           messages: [
             {
               type: "text",
-              text: "使えるタグは #tweet #tech #todo #other です。",
+              text: "本文が空です。テキスト（URL含む）か画像を送ってください。",
             },
           ],
         }),
