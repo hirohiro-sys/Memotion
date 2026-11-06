@@ -1,15 +1,9 @@
 import type { MemoTag } from "@repo/shared";
-
-const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
-
-// now の JST の日付（YYYY-MM-DD）。
-export function jstDateOf(now: Date): string {
-  return new Date(now.getTime() + JST_OFFSET_MS).toISOString().slice(0, 10);
-}
+import { jstDateString } from "../../lib/jst";
 
 // 予定の日付が JST の今日より前か。今日の日付は過去でない（時刻は見ない）。
 export function isPastScheduleDate(date: string, now: Date): boolean {
-  return date < jstDateOf(now);
+  return date < jstDateString(now);
 }
 
 export type ScheduleSetDecision = "ok" | "not_found" | "not_schedulable";

@@ -2,6 +2,7 @@ import type { ConnpassSettings, ConnpassSyncResponse } from "@repo/shared";
 import { nanoid } from "nanoid";
 import { createDb, type Database } from "../../db";
 import type { Env } from "../../env";
+import { jstDateString } from "../../lib/jst";
 import {
   findScheduleTagId,
   importedScheduleDeleteStatement,
@@ -15,12 +16,7 @@ import {
   summarizeApply,
 } from "./apply-result";
 import { checkUserExists, fetchAttendedEvents } from "./client";
-import {
-  fetchRangeEnd,
-  jstDateString,
-  monthsToFetch,
-  toJstSchedule,
-} from "./event-schedule";
+import { fetchRangeEnd, monthsToFetch, toJstSchedule } from "./event-schedule";
 import { planConnpassSync, type SyncAction } from "./plan";
 import {
   claimSync,

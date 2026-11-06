@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  fetchRangeEnd,
-  jstDateString,
-  monthsToFetch,
-  toJstSchedule,
-} from "./event-schedule";
+import { fetchRangeEnd, monthsToFetch, toJstSchedule } from "./event-schedule";
 
 describe("toJstSchedule", () => {
   it("keeps a +09:00 start as is", () => {
@@ -64,12 +59,5 @@ describe("fetchRangeEnd", () => {
   it("is the last day of the 13th month", () => {
     expect(fetchRangeEnd(new Date("2026-10-26T00:00:00Z"))).toBe("2027-10-31");
     expect(fetchRangeEnd(new Date("2026-02-10T00:00:00Z"))).toBe("2027-02-28");
-  });
-});
-
-describe("jstDateString", () => {
-  it("returns the JST date", () => {
-    expect(jstDateString(new Date("2026-10-27T15:00:00Z"))).toBe("2026-10-28");
-    expect(jstDateString(new Date("2026-10-27T14:59:59Z"))).toBe("2026-10-27");
   });
 });

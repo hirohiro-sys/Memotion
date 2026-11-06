@@ -1,4 +1,4 @@
-import { formatDateMd, formatJstMd, formatJstMdHm } from "./jst";
+import { formatDateMd, formatJstMd, formatJstMdHm } from "../../lib/jst";
 
 export const MAX_DIGEST_MESSAGES = 5;
 export const MAX_URL_PREVIEWS_PER_MESSAGE = 5;

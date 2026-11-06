@@ -1,5 +1,4 @@
-export const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
-export const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 export function jstParts(instant: Date): {
   year: number;

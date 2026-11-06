@@ -6,11 +6,6 @@ function jstShifted(instant: Date): Date {
   return new Date(instant.getTime() + JST_OFFSET_MS);
 }
 
-// instant の JST の日付（YYYY-MM-DD）。
-export function jstDateString(instant: Date): string {
-  return jstShifted(instant).toISOString().slice(0, 10);
-}
-
 // connpass の開催日時（ISO-8601）を、予定の日付と時刻（JST）にする。読めなければ null。
 export function toJstSchedule(
   startedAt: string,

@@ -10,7 +10,7 @@ import {
   type UpdateDailyReportRequest,
 } from "@repo/shared";
 import type { Database } from "../../db";
-import { jstDateOf } from "../memos/schedule";
+import { jstDateString } from "../../lib/jst";
 import { findOwnedByIds, type OwnedMemo } from "../memos/service";
 import {
   bodyWithinLimit,
@@ -139,7 +139,7 @@ async function spendGeneration(
     logFailure(userId, "no_secret");
     return { ok: false, error: "unavailable" };
   }
-  const usedOn = jstDateOf(now);
+  const usedOn = jstDateString(now);
   const claimed = await claimAiUse(db, userId, usedOn);
   if (!claimed) {
     logFailure(userId, "limit");
@@ -169,7 +169,7 @@ export async function listForUser(
   now: Date,
 ): Promise<DailyReportListResponse> {
   const reports = await listReports(db, userId);
-  const used = await findAiUseCount(db, userId, jstDateOf(now));
+  const used = await findAiUseCount(db, userId, jstDateString(now));
   return dailyReportListResponseSchema.parse({
     reports,
     remainingGenerations: Math.max(0, DAILY_REPORT_GENERATION_LIMIT - used),
