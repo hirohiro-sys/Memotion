@@ -85,4 +85,12 @@ describe("buildPrompt", () => {
       buildPrompt("log", [memo({ id: "m1", createdAt: "not-a-date" })]),
     ).toEqual({ ok: false, reason: "unparsed_time" });
   });
+
+  it("refuses a created time that Date cannot represent after the JST shift", () => {
+    expect(
+      buildPrompt("log", [
+        memo({ id: "m1", createdAt: "+275760-09-13T00:00:00Z" }),
+      ]),
+    ).toEqual({ ok: false, reason: "unparsed_time" });
+  });
 });

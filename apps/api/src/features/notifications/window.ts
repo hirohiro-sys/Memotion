@@ -3,8 +3,7 @@ import {
   jstDateString,
   jstParts,
   nextDateString,
-  WEEK_MS,
-} from "./jst";
+} from "../../lib/jst";
 
 export type WeeklySlot = {
   weekday: number;
@@ -16,6 +15,7 @@ export type DailySlot = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * DAY_MS;
 
 export type DigestWindow = {
   start: Date;

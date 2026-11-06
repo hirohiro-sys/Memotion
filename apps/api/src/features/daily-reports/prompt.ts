@@ -1,6 +1,5 @@
 import type { DailyReportFramework } from "@repo/shared";
-
-const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+import { jstDateTime } from "../../lib/jst";
 
 const LOG_INSTRUCTION =
   "材料全体を要約し、一日の流れを時刻ごとの短い箇条書きにしてください。メモを1件ずつ写さず、同じ話題はまとめてください。材料に無いことは書かないでください。本文だけを書いてください。先頭行は書かないでください。";
@@ -33,10 +32,8 @@ export function comparePromptOrder(
 }
 
 function formatJst(iso: string): string | null {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  const shifted = new Date(date.getTime() + JST_OFFSET_MS);
-  return `${shifted.toISOString().slice(0, 10)} ${shifted.toISOString().slice(11, 16)}`;
+  const jst = jstDateTime(new Date(iso));
+  return jst ? `${jst.date} ${jst.time}` : null;
 }
 
 export function buildPrompt(
