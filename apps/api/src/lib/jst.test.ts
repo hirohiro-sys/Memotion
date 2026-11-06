@@ -5,6 +5,7 @@ import {
   formatJstMdHm,
   fromJst,
   jstDateString,
+  jstDateTime,
   jstParts,
   nextDateString,
 } from "./jst";
@@ -80,6 +81,27 @@ describe("jstDateString", () => {
   it("throws for a time that Date cannot represent after the JST shift", () => {
     expect(() => jstDateString(new Date(8.64e15))).toThrow(RangeError);
     expect(() => jstDateString(new Date(Number.NaN))).toThrow(RangeError);
+  });
+});
+
+describe("jstDateTime", () => {
+  it("returns the JST date and time", () => {
+    expect(jstDateTime(new Date("2026-11-02T15:30:00Z"))).toEqual({
+      date: "2026-11-03",
+      time: "00:30",
+    });
+    expect(jstDateTime(new Date("2026-11-03T10:00:00+09:00"))).toEqual({
+      date: "2026-11-03",
+      time: "10:00",
+    });
+  });
+
+  it("returns null for a time that Date cannot represent after the JST shift", () => {
+    expect(jstDateTime(new Date(8.64e15))).toBeNull();
+  });
+
+  it("returns null for an invalid date", () => {
+    expect(jstDateTime(new Date(Number.NaN))).toBeNull();
   });
 });
 

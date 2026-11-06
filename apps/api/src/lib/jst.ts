@@ -46,6 +46,17 @@ export function jstDateString(instant: Date): string {
   return new Date(instant.getTime() + JST_OFFSET_MS).toISOString().slice(0, 10);
 }
 
+// instant の JST の日付と時刻（HH:MM）。外から来た日時に使い、読めなければ null。
+// 9 時間足すと Date の範囲を超える日時は、読めないものとして扱う（toISOString が例外を投げる）。
+export function jstDateTime(
+  instant: Date,
+): { date: string; time: string } | null {
+  const shifted = new Date(instant.getTime() + JST_OFFSET_MS);
+  if (Number.isNaN(shifted.getTime())) return null;
+  const iso = shifted.toISOString();
+  return { date: iso.slice(0, 10), time: iso.slice(11, 16) };
+}
+
 // YYYY-MM-DD の翌日。
 export function nextDateString(date: string): string {
   const [year, month, day] = date.split("-").map(Number);
