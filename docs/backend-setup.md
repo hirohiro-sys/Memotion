@@ -1,6 +1,19 @@
 # バックエンド環境
 
-`apps/api` は Cloudflare Workers（Hono + Drizzle + D1 + R2）です。本番は同じ Worker が `/` に Vite の dist、`/api/*` に API を出します。公開 API は health、LINE Login、`POST /api/line/webhook`、ログイン必須のメモ閲覧、`GET` / `PATCH /api/notifications` です。開発時に MSW は使いません。ローカルの `/api` は Vite 経由で Worker に届きます。
+`apps/api` は Cloudflare Workers（Hono + Drizzle + D1 + R2）です。本番は同じ Worker が `/` に Vite の dist、`/api/*` に API を出します。公開 API は次のとおりです。health、認証の入口、LINE Webhook（署名検証）以外は、セッションが必須です。
+
+| 領域 | パス |
+|------|------|
+| health | `GET /api/health` |
+| 認証 | `GET /api/auth/line`、`GET /api/auth/line/callback`、`POST /api/auth/logout`、`GET /api/me`、`GET /api/auth/dev`（ループバックの http だけ。それ以外は 404） |
+| LINE | `POST /api/line/webhook`（署名検証） |
+| メモ | `/api/memos`（一覧・作成）、`/api/memos/:id`（更新）、`/api/memos/:id/schedule`、`/api/memos/:id/image`、`/api/memos/bulk-delete` |
+| グループ | `/api/groups`、`/api/groups/:id`、`/api/groups/:id/memos`、`/api/groups/:id/memos/assign` |
+| 日報 | `/api/daily-reports`、`/api/daily-reports/:id`、`/api/daily-reports/:id/append` |
+| 通知 | `GET` / `PATCH /api/notifications` |
+| connpass | `GET` / `PUT /api/connpass/settings`、`POST /api/connpass/sync` |
+
+正本は各 feature の `index.ts` と `packages/shared` の Zod です。開発時に MSW は使いません。ローカルの `/api` は Vite 経由で Worker に届きます。
 
 ## 前提
 
@@ -37,9 +50,10 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 | `LINE_CHANNEL_ID` | 認可 URL と IDトークン検証の audience |
 | `LINE_CHANNEL_SECRET` | 認可コードの交換。ブラウザに出さない |
 | `LINE_MESSAGING_CHANNEL_SECRET` | Webhook 署名。Login の `LINE_CHANNEL_SECRET` と混ぜない |
-| `LINE_CHANNEL_ACCESS_TOKEN` | Reply、画像取得、週次の Push |
+| `LINE_CHANNEL_ACCESS_TOKEN` | Reply、画像取得、Push（週次・日次・予定の前日） |
 | `SESSION_SECRET` | JWT 署名。十分長いランダム値 |
 | `APP_URL` | ログイン後の戻り先。ローカルは `http://127.0.0.1:5173`。本番は `https://line-memo-orchestrator.hirohiro-sys.workers.dev` |
+| `CONNPASS_API_KEY` | connpass API のキー。任意で、空なら取り込みは動かない。全ユーザーで1つ |
 
 本番は同じ名前を `wrangler secret` で入れる。開発用バイパス用の変数は作らない。Messaging 用と Login 用を取り違えると、署名がすべて 400 になり何も残らない。
 
@@ -50,6 +64,7 @@ pnpm --filter @repo/api exec wrangler secret put LINE_MESSAGING_CHANNEL_SECRET
 pnpm --filter @repo/api exec wrangler secret put LINE_CHANNEL_ACCESS_TOKEN
 pnpm --filter @repo/api exec wrangler secret put SESSION_SECRET
 pnpm --filter @repo/api exec wrangler secret put APP_URL
+pnpm --filter @repo/api exec wrangler secret put CONNPASS_API_KEY
 ```
 
 ## 日常の開発
@@ -114,6 +129,10 @@ pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --local 
 
 スキーマを変えたら `db:generate` → 生成 SQL を確認 → `db:migrate:local`。問題なければ `db:migrate:remote`。
 
+## Workers AI
+
+日報の生成は Workers AI を使います。[`apps/api/wrangler.toml`](../apps/api/wrangler.toml) の `[ai]`（バインディング `AI`、`remote = true`）で繋ぎ、キーは置きません。モデル ID は `features/daily-reports/client.ts` に固定しています。ローカルにモデルは無いので、`wrangler dev` でも推論は Cloudflare に届きます。`remote = true` が効くのは推論先だけで、D1 と R2 はローカルのままです。`wrangler dev --local` は AI の remote まで切るので、日報の生成を試すときは付けません。
+
 ## LINE Messaging
 
 Login チャネルと**同じプロバイダー**の下に Messaging API チャネルを置く。別プロバイダーだと `userId` が変わり、`users.line_user_id` と一致しない。実体が同じチャネルなら、同じ値を Login 用と Messaging 用の変数に入れてよい。名前は必ず分ける。
@@ -144,6 +163,13 @@ Login チャネルと**同じプロバイダー**の下に Messaging API チャ�
 `GET` / `PATCH /api/notifications` はセッション必須です。件数（次の通に入る `#tech`）と自動オフ理由はサーバが返します。MSW で傍受しません。
 
 Cron は [`apps/api/wrangler.toml`](../apps/api/wrangler.toml) の `* * * * *`（毎分、UTC）です。壁時計は `Asia/Tokyo` です。発火はデプロイ済み Worker だけです。ローカルの `wrangler dev` には頼らないでください。
+
+毎分の入口は `apps/api/src/scheduled.ts` です。次の2つを、互いの失敗で止めないように順に動かします。
+
+- 通知: 技術メモの週次ダイジェスト（`tech.weekly`）、TODO の日次（`todo.daily`）、予定の前日（`schedule.daily`）。送る時刻の判定は設定の行と現在時刻だけで決める
+- connpass の取り込み: 取り込みの時刻が来たユーザーを、1回の実行につき1人ずつ処理する（キー1つで1秒に1リクエストの制限があるため）。ユーザーごとの間隔は1時間
+
+connpass の取り込みは `CONNPASS_API_KEY` が無いと何もしません（ログに `no_api_key` が出ます）。
 
 Push は既存の `LINE_CHANNEL_ACCESS_TOKEN` を使います。Login チャネルの秘密では送れません。溢れ時の逃げ場は `APP_URL` のトップです。
 

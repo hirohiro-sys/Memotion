@@ -9,4 +9,6 @@
 | [design-doc.md](./design-doc.md) | Design Doc の方針と章立て。DD 本体は `design-docs/` |
 | [dev-flow.md](./dev-flow.md) | 開発フロー 9 step の参考プロンプト |
 | [checklists.md](./checklists.md) | 導入、毎タスク、週次・月次、品質、組織導入のチェックリスト |
-| [plans/_template.md](./plans/_template.md) | プランの記入例。照合対象にしない |
+| [plans/](./plans/) | 機能ごとのプラン（作業計画とテストケース）。`_template.md` は記入例で、照合対象にしない |
+| [design-docs/](./design-docs/) | 機能ごとの Design Doc（なぜその設計にしたか）。日報、カレンダーの日ごとのメモ、connpass 取り込み、予定とカレンダー |
+| [pr/](./pr/) | PR ごとの補足資料（課題と判断） |
