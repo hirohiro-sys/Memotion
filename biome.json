@@ -14,7 +14,8 @@
       "!**/public/*.svg",
       "!**/migrations/meta",
       "!**/.agents/skills/impeccable",
-      "!**/.impeccable"
+      "!**/.impeccable",
+      "!**/*.md"
     ]
   },
   "formatter": {
