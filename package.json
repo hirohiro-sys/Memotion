@@ -1,7 +1,7 @@
 {
   "name": "line-memo-orchestrator",
   "private": true,
-  "packageManager": "pnpm@10.34.9",
+  "packageManager": "pnpm@12.18.0",
   "engines": {
     "node": ">=24.14.0",
     "pnpm": ">=10.34.5"
