@@ -2,7 +2,7 @@ import type { DailyReportFramework, DailyReportKind, Memo } from "@repo/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2Icon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -46,20 +46,22 @@ export function CreateDailyReportDialog({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const memosRef = useRef(memos);
-  memosRef.current = memos;
   const [reportDate, setReportDate] = useState("");
   const [kind, setKind] = useState<DailyReportKind>("work");
   const [framework, setFramework] =
     useState<DailyReportFramework>("achievement");
   const [frameworkTouched, setFrameworkTouched] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    setReportDate(initialReportDate(memosRef.current, new Date()));
+  // 開いた時点のメモで日付を決める。メモが変わっても入力し直さない。
+  const resetForm = useEffectEvent(() => {
+    setReportDate(initialReportDate(memos, new Date()));
     setKind("work");
     setFramework("achievement");
     setFrameworkTouched(false);
+  });
+
+  useEffect(() => {
+    if (open) resetForm();
   }, [open]);
 
   const memoIds = memos.map((memo) => memo.id);
