@@ -64,6 +64,13 @@
       "when": 1793490130804,
       "tag": "0008_classy_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794561395532,
+      "tag": "0009_workable_satana",
+      "breakpoints": true
     }
   ]
 }
