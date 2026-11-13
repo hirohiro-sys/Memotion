@@ -9,6 +9,4 @@ export type Env = {
   APP_URL: string;
   // Workers AI。wrangler.toml のバインディング。API キーではない。
   AI?: Ai;
-  // connpass API のキー。未設定なら取り込みは何もしない。
-  CONNPASS_API_KEY?: string;
 };

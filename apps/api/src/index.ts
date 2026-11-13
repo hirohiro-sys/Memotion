@@ -2,13 +2,12 @@ import { healthResponseSchema } from "@repo/shared";
 import { Hono } from "hono";
 import type { Env } from "./env";
 import { auth } from "./features/auth";
-import { connpassRoutes } from "./features/connpass";
 import { dailyReportRoutes } from "./features/daily-reports";
 import { groupRoutes } from "./features/groups";
 import { lineWebhook } from "./features/line";
 import { memoRoutes } from "./features/memos";
 import { notificationRoutes } from "./features/notifications";
-import { scheduled } from "./scheduled";
+import { scheduled } from "./features/notifications/scheduled";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -18,7 +17,6 @@ app.get("/api/health", async (c) => {
 });
 
 app.route("/", auth);
-app.route("/", connpassRoutes);
 app.route("/", dailyReportRoutes);
 app.route("/", groupRoutes);
 app.route("/", lineWebhook);
