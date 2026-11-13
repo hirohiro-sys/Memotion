@@ -43,4 +43,4 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 - [Schedule and calendar](./schedule.md) saves a schedule and shows it on the calendar.
 - [Daily reports](./daily-reports.md) creates a report from selected memos, lists it, edits it, and shows it on the calendar.
 - [Groups](./groups.md) creates, renames, fills, and deletes groups.
-- [Settings](./settings.md) shows notification switches, the connpass card, the install guide, and log out.
+- [Settings](./settings.md) shows notification switches, the install guide, and log out.

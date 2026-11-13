@@ -19,13 +19,13 @@ LINEを用いた個人用のインタースティシャルジャーナリング�
 ├── apps/
 │   ├── api/                 # Worker。本番は同一オリジンで Web も配信
 │   │   └── src/
-│   │       ├── features/    # auth / connpass / daily-reports / groups / line / memos / notifications
+│   │       ├── features/    # auth / daily-reports / groups / line / memos / notifications
 │   │       ├── lib/         # session, JST, LINE I/O
 │   │       └── db/
 │   └── web/
 │       └── src/
 │           ├── routes/
-│           ├── features/    # auth / connpass / daily-reports / groups / memos / notifications / pwa / schedule
+│           ├── features/    # auth / daily-reports / groups / memos / notifications / pwa / schedule
 │           ├── components/
 │           └── config/
 ├── packages/shared/         # API 契約の Zod
