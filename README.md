@@ -8,7 +8,6 @@ LINE を活用した、個人用のインタースティシャルジャーナリ
 - 予定とカレンダー: 予定（schedule）タグのメモを日付と時刻つきで管理し、月表示と日ごとのメモを見る
 - グループ: メモをグループにまとめる
 - 日報: 選んだメモから生成AI（Workers AI）で日報を書き、編集して残す
-- connpass 連携: 参加登録したイベントを予定として自動で取り込む
 - 通知: LINE の Push で、技術メモの週次ダイジェスト、TODO の日次、予定の前日を知らせる
 - PWA: ホーム画面に追加して使う
 
@@ -33,13 +32,13 @@ LINE を活用した、個人用のインタースティシャルジャーナリ
 ├── apps/
 │   ├── api/                 # Worker。本番は同一オリジンで Web も配信
 │   │   └── src/
-│   │       ├── features/    # auth / connpass / daily-reports / groups / line / memos / notifications
+│   │       ├── features/    # auth / daily-reports / groups / line / memos / notifications
 │   │       ├── lib/         # session, JST, LINE I/O
 │   │       └── db/
 │   └── web/
 │       └── src/
 │           ├── routes/
-│           ├── features/    # auth / connpass / daily-reports / groups / memos / notifications / pwa / schedule
+│           ├── features/    # auth / daily-reports / groups / memos / notifications / pwa / schedule
 │           ├── components/
 │           └── config/
 ├── packages/shared/         # API 契約の Zod

@@ -11,7 +11,6 @@
 | グループ | `/api/groups`、`/api/groups/:id`、`/api/groups/:id/memos`、`/api/groups/:id/memos/assign` |
 | 日報 | `/api/daily-reports`、`/api/daily-reports/:id`、`/api/daily-reports/:id/append` |
 | 通知 | `GET` / `PATCH /api/notifications` |
-| connpass | `GET` / `PUT /api/connpass/settings`、`POST /api/connpass/sync` |
 
 正本は各 feature の `index.ts` と `packages/shared` の Zod です。開発時に MSW は使いません。ローカルの `/api` は Vite 経由で Worker に届きます。
 
@@ -53,7 +52,6 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 | `LINE_CHANNEL_ACCESS_TOKEN` | Reply、画像取得、Push（週次・日次・予定の前日） |
 | `SESSION_SECRET` | JWT 署名。十分長いランダム値 |
 | `APP_URL` | ログイン後の戻り先。ローカルは `http://127.0.0.1:5173`。本番は `https://line-memo-orchestrator.hirohiro-sys.workers.dev` |
-| `CONNPASS_API_KEY` | connpass API のキー。任意で、空なら取り込みは動かない。全ユーザーで1つ |
 
 本番は同じ名前を `wrangler secret` で入れる。開発用バイパス用の変数は作らない。Messaging 用と Login 用を取り違えると、署名がすべて 400 になり何も残らない。
 
@@ -64,7 +62,6 @@ pnpm --filter @repo/api exec wrangler secret put LINE_MESSAGING_CHANNEL_SECRET
 pnpm --filter @repo/api exec wrangler secret put LINE_CHANNEL_ACCESS_TOKEN
 pnpm --filter @repo/api exec wrangler secret put SESSION_SECRET
 pnpm --filter @repo/api exec wrangler secret put APP_URL
-pnpm --filter @repo/api exec wrangler secret put CONNPASS_API_KEY
 ```
 
 ## 日常の開発
@@ -164,12 +161,7 @@ Login チャネルと**同じプロバイダー**の下に Messaging API チャ�
 
 Cron は [`apps/api/wrangler.toml`](../apps/api/wrangler.toml) の `* * * * *`（毎分、UTC）です。壁時計は `Asia/Tokyo` です。発火はデプロイ済み Worker だけです。ローカルの `wrangler dev` には頼らないでください。
 
-毎分の入口は `apps/api/src/scheduled.ts` です。次の2つを、互いの失敗で止めないように順に動かします。
-
-- 通知: 技術メモの週次ダイジェスト（`tech.weekly`）、TODO の日次（`todo.daily`）、予定の前日（`schedule.daily`）。送る時刻の判定は設定の行と現在時刻だけで決める
-- connpass の取り込み: 取り込みの時刻が来たユーザーを、1回の実行につき1人ずつ処理する（キー1つで1秒に1リクエストの制限があるため）。ユーザーごとの間隔は1時間
-
-connpass の取り込みは `CONNPASS_API_KEY` が無いと何もしません（ログに `no_api_key` が出ます）。
+毎分の入口は `apps/api/src/features/notifications/scheduled.ts` です。技術メモの週次ダイジェスト（`tech.weekly`）、TODO の日次（`todo.daily`）、予定の前日（`schedule.daily`）を、互いの失敗で止めないように順に動かします。送る時刻の判定は、設定の行と現在時刻だけで決めます。
 
 Push は既存の `LINE_CHANNEL_ACCESS_TOKEN` を使います。Login チャネルの秘密では送れません。溢れ時の逃げ場は `APP_URL` のトップです。
 
