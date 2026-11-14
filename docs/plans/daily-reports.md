@@ -118,7 +118,7 @@ Design Doc の第3章を、実装が迷わない粒度にしたもの。判断�
 ### 機能境界
 
 - 新しい機能 `features/daily-reports/`。日報、材料の対応、生成回数、生成の呼び出しを持つ
-- 依存は `daily-reports` → `memos` の一方向。`memos` に足すのは `findOwnedByIds` だけ。カレンダーは日報の一覧を同じキーで読む。`notifications` と `connpass` の取得は変えない
+- 依存は `daily-reports` → `memos` の一方向。`memos` に足すのは `findOwnedByIds` だけ。カレンダーは日報の一覧を同じキーで読む。`notifications` の取得は変えない
 - `index.ts` はルート定義と、401、契約の 400、service の結果を status に写すだけ。業務判断とクエリは書かない
 - 先頭行、連結、空と長さ、材料の採用、プロンプトの文字列は純粋関数。DB、`fetch`、時刻、secret は service と repository と `client.ts`
 
@@ -242,7 +242,7 @@ Web:
 
 - `apiErrorCodeSchema` に code が増える。既存のケースは、知らない code を落とす挙動を変えない（列挙に足すだけ）
 - `memos` の既存の関数は変えない。`findOwnedByIds` を足すだけなので、既存のケースは壊れない
-- カレンダー、通知、connpass、グループのテストは変えない
+- カレンダー、通知、グループのテストは変えない
 - Web に単体テストは無い。画面の確認はブラウザで行う
 
 ## 5. 新規テストケース
