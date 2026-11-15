@@ -6,7 +6,9 @@ import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-// Umami の計測スクリプトを本番のビルドにだけ入れる。開発中のアクセスは計測しない。
+// Umami の計測スクリプトをビルドにだけ入れ、計測は本番のホストに限る。
+// スクリプトは外部から読まず、public/umami.js（cloud.umami.is/script.js の固定版）を同じオリジンで配る。
+// 外部の可変なスクリプトがメモと同じ権限で動かないようにするため。送信先だけを Umami に向ける。
 function umami(): Plugin {
   return {
     name: "memotion-umami",
@@ -16,8 +18,12 @@ function umami(): Plugin {
         tag: "script",
         attrs: {
           defer: true,
-          src: "https://cloud.umami.is/script.js",
+          src: "/umami.js",
           "data-website-id": "669fc867-d6a1-41aa-8c6f-f3fa146448ed",
+          "data-host-url": "https://gateway.umami.is",
+          "data-domains": "line-memo-orchestrator.hirohiro-sys.workers.dev",
+          // クエリ（グループ ID など）は送らない。
+          "data-exclude-search": "true",
         },
         injectTo: "head",
       },
