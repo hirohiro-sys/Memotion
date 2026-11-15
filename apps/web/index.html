@@ -17,6 +17,22 @@
         }
       } catch {}
     </script>
+    <!--
+      Umami の計測。外部の可変なスクリプトがメモと同じ権限で動かないよう、
+      cloud.umami.is/script.js の固定版（2026-11-15 取得、sha256
+      c11c9d29ac15ee26ef07059add176fd7db95acbf8e8bdb1a79796b0ffdb58f18）を
+      public/umami.js に置いて同じオリジンで配り、送信先だけを Umami に向ける。
+      計測は本番のホストだけ。クエリ（グループ ID など）とハッシュは送らない。
+    -->
+    <script
+      defer
+      src="/umami.js"
+      data-website-id="669fc867-d6a1-41aa-8c6f-f3fa146448ed"
+      data-host-url="https://gateway.umami.is"
+      data-domains="line-memo-orchestrator.hirohiro-sys.workers.dev"
+      data-exclude-search="true"
+      data-exclude-hash="true"
+    ></script>
   </head>
   <body>
     <div id="root"></div>
