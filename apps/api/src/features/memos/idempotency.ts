@@ -1,4 +1,5 @@
 import type { MemoTag } from "@repo/shared";
+import { hasConstraintCause } from "../../db/constraint-error";
 import type { MemoRow } from "./repository";
 
 export type ExistingMemoRow = MemoRow & { userId: string };
@@ -12,24 +13,10 @@ export type CreateDecision =
   | { kind: "save_failed" };
 
 const PRIMARY_KEY_CONFLICT = /UNIQUE constraint failed: memos\.id(?!\w)/;
-const DRIZZLE_QUERY_ERROR_PREFIX = "Failed query:";
-const MAX_CAUSE_DEPTH = 5;
 
-// drizzle は D1 のエラーを DrizzleQueryError で包み、message には SQL と params（メモ本文）が入る。
-// 本文しだいで誤判定しないよう、包んだ側の message は見ず、cause を辿って memos.id の違反だけを見る。
+// memos.id の一意制約違反（同じ id の再送）かどうか。
 export function isPrimaryKeyConflict(error: unknown): boolean {
-  let current: unknown = error;
-  for (let depth = 0; depth < MAX_CAUSE_DEPTH && current; depth += 1) {
-    if (
-      current instanceof Error &&
-      !current.message.startsWith(DRIZZLE_QUERY_ERROR_PREFIX) &&
-      PRIMARY_KEY_CONFLICT.test(current.message)
-    ) {
-      return true;
-    }
-    current = current instanceof Error ? current.cause : undefined;
-  }
-  return false;
+  return hasConstraintCause(error, PRIMARY_KEY_CONFLICT);
 }
 
 // 同じ id の再送は、自分の行で本文とタグが一致するときだけ既存として返す。

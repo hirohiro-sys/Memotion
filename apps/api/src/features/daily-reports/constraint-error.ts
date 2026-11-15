@@ -1,19 +1,7 @@
-const DAILY_REPORT_UNIQUE = /UNIQUE constraint failed: daily_reports/;
-const DRIZZLE_QUERY_ERROR_PREFIX = "Failed query:";
-const MAX_CAUSE_DEPTH = 5;
+import { hasConstraintCause } from "../../db/constraint-error";
 
-// drizzle が包んだ message には SQL と本文が入る。そこは見ず、cause を辿る。
+const DAILY_REPORT_UNIQUE = /UNIQUE constraint failed: daily_reports/;
+
 export function isDailyReportUniqueViolation(error: unknown): boolean {
-  let current: unknown = error;
-  for (let depth = 0; depth < MAX_CAUSE_DEPTH && current; depth += 1) {
-    if (
-      current instanceof Error &&
-      !current.message.startsWith(DRIZZLE_QUERY_ERROR_PREFIX) &&
-      DAILY_REPORT_UNIQUE.test(current.message)
-    ) {
-      return true;
-    }
-    current = current instanceof Error ? current.cause : undefined;
-  }
-  return false;
+  return hasConstraintCause(error, DAILY_REPORT_UNIQUE);
 }

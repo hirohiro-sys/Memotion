@@ -12,7 +12,10 @@ import type { Env } from "../../env";
 import { fetchMessageContent } from "../../lib/line/client";
 import type { ClassifySuccess } from "./classify";
 import { detectMediaType } from "./classify";
-import { isForeignKeyViolation } from "./constraint-error";
+import {
+  isForeignKeyViolation,
+  isLineMessageIdConflict,
+} from "./constraint-error";
 import {
   decideCreateResult,
   type ExistingMemoRow,
@@ -35,7 +38,6 @@ import {
   findTagBySlug,
   getMedia,
   insertMemo,
-  isUniqueConstraintError,
   listClaimableOgpIds,
   listMemos,
   listSchedulesOnDate,
@@ -551,7 +553,7 @@ export async function createFromLine(
     }
     return { status: "inserted" };
   } catch (error) {
-    if (isUniqueConstraintError(error)) return { status: "duplicate" };
+    if (isLineMessageIdConflict(error)) return { status: "duplicate" };
     return { status: "failed", reason: "save_failed" };
   }
 }
