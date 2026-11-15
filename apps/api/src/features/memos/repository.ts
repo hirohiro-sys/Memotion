@@ -31,11 +31,6 @@ export function memoImageKey(userId: string, memoId: string): string {
   return `${userId}/${memoId}`;
 }
 
-export function isUniqueConstraintError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.includes("UNIQUE constraint failed");
-}
-
 // groupId が null ならどのグループにも入っていないメモ、文字列ならそのグループのメモ。
 export async function listMemos(
   db: Database,
