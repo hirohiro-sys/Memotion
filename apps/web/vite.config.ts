@@ -3,11 +3,31 @@ import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+
+// Umami の計測スクリプトを本番のビルドにだけ入れる。開発中のアクセスは計測しない。
+function umami(): Plugin {
+  return {
+    name: "memotion-umami",
+    apply: "build",
+    transformIndexHtml: () => [
+      {
+        tag: "script",
+        attrs: {
+          defer: true,
+          src: "https://cloud.umami.is/script.js",
+          "data-website-id": "669fc867-d6a1-41aa-8c6f-f3fa146448ed",
+        },
+        injectTo: "head",
+      },
+    ],
+  };
+}
 
 export default defineConfig({
   plugins: [
+    umami(),
     tanstackRouter({
       target: "react",
       autoCodeSplitting: true,
