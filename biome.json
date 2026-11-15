@@ -10,6 +10,7 @@
       "**",
       "!**/routeTree.gen.ts",
       "!**/mockServiceWorker.js",
+      "!**/public/umami.js",
       "!**/pnpm-lock.yaml",
       "!**/public/*.svg",
       "!**/migrations/meta",
