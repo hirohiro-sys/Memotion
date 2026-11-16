@@ -4,6 +4,7 @@
   "schedule": ["before 9am on monday"],
   "timezone": "Asia/Tokyo",
   "prConcurrentLimit": 5,
+  "minimumReleaseAge": "25 hours",
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch"],
