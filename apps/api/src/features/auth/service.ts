@@ -1,3 +1,6 @@
+import type { Database } from "../../db";
+import { ensureDevUser, findUserIdByLineUserId } from "./repository";
+
 const LINE_TOKEN = "https://api.line.me/oauth2/v2.1/token";
 const LINE_VERIFY = "https://api.line.me/oauth2/v2.1/verify";
 
@@ -54,6 +57,19 @@ export async function exchangeCodeForLineUserId(input: {
     throw new Error("missing sub");
   }
   return sub;
+}
+
+// LINE のユーザー ID から、allowlist 済みのアプリのユーザー ID を引く。未登録は null。
+export function resolveUserIdByLineUserId(
+  db: Database,
+  lineUserId: string,
+): Promise<string | null> {
+  return findUserIdByLineUserId(db, lineUserId);
+}
+
+// 開発用ログインの固定ユーザーを用意し、そのユーザー ID を返す。
+export function prepareDevUser(db: Database, now: Date): Promise<string> {
+  return ensureDevUser(db, now.toISOString());
 }
 
 function readStringField(value: unknown, key: string): string | null {

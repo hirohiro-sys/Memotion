@@ -1,7 +1,7 @@
 import { createDb } from "../../db";
 import type { Env } from "../../env";
 import { replyFailure } from "../../lib/line/client";
-import { findUserIdByLineUserId } from "../auth/repository";
+import { resolveUserIdByLineUserId } from "../auth/service";
 import { classify, type LineFailReason, replyTextFor } from "../memos/classify";
 import { createFromLine } from "../memos/service";
 
@@ -133,7 +133,7 @@ async function handleEvent(env: Env, event: unknown): Promise<void> {
   }
 
   try {
-    const userId = await findUserIdByLineUserId(
+    const userId = await resolveUserIdByLineUserId(
       createDb(env.DB),
       decision.lineUserId,
     );

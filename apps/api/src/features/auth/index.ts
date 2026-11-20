@@ -10,8 +10,13 @@ import {
   readSessionUserId,
 } from "../../lib/session";
 import { devLoginAllowed } from "./dev-login";
-import { ensureDevUser, findUserIdByLineUserId } from "./repository";
-import { callbackUrl, exchangeCodeForLineUserId, frontendUrl } from "./service";
+import {
+  callbackUrl,
+  exchangeCodeForLineUserId,
+  frontendUrl,
+  prepareDevUser,
+  resolveUserIdByLineUserId,
+} from "./service";
 
 const LINE_AUTHORIZE = "https://access.line.me/oauth2/v2.1/authorize";
 
@@ -50,7 +55,10 @@ auth.get("/api/auth/line/callback", async (c) => {
       channelId: c.env.LINE_CHANNEL_ID,
       channelSecret: c.env.LINE_CHANNEL_SECRET,
     });
-    const userId = await findUserIdByLineUserId(createDb(c.env.DB), lineUserId);
+    const userId = await resolveUserIdByLineUserId(
+      createDb(c.env.DB),
+      lineUserId,
+    );
 
     if (!userId) {
       return c.redirect(frontendUrl(appUrl, "/login?error=denied"));
@@ -68,10 +76,7 @@ auth.get("/api/auth/dev", async (c) => {
   if (!devLoginAllowed({ appUrl: c.env.APP_URL, requestUrl: c.req.url })) {
     return c.body(null, 404);
   }
-  const userId = await ensureDevUser(
-    createDb(c.env.DB),
-    new Date().toISOString(),
-  );
+  const userId = await prepareDevUser(createDb(c.env.DB), new Date());
   await issueSession(c, userId);
   return c.redirect(frontendUrl(c.env.APP_URL, "/"));
 });
