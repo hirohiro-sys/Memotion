@@ -11,7 +11,7 @@ import { type Context, Hono } from "hono";
 import { createDb } from "../../db";
 import type { Env } from "../../env";
 import { readSessionUserId } from "../../lib/session";
-import { captureOgpForMemo } from "../memos/service";
+import { captureOgpForMemo, syncMemoToNotion } from "../memos/service";
 import {
   assignMemosForUser,
   createForUser,
@@ -180,6 +180,7 @@ groupRoutes.post("/api/groups/:id/memos", async (c) => {
   if (result.memo.mediaType === "url") {
     c.executionCtx.waitUntil(captureOgpForMemo(c.env, result.memo.id));
   }
+  c.executionCtx.waitUntil(syncMemoToNotion(c.env, result.memo));
   return c.json(result.memo, 201);
 });
 
