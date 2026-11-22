@@ -6,6 +6,7 @@ import {
   fromJst,
   jstDateString,
   jstDateTime,
+  jstLocalDateTime,
   jstParts,
   nextDateString,
 } from "./jst";
@@ -121,5 +122,23 @@ describe("formatDateMd", () => {
   it("writes month and day without zero padding", () => {
     expect(formatDateMd("2026-11-03")).toBe("11/3");
     expect(formatDateMd("2026-01-05")).toBe("1/5");
+  });
+});
+
+describe("jstLocalDateTime", () => {
+  it("shifts a UTC instant to JST without an offset", () => {
+    expect(jstLocalDateTime(new Date("2026-11-22T00:30:15.123Z"))).toBe(
+      "2026-11-22T09:30:15",
+    );
+  });
+
+  it("moves to the next JST day after 15:00 UTC", () => {
+    expect(jstLocalDateTime(new Date("2026-11-22T15:00:00.000Z"))).toBe(
+      "2026-11-23T00:00:00",
+    );
+  });
+
+  it("returns null for an invalid date", () => {
+    expect(jstLocalDateTime(new Date("not a date"))).toBeNull();
   });
 });

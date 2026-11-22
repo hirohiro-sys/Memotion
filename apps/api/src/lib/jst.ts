@@ -69,3 +69,10 @@ export function formatDateMd(date: string): string {
   const [, month, day] = date.split("-").map(Number);
   return `${month}/${day}`;
 }
+
+// instant の JST の日付と時刻（YYYY-MM-DDTHH:MM:SS）。オフセットは付けない。読めなければ null。
+export function jstLocalDateTime(instant: Date): string | null {
+  const shifted = new Date(instant.getTime() + JST_OFFSET_MS);
+  if (Number.isNaN(shifted.getTime())) return null;
+  return shifted.toISOString().slice(0, 19);
+}
