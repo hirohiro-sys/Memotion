@@ -145,11 +145,11 @@ pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --local 
    | プロパティ | 型 |
    | --- | --- |
    | 本文 | タイトル |
-   | 種類 | セレクト（`tweet` / `tech` / `other` / `todo` / `schedule`） |
+   | 種類 | 選択（英語の UI では Select。マルチセレクトとステータスではない。`tweet` / `tech` / `other` / `todo` / `schedule`） |
    | 予定日時 | 日付 |
    | 記録日時 | 日付 |
    | URL | URL |
-   | 入力元 | セレクト（`line` / `web`） |
+   | 入力元 | 選択（`line` / `web`） |
    | メモID | テキスト |
 
 2. [Notion のインテグレーション](https://app.notion.com/developers/connections)で内部インテグレーションを作り、機能は「コンテンツを読み取る」「コンテンツを挿入」をオンにする。シークレットを `NOTION_TOKEN` にする
