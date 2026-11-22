@@ -153,7 +153,7 @@ pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --local 
    | メモID | テキスト |
 
 2. [Notion のインテグレーション](https://app.notion.com/developers/connections)で内部インテグレーションを作り、機能は「コンテンツを読み取る」「コンテンツを挿入」をオンにする。シークレットを `NOTION_TOKEN` にする
-3. データベースの「…」→「接続」から、そのインテグレーションを追加する。追加しないと 404 になる
+3. データベースのページ右上の「…」→「詳細」→「接続」を開き、「接続先を探す」にインテグレーションの名前を入れて追加する。追加しないと 404 になる。ビューの設定の「コネクト」は外部サービス用で、ここではない
 4. データベースの URL の `notion.so/` のあとの32文字がデータベース ID。データソース ID は次で取り、`data_sources[0].id` を `NOTION_DATA_SOURCE_ID` にする
 
    ```bash
