@@ -13,7 +13,7 @@ Workers のログは `console.log(JSON.stringify(fields))` の1行。各ファ�
 ## ルール
 
 1. 文章やオブジェクトを `console.log` / `console.error` に直接渡さない。出すなら既存の `logJson` と同じ JSON 1行にする。新しい helper は足さない
-2. ラップするのは外部 I/O と失敗しうる副作用だけ（LINE webhook、LINE API、OGP 取得、R2 の削除、ダイジェスト送信）。`classify` や `window` のような純粋関数はログしない
+2. ラップするのは外部 I/O と失敗しうる副作用だけ（LINE webhook、LINE API、Notion API、OGP 取得、R2 の削除、ダイジェスト送信）。`classify` や `window` のような純粋関数はログしない
 3. 失敗を成功として返さない。`status` か `action` に失敗を残す。webhook は受理後の失敗をログし、応答を 200 から変えない。ダイジェストはユーザー1人の失敗で tick を止めず、`failed` を数えて次へ進む
 4. 引数は ID・件数・理由だけ。メモ本文、LINE のメッセージ、webhook の raw body、オブジェクト全体は渡さない
 5. 成功のたびに出さない。失敗、不受理、ダイジェストの tick 集計だけ出す
@@ -22,7 +22,7 @@ Workers のログは `console.log(JSON.stringify(fields))` の1行。各ファ�
 
 | キー | 内容 |
 | --- | --- |
-| event | `line.webhook` / `line.event` / `memo.create` / `memo.ogp` / `memo.image.delete` / `group.create` / `group.rename` / `group.delete` / `group.touch` / `group.assign` / `memo.schedule` / `memo.tag` / `tech.weekly` / `todo.daily` / `schedule.daily` / `daily_report.generate` |
+| event | `line.webhook` / `line.event` / `memo.create` / `memo.ogp` / `memo.notion` / `memo.image.delete` / `group.create` / `group.rename` / `group.delete` / `group.touch` / `group.assign` / `memo.schedule` / `memo.tag` / `tech.weekly` / `todo.daily` / `schedule.daily` / `daily_report.generate` |
 | status / action | `invalid_signature` / `failed` / `ignored` / `skipped` / `tick` / `duplicate` / `conflict` など |
 | userId | アプリのユーザー ID |
 | lineUserId | 不受理・未登録のときだけ |
@@ -31,12 +31,13 @@ Workers のログは `console.log(JSON.stringify(fields))` の1行。各ファ�
 | reason | `empty` や `group` などの短い理由 |
 | count / sent / failed | ダイジェストの件数 |
 | messages | ダイジェストの通数（`schedule.daily`） |
+| httpStatus | 外部 API の HTTP の状態（`memo.notion`）。ネットワークの失敗は 0 |
 
 日報の生成失敗は `daily_report.generate`（`status: failed`、`reason` は `limit` / `upstream` / `empty` / `too_long` / `no_secret` / `write`、`userId`）。429 は `limit`。バインディングが無い 502 は `no_secret`。空は `empty`。2万字超は `too_long`。生成先の失敗と、日時を直せない材料は `upstream`。保存の失敗は `write`。本文、URL、プロンプト、応答は出さない。成功は出さない。
 
 ## 秘密値をログに流さない
 
-チャネルシークレット、チャネルアクセストークン、`SESSION_SECRET`、`sid`、OAuth の code、`replyToken`、署名ヘッダ、メモ本文、LINE のメッセージ本文は書かない。
+チャネルシークレット、チャネルアクセストークン、`NOTION_TOKEN`、`SESSION_SECRET`、`sid`、OAuth の code、`replyToken`、署名ヘッダ、メモ本文、LINE のメッセージ本文は書かない。
 
 ```ts
 // ❌

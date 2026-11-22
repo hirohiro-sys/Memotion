@@ -19,6 +19,7 @@ import {
   getImageForUser,
   listForUser,
   setScheduleForUser,
+  syncMemoToNotion,
 } from "./service";
 
 export const memoRoutes = new Hono<{ Bindings: Env }>();
@@ -72,6 +73,7 @@ memoRoutes.post("/api/memos", async (c) => {
   if (result.memo.mediaType === "url") {
     c.executionCtx.waitUntil(captureOgpForMemo(c.env, result.memo.id));
   }
+  c.executionCtx.waitUntil(syncMemoToNotion(c.env, result.memo));
   return c.json(result.memo, 201);
 });
 

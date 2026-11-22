@@ -23,6 +23,7 @@ paths:
 - 画像は公開 URL にしない。R2 キーは `{userId}/{memoId}`。配信はセッション付き `/api/memos/:id/image`。取得・削除は `row.userId === sessionUserId`
 - 画像キーと thumbnail に公開オリジンを埋め込まない。thumbnail は `/api/memos/:id/image`
 - `lineMessageId` 重複は挿入せず `duplicate`
+- Notion へは `lib/notion/client.ts` だけが書く。トークンは `NOTION_TOKEN`（`.dev.vars` と `wrangler secret`）に置き、リポジトリ、ログ、応答に出さない。Notion の応答の本文は読まずに捨て、HTTP の状態だけ返す。Notion に送るのはメモの本文、種類、日時、URL、入力元、メモIDだけで、ユーザー ID と画像は送らない
 - LINE 失敗理由を増やしたら `REPLY_TEXT` / `replyTextFor` とテストを同時更新
 - 週次ダイジェストは allowlist。JST 窓と `lastSentAt` を壊さない
 - Web の新しい API 呼び出しは `apiFetch` する。JSON の入出力は `packages/shared` の Zod で parse する

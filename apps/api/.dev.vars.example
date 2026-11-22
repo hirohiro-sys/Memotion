@@ -8,3 +8,7 @@ LINE_MESSAGING_CHANNEL_SECRET=
 LINE_CHANNEL_ACCESS_TOKEN=
 SESSION_SECRET=
 APP_URL=http://127.0.0.1:5173
+
+# Notion。任意。空なら Notion には書かない（D1 への保存は続く）。手順は docs/backend-setup.md の「Notion」。
+NOTION_TOKEN=
+NOTION_DATA_SOURCE_ID=

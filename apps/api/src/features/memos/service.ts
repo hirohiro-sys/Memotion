@@ -10,6 +10,7 @@ import { nanoid } from "nanoid";
 import { createDb, type Database } from "../../db";
 import type { Env } from "../../env";
 import { fetchMessageContent } from "../../lib/line/client";
+import { createPage } from "../../lib/notion/client";
 import type { ClassifySuccess } from "./classify";
 import { detectMediaType } from "./classify";
 import {
@@ -22,6 +23,7 @@ import {
   isPrimaryKeyConflict,
   type SaveResult,
 } from "./idempotency";
+import { buildNotionPage, type NotionMemo } from "./notion-page";
 import { fetchOgpImage, isHttpsUrl } from "./ogp";
 import {
   assignMemosToGroup,
@@ -363,6 +365,37 @@ function logJson(fields: Record<string, unknown>) {
   console.log(JSON.stringify(fields));
 }
 
+// D1 に保存したメモを Notion にも書く。正本はまだ D1 なので、失敗してもログだけ残して返す。
+// 書けなかったメモは、既存データの移行でメモIDを見て拾う。画像のメモは Notion に書かない。
+export async function syncMemoToNotion(
+  env: Pick<Env, "NOTION_TOKEN" | "NOTION_DATA_SOURCE_ID">,
+  memo: NotionMemo,
+): Promise<void> {
+  if (memo.mediaType === "image") return;
+  if (!env.NOTION_TOKEN || !env.NOTION_DATA_SOURCE_ID) {
+    logJson({
+      event: "memo.notion",
+      status: "skipped",
+      reason: "no_secret",
+      memoId: memo.id,
+    });
+    return;
+  }
+
+  const result = await createPage({
+    token: env.NOTION_TOKEN,
+    body: buildNotionPage(memo, env.NOTION_DATA_SOURCE_ID),
+  });
+  if (!result.ok) {
+    logJson({
+      event: "memo.notion",
+      status: "failed",
+      httpStatus: result.status,
+      memoId: memo.id,
+    });
+  }
+}
+
 async function captureOgpImage(
   env: Pick<Env, "DB" | "MEDIA">,
   memo: OgpTarget,
@@ -507,7 +540,14 @@ export function deleteInGroupStatement(
 }
 
 export async function createFromLine(
-  env: Pick<Env, "DB" | "MEDIA" | "LINE_CHANNEL_ACCESS_TOKEN">,
+  env: Pick<
+    Env,
+    | "DB"
+    | "MEDIA"
+    | "LINE_CHANNEL_ACCESS_TOKEN"
+    | "NOTION_TOKEN"
+    | "NOTION_DATA_SOURCE_ID"
+  >,
   input: {
     userId: string;
     lineMessageId: string;
@@ -536,6 +576,7 @@ export async function createFromLine(
       await putMedia(env.MEDIA, imageKey, content.body, content.contentType);
     }
 
+    const createdAt = new Date().toISOString();
     await insertMemo(db, {
       id: memoId,
       userId: input.userId,
@@ -546,11 +587,19 @@ export async function createFromLine(
       source: "line",
       mediaType: input.classified.mediaType,
       lineMessageId: input.lineMessageId,
-      createdAt: new Date().toISOString(),
+      createdAt,
     });
     if (input.classified.mediaType === "url") {
       await captureOgpForMemo(env, memoId);
     }
+    await syncMemoToNotion(env, {
+      id: memoId,
+      tag: input.classified.tag,
+      content: input.classified.content,
+      mediaType: input.classified.mediaType,
+      source: "line",
+      createdAt,
+    });
     return { status: "inserted" };
   } catch (error) {
     if (isLineMessageIdConflict(error)) return { status: "duplicate" };

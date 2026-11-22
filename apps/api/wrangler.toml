@@ -10,6 +10,9 @@ compatibility_date = "2024-09-01"
 # LINE_CHANNEL_ACCESS_TOKEN
 # SESSION_SECRET
 # APP_URL
+# Notion（任意）。無ければ Notion に書かない
+# NOTION_TOKEN
+# NOTION_DATA_SOURCE_ID
 
 [assets]
 directory = "../web/dist"

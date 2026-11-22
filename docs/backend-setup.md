@@ -52,6 +52,8 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 | `LINE_CHANNEL_ACCESS_TOKEN` | Reply、画像取得、Push（週次・日次・予定の前日） |
 | `SESSION_SECRET` | JWT 署名。十分長いランダム値 |
 | `APP_URL` | ログイン後の戻り先。ローカルは `http://127.0.0.1:5173`。本番は `https://line-memo-orchestrator.hirohiro-sys.workers.dev` |
+| `NOTION_TOKEN` | Notion のインテグレーションのトークン。任意。無ければ Notion に書かない |
+| `NOTION_DATA_SOURCE_ID` | メモを書く Notion のデータソースの ID。任意。無ければ Notion に書かない |
 
 本番は同じ名前を `wrangler secret` で入れる。開発用バイパス用の変数は作らない。Messaging 用と Login 用を取り違えると、署名がすべて 400 になり何も残らない。
 
@@ -62,6 +64,8 @@ pnpm --filter @repo/api exec wrangler secret put LINE_MESSAGING_CHANNEL_SECRET
 pnpm --filter @repo/api exec wrangler secret put LINE_CHANNEL_ACCESS_TOKEN
 pnpm --filter @repo/api exec wrangler secret put SESSION_SECRET
 pnpm --filter @repo/api exec wrangler secret put APP_URL
+pnpm --filter @repo/api exec wrangler secret put NOTION_TOKEN
+pnpm --filter @repo/api exec wrangler secret put NOTION_DATA_SOURCE_ID
 ```
 
 ## 日常の開発
@@ -129,6 +133,34 @@ pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --local 
 ## Workers AI
 
 日報の生成は Workers AI を使います。[`apps/api/wrangler.toml`](../apps/api/wrangler.toml) の `[ai]`（バインディング `AI`、`remote = true`）で繋ぎ、キーは置きません。モデル ID は `features/daily-reports/client.ts` に固定しています。ローカルにモデルは無いので、`wrangler dev` でも推論は Cloudflare に届きます。`remote = true` が効くのは推論先だけで、D1 と R2 はローカルのままです。`wrangler dev --local` は AI の remote まで切るので、日報の生成を試すときは付けません。
+
+## Notion
+
+メモは D1 に保存したあと、Notion のデータベースにも書きます（#138）。正本はまだ D1 です。Notion への書き込みは応答のあとに行い、失敗しても `memo.notion`（`status: failed`、`httpStatus`）のログを残すだけで、Web と LINE には成功を返します。`NOTION_TOKEN` か `NOTION_DATA_SOURCE_ID` が無いときは書かず、`status: skipped`、`reason: no_secret` を残します。画像のメモは書きません。作成だけを書き、タグの付け直し、予定の変更、削除は Notion に反映しません。
+
+準備は手作業です。
+
+1. Notion で、次のプロパティを持つデータベースを作る。名前は1文字でも違うと 400 になる
+
+   | プロパティ | 型 |
+   | --- | --- |
+   | 本文 | タイトル |
+   | 種類 | 選択（英語の UI では Select。マルチセレクトとステータスではない。`tweet` / `tech` / `other` / `todo` / `schedule`） |
+   | 予定日時 | 日付 |
+   | 記録日時 | 日付 |
+   | URL | URL |
+   | 入力元 | 選択（`line` / `web`） |
+   | メモID | テキスト |
+
+2. [Notion のインテグレーション](https://app.notion.com/developers/connections)で内部インテグレーションを作り、機能は「コンテンツを読み取る」「コンテンツを挿入」をオンにする。シークレットを `NOTION_TOKEN` にする
+3. データベースのページ右上の「…」→「詳細」→「接続」を開き、「接続先を探す」にインテグレーションの名前を入れて追加する。追加しないと 404 になる。ビューの設定の「コネクト」は外部サービス用で、ここではない
+4. データベースの URL の `notion.so/` のあとの32文字がデータベース ID。データソース ID は次で取り、`data_sources[0].id` を `NOTION_DATA_SOURCE_ID` にする
+
+   ```bash
+   curl -s https://api.notion.com/v1/databases/<データベースID> -H "Authorization: Bearer $NOTION_TOKEN" -H "Notion-Version: 2025-09-03"
+   ```
+
+5. ローカルは `apps/api/.dev.vars`、本番は `wrangler secret put` で2つを入れる
 
 ## LINE Messaging
 
