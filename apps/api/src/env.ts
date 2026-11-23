@@ -1,6 +1,8 @@
 export type Env = {
   DB: D1Database;
   MEDIA: R2Bucket;
+  // 重複判定の記録（LINE の受信済み、Web の再送）。wrangler.toml のバインディング。
+  DEDUP: KVNamespace;
   LINE_CHANNEL_ID: string;
   LINE_CHANNEL_SECRET: string;
   LINE_MESSAGING_CHANNEL_SECRET: string;
