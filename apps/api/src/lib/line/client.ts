@@ -14,10 +14,6 @@ export function classifyPushFailure(status: number, body: string): PushResult {
   return "transient";
 }
 
-function contentUrl(messageId: string): string {
-  return `https://api-data.line.me/v2/bot/message/${messageId}/content`;
-}
-
 function bearerHeaders(accessToken: string): HeadersInit {
   return { Authorization: `Bearer ${accessToken}` };
 }
@@ -42,25 +38,6 @@ export async function replyFailure(input: {
     return response.ok;
   } catch {
     return false;
-  }
-}
-
-export async function fetchMessageContent(input: {
-  accessToken: string;
-  messageId: string;
-}): Promise<{ body: ArrayBuffer; contentType: string } | null> {
-  try {
-    const response = await fetch(contentUrl(input.messageId), {
-      headers: bearerHeaders(input.accessToken),
-    });
-    if (!response.ok) return null;
-    return {
-      body: await response.arrayBuffer(),
-      contentType:
-        response.headers.get("content-type") ?? "application/octet-stream",
-    };
-  } catch {
-    return null;
   }
 }
 

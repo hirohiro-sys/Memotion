@@ -1,3 +1,6 @@
+// 開発用ログインのセッションのユーザー ID。LINE のユーザー ID（U + 32桁）とは重ならない固定値。
+export const DEV_USER_ID = "usr_dev_local";
+
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 
 // 本番の Worker は https の公開ホストで受ける。ループバックの http だけを開発用ログインに使う。

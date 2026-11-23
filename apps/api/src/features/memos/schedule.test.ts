@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  decideScheduleSet,
-  isPastScheduleDate,
-  validateCreateSchedule,
-} from "./schedule";
+import { isPastScheduleDate, validateCreateSchedule } from "./schedule";
 
 describe("isPastScheduleDate", () => {
   it("treats today in JST as not past until JST midnight", () => {
@@ -25,50 +21,19 @@ describe("isPastScheduleDate", () => {
   });
 });
 
-describe("decideScheduleSet", () => {
-  it("returns not_found for a missing memo", () => {
-    expect(decideScheduleSet({ memo: null })).toBe("not_found");
-  });
-
-  it("accepts a memo outside a group whatever its tag", () => {
-    expect(decideScheduleSet({ memo: { groupId: null } })).toBe("ok");
-  });
-
-  it("rejects a memo inside a group", () => {
-    expect(decideScheduleSet({ memo: { groupId: "group_1" } })).toBe(
-      "not_schedulable",
-    );
-  });
-});
-
 describe("validateCreateSchedule", () => {
   const now = new Date("2026-11-02T03:00:00Z");
 
-  it("rejects a schedule with a group", () => {
-    expect(
-      validateCreateSchedule(
-        { tag: "schedule", groupId: "group_1", scheduledDate: "2026-11-03" },
-        now,
-      ),
-    ).toBe("invalid");
-  });
-
-  it("rejects a past date, but a group wins first", () => {
+  it("rejects a past date", () => {
     expect(
       validateCreateSchedule(
         { tag: "schedule", scheduledDate: "2026-11-01" },
         now,
       ),
     ).toBe("past_date");
-    expect(
-      validateCreateSchedule(
-        { tag: "schedule", groupId: "group_1", scheduledDate: "2026-11-01" },
-        now,
-      ),
-    ).toBe("invalid");
   });
 
-  it("accepts today and later without a group", () => {
+  it("accepts today and later", () => {
     expect(
       validateCreateSchedule(
         { tag: "schedule", scheduledDate: "2026-11-02" },
@@ -83,9 +48,13 @@ describe("validateCreateSchedule", () => {
     ).toBe("ok");
   });
 
-  it("accepts a plain memo in a group", () => {
+  it("does not look at dates for a memo that is not a schedule", () => {
     expect(
-      validateCreateSchedule({ tag: "tweet", groupId: "group_1" }, now),
+      validateCreateSchedule(
+        { tag: "tweet", scheduledDate: "2026-11-01" },
+        now,
+      ),
     ).toBe("ok");
+    expect(validateCreateSchedule({ tag: "tweet" }, now)).toBe("ok");
   });
 });

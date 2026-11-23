@@ -1,7 +1,5 @@
-import type { Database } from "../../db";
 import type { Env } from "../../env";
 import { appUserIdFor } from "./allowlist";
-import { ensureDevUser } from "./repository";
 
 const LINE_TOKEN = "https://api.line.me/oauth2/v2.1/token";
 const LINE_VERIFY = "https://api.line.me/oauth2/v2.1/verify";
@@ -71,11 +69,6 @@ export function resolveUserIdByLineUserId(
     appUserId: env.APP_USER_ID,
     lineUserId,
   });
-}
-
-// 開発用ログインの固定ユーザーを用意し、そのユーザー ID を返す。
-export function prepareDevUser(db: Database, now: Date): Promise<string> {
-  return ensureDevUser(db, now.toISOString());
 }
 
 function readStringField(value: unknown, key: string): string | null {

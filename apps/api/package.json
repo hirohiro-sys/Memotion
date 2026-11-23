@@ -6,20 +6,15 @@
     "dev": "node ./scripts/ensure-dev-assets.mjs && wrangler dev --ip 127.0.0.1 --port 8787",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply line-memo-orchestrator --local",
-    "db:migrate:remote": "wrangler d1 migrations apply line-memo-orchestrator --remote"
+    "test": "vitest run"
   },
   "dependencies": {
     "@repo/shared": "workspace:*",
-    "drizzle-orm": "^0.45.0",
     "hono": "^4.13.5",
     "nanoid": "^6.0.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260907.1",
-    "drizzle-kit": "^0.31.6",
     "typescript": "^7.0.0",
     "vitest": "^5.0.0",
     "wrangler": "^4.40.3"

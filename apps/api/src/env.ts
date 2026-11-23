@@ -1,8 +1,6 @@
 import type { NotifySentState } from "./features/notifications/sent-state";
 
 export type Env = {
-  DB: D1Database;
-  MEDIA: R2Bucket;
   // 重複判定の記録（LINE の受信済み、Web の再送）。wrangler.toml のバインディング。
   DEDUP: KVNamespace;
   LINE_CHANNEL_ID: string;
@@ -15,8 +13,8 @@ export type Env = {
   // 許可した全員を APP_USER_ID の 1 人として扱う。どちらかが無ければ誰も許さない。
   ALLOWED_LINE_USER_IDS?: string;
   APP_USER_ID?: string;
-  // Notion のインテグレーションのトークンと、メモを書くデータソースの ID。
-  // どちらかが無ければ Notion には書かない（D1 への保存は続ける）。
+  // Notion のインテグレーションのトークンと、メモを書くデータソースの ID。メモの保存先。
+  // どちらかが無ければメモを保存できず、通知も送らない。
   NOTION_TOKEN?: string;
   NOTION_DATA_SOURCE_ID?: string;
   // LINE 通知の送信済みの記録。wrangler.toml の Durable Object。
@@ -30,6 +28,4 @@ export type Env = {
   SCHEDULE_DAILY?: string;
   // 通知の「他N件」から開く Notion のページ。無ければ APP_URL。
   NOTION_VIEW_URL?: string;
-  // Workers AI。wrangler.toml のバインディング。API キーではない。
-  AI?: Ai;
 };

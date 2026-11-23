@@ -84,8 +84,6 @@ describe("GET /api/auth/dev", () => {
 function env(appUrl: string): Env {
   return {
     APP_URL: appUrl,
-    DB: {} as Env["DB"],
-    MEDIA: {} as Env["MEDIA"],
     LINE_CHANNEL_ID: "id",
     LINE_CHANNEL_SECRET: "secret",
     LINE_MESSAGING_CHANNEL_SECRET: "secret",

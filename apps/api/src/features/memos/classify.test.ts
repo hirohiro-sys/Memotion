@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify, IMAGE_CONTENT, replyTextFor } from "./classify";
+import { classify, replyTextFor } from "./classify";
 
 describe("classify: every LINE message is saved as tweet", () => {
   it("classifies ordinary text as tweet/text and trims it", () => {
@@ -32,15 +32,6 @@ describe("classify: every LINE message is saved as tweet", () => {
       tag: "tweet",
       mediaType: "text",
       content: "これ見て https://example.com",
-    });
-  });
-
-  it("classifies images as tweet/image regardless of text", () => {
-    expect(classify({ isImage: true, text: "#tech 無視" })).toEqual({
-      save: true,
-      tag: "tweet",
-      mediaType: "image",
-      content: IMAGE_CONTENT,
     });
   });
 });
@@ -130,10 +121,10 @@ describe("classify: empty bodies", () => {
 describe("replyTextFor", () => {
   it("maps each fail reason to the fixed LINE reply", () => {
     expect(replyTextFor("unsupported")).toBe(
-      "この形式は保存できません。テキスト（URL含む）か画像を送信してください。",
+      "この形式は保存できません。テキスト（URL含む）を送信してください。",
     );
     expect(replyTextFor("empty")).toBe(
-      "本文が空です。テキスト（URL含む）か画像を送ってください。",
+      "本文が空です。テキスト（URL含む）を送ってください。",
     );
     expect(replyTextFor("save_failed")).toBe(
       "保存できませんでした。もう一度送ってください。",

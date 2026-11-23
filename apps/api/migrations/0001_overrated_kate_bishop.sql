@@ -1,1 +1,0 @@
-ALTER TABLE `tech_weekly_settings` ADD `disabled_reason` text;

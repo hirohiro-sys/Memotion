@@ -50,28 +50,13 @@ describe("decideLineEvent", () => {
       messageId: "m1",
       messageType: "text",
       unsupported: false,
-      classify: { text: "眠い", isImage: false },
+      classify: { text: "眠い" },
     });
   });
 
-  it("processes a 1:1 image message", () => {
-    expect(
-      decideLineEvent({
-        type: "message",
-        replyToken: "r",
-        source: { type: "user", userId: "U1" },
-        message: { type: "image", id: "m2" },
-      }),
-    ).toMatchObject({
-      action: "process",
-      messageType: "image",
-      unsupported: false,
-      classify: { isImage: true },
-    });
-  });
-
-  it("marks sticker, video, audio, file, and location as unsupported", () => {
+  it("marks image, sticker, video, audio, file, and location as unsupported", () => {
     for (const messageType of [
+      "image",
       "sticker",
       "video",
       "audio",
