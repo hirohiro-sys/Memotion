@@ -92,10 +92,7 @@ export function MemoList() {
       throw new Error("failed to create memo");
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["memos"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ["memos"] });
     },
     onError: (error) => {
       toast.add({
@@ -113,18 +110,12 @@ export function MemoList() {
     onSuccess: async () => {
       setSelectedIds(new Set());
       setConfirmOpen(false);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["memos"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ["memos"] });
     },
     onError: async () => {
       setConfirmOpen(false);
       toast.add({ title: "削除できませんでした。", type: "error" });
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["memos"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ["memos"] });
     },
   });
 

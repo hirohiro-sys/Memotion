@@ -81,12 +81,6 @@ export {
   memoTagSchema,
 } from "./memo";
 export {
-  type NotificationSettings,
-  notificationSettingsSchema,
-  type UpdateNotificationSettingsRequest,
-  updateNotificationSettingsRequestSchema,
-} from "./notification";
-export {
   type SetScheduleRequest,
   scheduleDateSchema,
   scheduleTimeSchema,

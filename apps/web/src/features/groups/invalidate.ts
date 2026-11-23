@@ -6,6 +6,5 @@ export async function invalidateAfterGroupWrite(queryClient: QueryClient) {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: ["memos"] }),
     queryClient.invalidateQueries({ queryKey: ["groups"] }),
-    queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   ]);
 }

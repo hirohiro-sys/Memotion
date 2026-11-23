@@ -2,12 +2,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "@/components/ui/toast";
 import { logout } from "@/features/auth/api/logout";
+import { LogoutButton } from "@/features/auth/components/logout-button";
 import {
   clearStoredUserId,
   getStoredUserId,
 } from "@/features/auth/stored-user-id";
 import { clearOutbox, listOutboxItems } from "@/features/memos/offline/outbox";
-import { SettingsView } from "@/features/notifications/components/settings-view";
+import { PwaInstallGuide } from "@/features/pwa/components/pwa-install-guide";
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
@@ -43,5 +44,13 @@ function SettingsPage() {
     await navigate({ to: "/login" });
   }
 
-  return <SettingsView onLogout={handleLogout} countUnsent={countUnsent} />;
+  return (
+    <div className="mx-auto max-w-2xl space-y-6 p-4 md:p-8">
+      <PwaInstallGuide />
+
+      <div className="flex justify-end">
+        <LogoutButton onLogout={handleLogout} countUnsent={countUnsent} />
+      </div>
+    </div>
+  );
 }
