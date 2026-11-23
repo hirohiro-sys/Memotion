@@ -21,11 +21,12 @@ import {
   readLastSentAt,
   readScheduleLastTargetDate,
   restoreScheduleLastTargetDate,
+  sentStoreFor,
   writeLastSentAt,
   writeScheduleLastTargetDate,
 } from "./sent-repository";
 
-// LINE 通知。設定は環境変数、メモは Notion、送信済みの記録は KV（DEDUP）。
+// LINE 通知。設定は環境変数、メモは Notion、送信済みの記録は Durable Object（NOTIFY_STATE）。
 // 毎分の cron で呼ばれる。Notion を読むのは、送る時刻が来たときだけ。
 // ログは何か起きたときだけ1行出す（時刻が来ていない、オフ、処理済みは出さない）。
 
@@ -99,11 +100,11 @@ export async function runTechWeeklyDigest(env: Env, now: Date): Promise<void> {
   }
   if (setting.state === "off") return;
 
-  const lastSentAt = await readLastSentAt(env.DEDUP, "techWeekly");
+  const lastSentAt = await readLastSentAt(sentStoreFor(env), "techWeekly");
   const decision = decideTechWeekly({ slot: setting.slot, now, lastSentAt });
   if (decision.action === "not_due") return;
   if (decision.action === "baseline") {
-    await writeLastSentAt(env.DEDUP, "techWeekly", now.toISOString());
+    await writeLastSentAt(sentStoreFor(env), "techWeekly", now.toISOString());
     logJson({ event: "tech.weekly", action: "skipped", reason: "baseline" });
     return;
   }
@@ -119,7 +120,7 @@ export async function runTechWeeklyDigest(env: Env, now: Date): Promise<void> {
       }),
   );
   if (shouldRecord(outcome)) {
-    await writeLastSentAt(env.DEDUP, "techWeekly", now.toISOString());
+    await writeLastSentAt(sentStoreFor(env), "techWeekly", now.toISOString());
   }
   logJson({ event: "tech.weekly", ...outcome });
 }
@@ -132,11 +133,11 @@ export async function runTodoDailyDigest(env: Env, now: Date): Promise<void> {
   }
   if (setting.state === "off") return;
 
-  const lastSentAt = await readLastSentAt(env.DEDUP, "todoDaily");
+  const lastSentAt = await readLastSentAt(sentStoreFor(env), "todoDaily");
   const decision = decideTodoDaily({ slot: setting.slot, now, lastSentAt });
   if (decision.action === "not_due") return;
   if (decision.action === "baseline") {
-    await writeLastSentAt(env.DEDUP, "todoDaily", now.toISOString());
+    await writeLastSentAt(sentStoreFor(env), "todoDaily", now.toISOString());
     logJson({ event: "todo.daily", action: "skipped", reason: "baseline" });
     return;
   }
@@ -147,7 +148,7 @@ export async function runTodoDailyDigest(env: Env, now: Date): Promise<void> {
     (memos) => buildTodoDailyTexts({ memos, linkUrl: linkUrl(env) }),
   );
   if (shouldRecord(outcome)) {
-    await writeLastSentAt(env.DEDUP, "todoDaily", now.toISOString());
+    await writeLastSentAt(sentStoreFor(env), "todoDaily", now.toISOString());
   }
   logJson({ event: "todo.daily", ...outcome });
 }
@@ -165,7 +166,7 @@ export async function runScheduleDailyDigest(
   }
   if (setting.state === "off") return;
 
-  const lastTargetDate = await readScheduleLastTargetDate(env.DEDUP);
+  const lastTargetDate = await readScheduleLastTargetDate(sentStoreFor(env));
   const decision = decideScheduleDigest({
     slot: setting.slot,
     lastTargetDate,
@@ -173,7 +174,7 @@ export async function runScheduleDailyDigest(
   });
   if (decision.action === "skip" && decision.reason === "already") return;
   if (decision.action === "baseline" || decision.action === "skip") {
-    await writeScheduleLastTargetDate(env.DEDUP, decision.targetDate);
+    await writeScheduleLastTargetDate(sentStoreFor(env), decision.targetDate);
     logJson({
       event: "schedule.daily",
       action: "skipped",
@@ -182,7 +183,7 @@ export async function runScheduleDailyDigest(
     return;
   }
 
-  await writeScheduleLastTargetDate(env.DEDUP, decision.targetDate);
+  await writeScheduleLastTargetDate(sentStoreFor(env), decision.targetDate);
   let outcome: Outcome;
   try {
     outcome = await pushMemos(
@@ -197,13 +198,13 @@ export async function runScheduleDailyDigest(
     );
   } catch (error) {
     // Notion を読む途中の例外（LINE にはまだ送っていない）。先取りを戻して次の分に再試行する。
-    await restoreScheduleLastTargetDate(env.DEDUP, lastTargetDate);
+    await restoreScheduleLastTargetDate(sentStoreFor(env), lastTargetDate);
     throw error;
   }
 
   if (!shouldRecord(outcome)) {
     // 戻せなければ外の catch で failed になり、その日の分は送らない（二重送信より取りこぼしを選ぶ）。
-    await restoreScheduleLastTargetDate(env.DEDUP, lastTargetDate);
+    await restoreScheduleLastTargetDate(sentStoreFor(env), lastTargetDate);
   }
   logJson({ event: "schedule.daily", ...outcome });
 }
@@ -214,7 +215,7 @@ export async function scheduled(
   _ctx: ExecutionContext,
 ): Promise<void> {
   const now = new Date(controller.scheduledTime);
-  // 1つの通知の失敗（KV の失敗を含む）で、ほかの通知を止めない。
+  // 1つの通知の失敗（記録の読み書きの失敗を含む）で、ほかの通知を止めない。
   const { failed } = await runIndependently([
     { name: "tech.weekly", run: () => runTechWeeklyDigest(env, now) },
     { name: "todo.daily", run: () => runTodoDailyDigest(env, now) },

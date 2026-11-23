@@ -8,6 +8,9 @@ import { lineWebhook } from "./features/line";
 import { memoRoutes } from "./features/memos";
 import { scheduled } from "./features/notifications/scheduled";
 
+// wrangler.toml の Durable Object は、入口のモジュールから export する。
+export { NotifySentState } from "./features/notifications/sent-state";
+
 const app = new Hono<{ Bindings: Env }>();
 
 app.get("/api/health", async (c) => {

@@ -9,23 +9,32 @@ import {
 const NOTION_QUERY = "https://api.notion.com/v1/data_sources/ds_1/query";
 const LINE_PUSH = "https://api.line.me/v2/bot/message/push";
 
-function memoryKv(initial: Record<string, string> = {}) {
+// Durable Object の記録の、メモリ上の偽物。
+function memoryStore(initial: Record<string, string> = {}) {
   const store = new Map(Object.entries(initial));
-  const kv = {
-    get: vi.fn(async (key: string) => store.get(key) ?? null),
-    put: vi.fn(async (key: string, value: string) => {
+  const raw = {
+    read: vi.fn(async (key: string) => store.get(key) ?? null),
+    write: vi.fn(async (key: string, value: string) => {
       store.set(key, value);
     }),
-    delete: vi.fn(async (key: string) => {
+    remove: vi.fn(async (key: string) => {
       store.delete(key);
     }),
   };
-  return { kv: kv as unknown as KVNamespace, store, raw: kv };
+  const namespace = { idFromName: () => "notify-id", get: () => raw };
+  return {
+    namespace: namespace as unknown as Env["NOTIFY_STATE"],
+    store,
+    raw,
+  };
 }
 
-function makeEnv(kv: KVNamespace, overrides: Partial<Env> = {}): Env {
+function makeEnv(
+  namespace: Env["NOTIFY_STATE"],
+  overrides: Partial<Env> = {},
+): Env {
   return {
-    DEDUP: kv,
+    NOTIFY_STATE: namespace,
     LINE_CHANNEL_ACCESS_TOKEN: "line-secret",
     APP_URL: "https://memo.example",
     NOTION_TOKEN: "notion-secret",
@@ -77,9 +86,9 @@ function jst(iso: string): Date {
   return new Date(`${iso}+09:00`);
 }
 
-const TODO_KEY = "notify:todo-daily:last-sent-at";
-const TECH_KEY = "notify:tech-weekly:last-sent-at";
-const SCHEDULE_KEY = "notify:schedule-daily:last-target-date";
+const TODO_KEY = "todo-daily:last-sent-at";
+const TECH_KEY = "tech-weekly:last-sent-at";
+const SCHEDULE_KEY = "schedule-daily:last-target-date";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -91,11 +100,11 @@ describe("runTodoDailyDigest", () => {
   const yesterday = jst("2026-11-22T08:00:00").toISOString();
 
   it("records a baseline on the first run without reading Notion or sending", async () => {
-    const { kv, store } = memoryKv();
+    const { namespace, store } = memoryStore();
     const fetchMock = routeFetch({});
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runTodoDailyDigest(makeEnv(kv), now);
+    await runTodoDailyDigest(makeEnv(namespace), now);
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(store.get(TODO_KEY)).toBe(now.toISOString());
@@ -109,14 +118,14 @@ describe("runTodoDailyDigest", () => {
   });
 
   it("sends the todos from Notion to the configured user and records the send", async () => {
-    const { kv, store } = memoryKv({ [TODO_KEY]: yesterday });
+    const { namespace, store } = memoryStore({ [TODO_KEY]: yesterday });
     const fetchMock = routeFetch({
       notion: Response.json({ results: [notionPage("牛乳を買う")] }),
       line: new Response("{}", { status: 200 }),
     });
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runTodoDailyDigest(makeEnv(kv), now);
+    await runTodoDailyDigest(makeEnv(namespace), now);
 
     expect(calledUrls(fetchMock)).toEqual([NOTION_QUERY, LINE_PUSH]);
     const push = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
@@ -135,11 +144,11 @@ describe("runTodoDailyDigest", () => {
   });
 
   it("does nothing before the time", async () => {
-    const { kv, store } = memoryKv({ [TODO_KEY]: yesterday });
+    const { namespace, store } = memoryStore({ [TODO_KEY]: yesterday });
     const fetchMock = routeFetch({});
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runTodoDailyDigest(makeEnv(kv), jst("2026-11-23T07:59:00"));
+    await runTodoDailyDigest(makeEnv(namespace), jst("2026-11-23T07:59:00"));
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(store.get(TODO_KEY)).toBe(yesterday);
@@ -147,13 +156,13 @@ describe("runTodoDailyDigest", () => {
   });
 
   it("keeps the record and retries next minute when Notion fails", async () => {
-    const { kv, store } = memoryKv({ [TODO_KEY]: yesterday });
+    const { namespace, store } = memoryStore({ [TODO_KEY]: yesterday });
     const fetchMock = routeFetch({
       notion: new Response("{}", { status: 503 }),
     });
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runTodoDailyDigest(makeEnv(kv), now);
+    await runTodoDailyDigest(makeEnv(namespace), now);
 
     expect(calledUrls(fetchMock)).toEqual([NOTION_QUERY]);
     expect(store.get(TODO_KEY)).toBe(yesterday);
@@ -168,11 +177,11 @@ describe("runTodoDailyDigest", () => {
   });
 
   it("records the run without retrying when Notion rejects the token", async () => {
-    const { kv, store } = memoryKv({ [TODO_KEY]: yesterday });
+    const { namespace, store } = memoryStore({ [TODO_KEY]: yesterday });
     routeFetch({ notion: new Response("{}", { status: 401 }) });
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runTodoDailyDigest(makeEnv(kv), now);
+    await runTodoDailyDigest(makeEnv(namespace), now);
 
     expect(store.get(TODO_KEY)).toBe(now.toISOString());
     expect(logs(log)).toEqual([
@@ -186,7 +195,7 @@ describe("runTodoDailyDigest", () => {
   });
 
   it("logs that it stopped reading after five pages", async () => {
-    const { kv } = memoryKv({ [TODO_KEY]: yesterday });
+    const { namespace } = memoryStore({ [TODO_KEY]: yesterday });
     const fetchMock = vi.fn(async (url: string) =>
       url === NOTION_QUERY
         ? Response.json({
@@ -199,7 +208,7 @@ describe("runTodoDailyDigest", () => {
     vi.stubGlobal("fetch", fetchMock);
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runTodoDailyDigest(makeEnv(kv), now);
+    await runTodoDailyDigest(makeEnv(namespace), now);
 
     expect(
       fetchMock.mock.calls.filter((call) => call[0] === NOTION_QUERY),
@@ -216,23 +225,23 @@ describe("runTodoDailyDigest", () => {
   });
 
   it("records an empty run without sending", async () => {
-    const { kv, store } = memoryKv({ [TODO_KEY]: yesterday });
+    const { namespace, store } = memoryStore({ [TODO_KEY]: yesterday });
     const fetchMock = routeFetch({ notion: Response.json({ results: [] }) });
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runTodoDailyDigest(makeEnv(kv), now);
+    await runTodoDailyDigest(makeEnv(namespace), now);
 
     expect(calledUrls(fetchMock)).toEqual([NOTION_QUERY]);
     expect(store.get(TODO_KEY)).toBe(now.toISOString());
   });
 
   it("records the run without reading Notion when no recipient is set", async () => {
-    const { kv, store } = memoryKv({ [TODO_KEY]: yesterday });
+    const { namespace, store } = memoryStore({ [TODO_KEY]: yesterday });
     const fetchMock = routeFetch({});
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
     await runTodoDailyDigest(
-      makeEnv(kv, { NOTIFY_LINE_USER_ID: undefined }),
+      makeEnv(namespace, { NOTIFY_LINE_USER_ID: undefined }),
       now,
     );
 
@@ -248,25 +257,25 @@ describe("runTodoDailyDigest", () => {
   });
 
   it("does not record a transient LINE failure so it retries", async () => {
-    const { kv, store } = memoryKv({ [TODO_KEY]: yesterday });
+    const { namespace, store } = memoryStore({ [TODO_KEY]: yesterday });
     routeFetch({
       notion: Response.json({ results: [notionPage("牛乳を買う")] }),
       line: new Response("{}", { status: 500 }),
     });
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runTodoDailyDigest(makeEnv(kv), now);
+    await runTodoDailyDigest(makeEnv(namespace), now);
 
     expect(store.get(TODO_KEY)).toBe(yesterday);
   });
 
   it("logs an invalid setting without reading KV", async () => {
-    const { kv, raw } = memoryKv();
+    const { namespace, raw } = memoryStore();
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runTodoDailyDigest(makeEnv(kv, { TODO_DAILY: "8時" }), now);
+    await runTodoDailyDigest(makeEnv(namespace, { TODO_DAILY: "8時" }), now);
 
-    expect(raw.get).not.toHaveBeenCalled();
+    expect(raw.read).not.toHaveBeenCalled();
     expect(logs(log)).toEqual([
       JSON.stringify({
         event: "todo.daily",
@@ -277,14 +286,14 @@ describe("runTodoDailyDigest", () => {
   });
 
   it("never logs the memo body or the secrets", async () => {
-    const { kv } = memoryKv({ [TODO_KEY]: yesterday });
+    const { namespace } = memoryStore({ [TODO_KEY]: yesterday });
     routeFetch({
       notion: Response.json({ results: [notionPage("秘密のTODO")] }),
       line: new Response("{}", { status: 500 }),
     });
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runTodoDailyDigest(makeEnv(kv), now);
+    await runTodoDailyDigest(makeEnv(namespace), now);
 
     const joined = logs(log).join("");
     expect(joined).not.toContain("秘密のTODO");
@@ -295,22 +304,22 @@ describe("runTodoDailyDigest", () => {
 
 describe("runTechWeeklyDigest", () => {
   it("does nothing when the setting is off", async () => {
-    const { kv, raw } = memoryKv();
+    const { namespace, raw } = memoryStore();
     const fetchMock = routeFetch({});
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
     await runTechWeeklyDigest(
-      makeEnv(kv, { TECH_WEEKLY: "" }),
+      makeEnv(namespace, { TECH_WEEKLY: "" }),
       jst("2026-11-22T20:00:00"),
     );
 
-    expect(raw.get).not.toHaveBeenCalled();
+    expect(raw.read).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(log).not.toHaveBeenCalled();
   });
 
   it("sends only the tech memos recorded inside the week", async () => {
-    const { kv } = memoryKv({
+    const { namespace } = memoryStore({
       [TECH_KEY]: jst("2026-11-15T20:00:00").toISOString(),
     });
     const outside = {
@@ -328,7 +337,7 @@ describe("runTechWeeklyDigest", () => {
     });
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runTechWeeklyDigest(makeEnv(kv), jst("2026-11-22T20:00:00"));
+    await runTechWeeklyDigest(makeEnv(namespace), jst("2026-11-22T20:00:00"));
 
     const text = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))
       .messages[0].text;
@@ -342,7 +351,7 @@ describe("runScheduleDailyDigest", () => {
   const now = jst("2026-11-23T20:00:00");
 
   it("sends tomorrow's schedules and keeps the claimed date", async () => {
-    const { kv, store } = memoryKv({ [SCHEDULE_KEY]: "2026-11-23" });
+    const { namespace, store } = memoryStore({ [SCHEDULE_KEY]: "2026-11-23" });
     const fetchMock = routeFetch({
       notion: Response.json({
         results: [
@@ -354,7 +363,7 @@ describe("runScheduleDailyDigest", () => {
     });
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runScheduleDailyDigest(makeEnv(kv), now);
+    await runScheduleDailyDigest(makeEnv(namespace), now);
 
     const text = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))
       .messages[0].text;
@@ -364,7 +373,7 @@ describe("runScheduleDailyDigest", () => {
   });
 
   it("restores the previous date after a transient LINE failure", async () => {
-    const { kv, store } = memoryKv({ [SCHEDULE_KEY]: "2026-11-23" });
+    const { namespace, store } = memoryStore({ [SCHEDULE_KEY]: "2026-11-23" });
     routeFetch({
       notion: Response.json({
         results: [notionPage("歯医者", "2026-11-24")],
@@ -373,33 +382,33 @@ describe("runScheduleDailyDigest", () => {
     });
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runScheduleDailyDigest(makeEnv(kv), now);
+    await runScheduleDailyDigest(makeEnv(namespace), now);
 
     expect(store.get(SCHEDULE_KEY)).toBe("2026-11-23");
   });
 
   it("restores the previous date when Notion fails", async () => {
-    const { kv, store } = memoryKv({ [SCHEDULE_KEY]: "2026-11-23" });
+    const { namespace, store } = memoryStore({ [SCHEDULE_KEY]: "2026-11-23" });
     routeFetch({ notion: new Response("{}", { status: 502 }) });
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runScheduleDailyDigest(makeEnv(kv), now);
+    await runScheduleDailyDigest(makeEnv(namespace), now);
 
     expect(store.get(SCHEDULE_KEY)).toBe("2026-11-23");
   });
 
   it("keeps the claimed date when Notion cannot find the data source", async () => {
-    const { kv, store } = memoryKv({ [SCHEDULE_KEY]: "2026-11-23" });
+    const { namespace, store } = memoryStore({ [SCHEDULE_KEY]: "2026-11-23" });
     routeFetch({ notion: new Response("{}", { status: 404 }) });
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runScheduleDailyDigest(makeEnv(kv), now);
+    await runScheduleDailyDigest(makeEnv(namespace), now);
 
     expect(store.get(SCHEDULE_KEY)).toBe("2026-11-24");
   });
 
   it("keeps the claimed date when LINE is unreachable", async () => {
-    const { kv, store } = memoryKv({ [SCHEDULE_KEY]: "2026-11-23" });
+    const { namespace, store } = memoryStore({ [SCHEDULE_KEY]: "2026-11-23" });
     routeFetch({
       notion: Response.json({
         results: [notionPage("歯医者", "2026-11-24")],
@@ -413,17 +422,17 @@ describe("runScheduleDailyDigest", () => {
     });
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runScheduleDailyDigest(makeEnv(kv), now);
+    await runScheduleDailyDigest(makeEnv(namespace), now);
 
     expect(store.get(SCHEDULE_KEY)).toBe("2026-11-24");
   });
 
   it("marks the current target as done on the first run without sending", async () => {
-    const { kv, store } = memoryKv();
+    const { namespace, store } = memoryStore();
     const fetchMock = routeFetch({});
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await runScheduleDailyDigest(makeEnv(kv), now);
+    await runScheduleDailyDigest(makeEnv(namespace), now);
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(store.get(SCHEDULE_KEY)).toBe("2026-11-24");

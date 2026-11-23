@@ -1,3 +1,5 @@
+import type { NotifySentState } from "./features/notifications/sent-state";
+
 export type Env = {
   DB: D1Database;
   MEDIA: R2Bucket;
@@ -13,6 +15,8 @@ export type Env = {
   // どちらかが無ければ Notion には書かない（D1 への保存は続ける）。
   NOTION_TOKEN?: string;
   NOTION_DATA_SOURCE_ID?: string;
+  // LINE 通知の送信済みの記録。wrangler.toml の Durable Object。
+  NOTIFY_STATE: DurableObjectNamespace<NotifySentState>;
   // LINE 通知。送り先は1人。無ければ通知しない。
   NOTIFY_LINE_USER_ID?: string;
   // 通知の時刻（wrangler.toml の vars）。空か無ければその通知はオフ。

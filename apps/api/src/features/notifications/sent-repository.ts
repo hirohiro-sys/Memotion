@@ -1,50 +1,64 @@
-// 通知の送信済みの記録の、KV での読み書き。例外はそのまま投げ、扱いは呼び出し側が決める。
-// 期限は付けない（次の通知の時刻を決めるのに使い続ける）。
+import type { Env } from "../../env";
+
+// 通知の送信済みの記録の読み書き。置き場は Durable Object（NOTIFY_STATE）。
+// 例外はそのまま投げ、扱いは呼び出し側が決める。期限は付けない（次の通知の時刻を決めるのに使い続ける）。
+
+export type SentStore = {
+  read(key: string): Promise<string | null>;
+  write(key: string, value: string): Promise<void>;
+  remove(key: string): Promise<void>;
+};
+
+const INSTANCE_NAME = "notify";
+
+export function sentStoreFor(env: Pick<Env, "NOTIFY_STATE">): SentStore {
+  return env.NOTIFY_STATE.get(env.NOTIFY_STATE.idFromName(INSTANCE_NAME));
+}
 
 const LAST_SENT_AT_KEYS = {
-  techWeekly: "notify:tech-weekly:last-sent-at",
-  todoDaily: "notify:todo-daily:last-sent-at",
+  techWeekly: "tech-weekly:last-sent-at",
+  todoDaily: "todo-daily:last-sent-at",
 } as const;
-const SCHEDULE_LAST_TARGET_DATE_KEY = "notify:schedule-daily:last-target-date";
+const SCHEDULE_LAST_TARGET_DATE_KEY = "schedule-daily:last-target-date";
 
 export type SentAtKind = keyof typeof LAST_SENT_AT_KEYS;
 
 export async function readLastSentAt(
-  kv: KVNamespace,
+  store: SentStore,
   kind: SentAtKind,
 ): Promise<string | null> {
-  return kv.get(LAST_SENT_AT_KEYS[kind]);
+  return store.read(LAST_SENT_AT_KEYS[kind]);
 }
 
 export async function writeLastSentAt(
-  kv: KVNamespace,
+  store: SentStore,
   kind: SentAtKind,
   sentAt: string,
 ): Promise<void> {
-  await kv.put(LAST_SENT_AT_KEYS[kind], sentAt);
+  await store.write(LAST_SENT_AT_KEYS[kind], sentAt);
 }
 
 export async function readScheduleLastTargetDate(
-  kv: KVNamespace,
+  store: SentStore,
 ): Promise<string | null> {
-  return kv.get(SCHEDULE_LAST_TARGET_DATE_KEY);
+  return store.read(SCHEDULE_LAST_TARGET_DATE_KEY);
 }
 
 export async function writeScheduleLastTargetDate(
-  kv: KVNamespace,
+  store: SentStore,
   targetDate: string,
 ): Promise<void> {
-  await kv.put(SCHEDULE_LAST_TARGET_DATE_KEY, targetDate);
+  await store.write(SCHEDULE_LAST_TARGET_DATE_KEY, targetDate);
 }
 
 // 先取りを戻す。前の対象日が無ければ記録を消す。
 export async function restoreScheduleLastTargetDate(
-  kv: KVNamespace,
+  store: SentStore,
   previous: string | null,
 ): Promise<void> {
   if (previous === null) {
-    await kv.delete(SCHEDULE_LAST_TARGET_DATE_KEY);
+    await store.remove(SCHEDULE_LAST_TARGET_DATE_KEY);
     return;
   }
-  await kv.put(SCHEDULE_LAST_TARGET_DATE_KEY, previous);
+  await store.write(SCHEDULE_LAST_TARGET_DATE_KEY, previous);
 }

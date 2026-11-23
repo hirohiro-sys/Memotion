@@ -49,6 +49,15 @@ migrations_dir = "migrations"
 binding = "DEDUP"
 id = "620d745394c74102a6300ef90cdc404d"
 
+# LINE 通知の送信済みの記録。書いた値がすぐにどこでも読めるよう、KV ではなく Durable Object に置く。
+[[durable_objects.bindings]]
+name = "NOTIFY_STATE"
+class_name = "NotifySentState"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["NotifySentState"]
+
 [[r2_buckets]]
 binding = "MEDIA"
 bucket_name = "line-memo-orchestrator-media"
