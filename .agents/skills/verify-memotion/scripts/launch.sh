@@ -6,14 +6,9 @@ ROOT="$(cd "$SKILL_DIR/../../.." && pwd)"
 RUN="$SKILL_DIR/run"
 mkdir -p "$RUN"
 
-# D1 と R2 の remote は本番に書く。AI の remote はローカルにモデルが無いためで、ここは止めない。
-if awk '
-  /^\[\[d1_databases\]\]/ || /^\[\[r2_buckets\]\]/ { block = 1; next }
-  /^\[/ { block = 0 }
-  block && /^remote = true/ { found = 1 }
-  END { exit found ? 0 : 1 }
-' "$ROOT/apps/api/wrangler.toml"; then
-  echo "wrangler.toml D1 or R2 has remote = true; refusing to start" >&2
+# remote = true の KV と Durable Object は本番に繋がる。
+if grep -q '^remote = true' "$ROOT/apps/api/wrangler.toml"; then
+  echo "wrangler.toml has remote = true; refusing to start" >&2
   exit 1
 fi
 
@@ -28,6 +23,14 @@ if [[ "$app_url" != "http://127.0.0.1:5173" || -z "$secret" ]]; then
   echo "APP_URL must be http://127.0.0.1:5173 and SESSION_SECRET must be set" >&2
   exit 1
 fi
+
+# メモの保存先は Notion。空だと保存できず、どのメモも送信待ちのまま残る。値は読まずに有無だけ見る。
+for name in NOTION_TOKEN NOTION_DATA_SOURCE_ID; do
+  if ! grep -q "^$name=[^[:space:]]" "$ROOT/apps/api/.dev.vars"; then
+    echo "$name must be set in apps/api/.dev.vars (a development Notion database)" >&2
+    exit 1
+  fi
+done
 
 if lsof -nP -iTCP:8787 -sTCP:LISTEN >/dev/null 2>&1 || lsof -nP -iTCP:5173 -sTCP:LISTEN >/dev/null 2>&1; then
   echo "5173 or 8787 is already in use; refusing to drive a shared instance" >&2
@@ -44,34 +47,9 @@ stop_started() {
 }
 
 cd "$ROOT"
-pnpm --filter @repo/api db:migrate:local >"$RUN/migrate.log" 2>&1 &
-migrate_pid=$!
-ready=0
-for _ in $(seq 1 90); do
-  if grep -q "No migrations to apply\|Successfully applied" "$RUN/migrate.log" 2>/dev/null; then
-    ready=1
-    break
-  fi
-  if ! kill -0 "$migrate_pid" 2>/dev/null; then
-    ready=1
-    break
-  fi
-  sleep 1
-done
-if kill -0 "$migrate_pid" 2>/dev/null; then
-  kill "$migrate_pid" 2>/dev/null || true
-  wait "$migrate_pid" 2>/dev/null || true
-fi
-if [[ "$ready" -ne 1 ]] || grep -q "ERROR\|Error" "$RUN/migrate.log"; then
-  echo "local migration failed" >&2
-  cat "$RUN/migrate.log" >&2
-  exit 1
-fi
-
 pnpm --filter @repo/api exec node ./scripts/ensure-dev-assets.mjs
 
 set -m
-# --local は AI の remote バインディングまで切る。D1 は remote を付けないのでローカルのまま。
 pnpm --filter @repo/api exec wrangler dev --ip 127.0.0.1 --port 8787 >"$RUN/api.log" 2>&1 &
 echo $! >"$RUN/api.pid"
 pnpm --filter @repo/web exec vite --host 127.0.0.1 --port 5173 >"$RUN/web.log" 2>&1 &
@@ -95,17 +73,6 @@ done
 
 if [[ "$api_ready" -ne 1 || "$web_ready" -ne 1 ]]; then
   echo "stack did not become usable" >&2
-  stop_started
-  exit 1
-fi
-
-if ! grep "D1 Database" "$RUN/api.log" | grep -q "local"; then
-  echo "D1 binding is not local" >&2
-  stop_started
-  exit 1
-fi
-if grep "D1 Database" "$RUN/api.log" | grep -q "remote"; then
-  echo "D1 binding is remote" >&2
   stop_started
   exit 1
 fi

@@ -18,9 +18,9 @@ web
 LINE を入口にしつつ、Web でもモバイルでも使え、自分用にカスタマイズできる。LINE は 1 日に何度も開くので、書いた内容が自然に目に入る。似た用途の既存ツールにはこの前提が揃っていない。
 
 ## Operating Context
-- 入力は LINE のメッセージ（テキスト、画像、記事や投稿のリンク）と、Web の投入画面（テキスト、種類、予定の日時）。見返しは Notion で行う。
+- 入力は LINE のメッセージ（テキスト、記事や投稿のリンク）と、Web の投入画面（テキスト、種類、予定の日時）。見返しは Notion で行う。
 - 本番は同一オリジンの Cloudflare Worker が `/` に Web、`/api/*` に API を配信する。
-- 画像は公開せず、認証付きで配信する。メモ本文と秘密は外に出さない。
+- メモ本文と秘密は、保存先の Notion 以外に出さない。
 
 ## Capabilities and Constraints
 - Web は Vite / React 19 / TanStack Router・Query / Tailwind CSS 4。

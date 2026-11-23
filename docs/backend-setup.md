@@ -1,15 +1,13 @@
 # バックエンド環境
 
-`apps/api` は Cloudflare Workers（Hono + Drizzle + D1 + R2）です。本番は同じ Worker が `/` に Vite の dist、`/api/*` に API を出します。公開 API は次のとおりです。health、認証の入口、LINE Webhook（署名検証）以外は、セッションが必須です。
+`apps/api` は Cloudflare Workers（Hono）です。メモの保存先は Notion のデータベースだけで、Worker は Notion API に書きます。重複判定の記録は KV、通知の送信済みの記録は Durable Object に置きます。本番は同じ Worker が `/` に Vite の dist、`/api/*` に API を出します。公開 API は次のとおりです。health、認証の入口、LINE Webhook（署名検証）以外は、セッションが必須です。
 
 | 領域 | パス |
 |------|------|
 | health | `GET /api/health` |
 | 認証 | `GET /api/auth/line`、`GET /api/auth/line/callback`、`POST /api/auth/logout`、`GET /api/me`、`GET /api/auth/dev`（ループバックの http だけ。それ以外は 404） |
 | LINE | `POST /api/line/webhook`（署名検証） |
-| メモ | `/api/memos`（一覧・作成）、`/api/memos/:id`（更新）、`/api/memos/:id/schedule`、`/api/memos/:id/image`、`/api/memos/bulk-delete` |
-| グループ | `/api/groups`、`/api/groups/:id`、`/api/groups/:id/memos`、`/api/groups/:id/memos/assign` |
-| 日報 | `/api/daily-reports`、`/api/daily-reports/:id`、`/api/daily-reports/:id/append` |
+| メモ | `POST /api/memos`（作成だけ。一覧、変更、削除は Notion で行う） |
 
 正本は各 feature の `index.ts` と `packages/shared` の Zod です。開発時に MSW は使いません。ローカルの `/api` は Vite 経由で Worker に届きます。
 
@@ -30,11 +28,9 @@ pnpm install
 | 種類 | 名前 |
 |------|------|
 | Worker | `line-memo-orchestrator` |
-| D1 | `line-memo-orchestrator` |
-| R2 | `line-memo-orchestrator-media` |
 | KV | `line-memo-orchestrator-dedup` |
 
-設定の正は [`apps/api/wrangler.toml`](../apps/api/wrangler.toml) です。`database_id` と KV の `id` は秘密情報ではないので git に含めてよいです。`.dev.vars` と `.wrangler/` はコミットしないでください。
+設定の正は [`apps/api/wrangler.toml`](../apps/api/wrangler.toml) です。KV の `id` は秘密情報ではないので git に含めてよいです。`.dev.vars` と `.wrangler/` はコミットしないでください。
 
 ## 環境変数
 
@@ -49,13 +45,13 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 | `LINE_CHANNEL_ID` | 認可 URL と IDトークン検証の audience |
 | `LINE_CHANNEL_SECRET` | 認可コードの交換。ブラウザに出さない |
 | `LINE_MESSAGING_CHANNEL_SECRET` | Webhook 署名。Login の `LINE_CHANNEL_SECRET` と混ぜない |
-| `LINE_CHANNEL_ACCESS_TOKEN` | Reply、画像取得、Push（週次・日次・予定の前日） |
+| `LINE_CHANNEL_ACCESS_TOKEN` | Reply、Push（週次・日次・予定の前日） |
 | `SESSION_SECRET` | JWT 署名。十分長いランダム値 |
 | `APP_URL` | ログイン後の戻り先。ローカルは `http://127.0.0.1:5173`。本番は `https://line-memo-orchestrator.hirohiro-sys.workers.dev` |
 | `ALLOWED_LINE_USER_IDS` | Web のログインと LINE からの保存を許す LINE ユーザーID。カンマ区切り。無ければ誰も許さない |
-| `APP_USER_ID` | 許可した人のメモの持ち主として使うアプリのユーザーID。本番の `users` の `id` の値（21 文字の英数字。`usr_` のような決まった接頭辞は無い）。許可した全員がこの 1 人になる。無ければ誰も許さない |
-| `NOTION_TOKEN` | Notion のインテグレーションのトークン。任意。無ければ Notion に書かない |
-| `NOTION_DATA_SOURCE_ID` | メモを書く Notion のデータソースの ID。任意。無ければ Notion に書かない |
+| `APP_USER_ID` | 許可した人のセッションに入れるアプリのユーザーID。許可した全員がこの 1 人になる。無ければ誰も許さない。本番は D1 のころの `users` の `id` の値のまま（発行済みのセッション、端末の未送信のメモ、KV の記録がこの値を持つ）。変えると、それらが別の人のものとして扱われる |
+| `NOTION_TOKEN` | Notion のインテグレーションのトークン。無ければメモを保存できず、通知も送らない |
+| `NOTION_DATA_SOURCE_ID` | メモを書く Notion のデータソースの ID。無ければメモを保存できず、通知も送らない |
 | `NOTIFY_LINE_USER_ID` | LINE 通知の送り先の LINE ユーザーID（1人）。任意。無ければ通知しない |
 | `NOTION_VIEW_URL` | 通知の「他N件」から開く Notion のページの URL。任意。無ければ `APP_URL` |
 
@@ -82,7 +78,6 @@ pnpm --filter @repo/api exec wrangler secret put NOTION_VIEW_URL
 
 ```bash
 pnpm install
-pnpm --filter @repo/api db:migrate:local
 pnpm dev
 ```
 
@@ -91,23 +86,7 @@ pnpm dev
 
 `vite.config.ts` は `/api` を `:8787` にプロキシします。メモの API は Worker に届きます。
 
-LINE で残した行をローカル Web で見るには、[`apps/api/wrangler.toml`](../apps/api/wrangler.toml) の `DB` と `MEDIA` に `remote = true` を付ける。`pnpm dev` のコマンドはそのまま（Vite → `:8787`）。秘密は `.dev.vars`（`APP_URL=http://127.0.0.1:5173`）。Cookie は今と同じ `127.0.0.1`。許可ユーザーはリモート D1 に入っていること。
-
-```toml
-[[d1_databases]]
-binding = "DB"
-database_name = "line-memo-orchestrator"
-database_id = "…"
-migrations_dir = "migrations"
-remote = true
-
-[[r2_buckets]]
-binding = "MEDIA"
-bucket_name = "line-memo-orchestrator-media"
-remote = true
-```
-
-`remote = true` のとき、persist 付きのローカル Webhook curl は本番に行を付ける。署名だけ見るか、隔離するなら `wrangler dev --local`。
+ローカルでもメモは Notion に書きます。`.dev.vars` の `NOTION_TOKEN` と `NOTION_DATA_SOURCE_ID` には、本番とは別の開発用のデータベースを入れます（作り方は「Notion」の節）。空のままだと、Web のメモは保存できず、端末の未送信に残ります。KV と Durable Object はローカルのものを使います。`wrangler.toml` に `remote = true` を付けると本番に繋がるので付けません。
 
 API だけ起動する場合:
 
@@ -122,31 +101,15 @@ curl http://127.0.0.1:8787/api/health
 # {"status":"ok"}
 ```
 
-## DB コマンド
-
-| コマンド | 用途 |
-|----------|------|
-| `pnpm --filter @repo/api db:generate` | Drizzle スキーマからマイグレーション SQL を生成 |
-| `pnpm --filter @repo/api db:migrate:local` | ローカル D1 に適用 |
-| `pnpm --filter @repo/api db:migrate:remote` | リモート D1 に適用 |
-
-スキーマの正は [Issue #3](https://github.com/hirohiro-sys/line-memo-orchestrator/issues/3) と [`apps/api/src/db/schema.ts`](../apps/api/src/db/schema.ts) です。初回マイグレーションで `tags` に `tweet` / `tech` / `other` を入れています。
-
-ローカルの tags 確認:
-
-```bash
-pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --local --command "SELECT slug FROM tags"
-```
-
-スキーマを変えたら `db:generate` → 生成 SQL を確認 → `db:migrate:local`。問題なければ `db:migrate:remote`。
-
-## Workers AI
-
-日報の生成は Workers AI を使います。[`apps/api/wrangler.toml`](../apps/api/wrangler.toml) の `[ai]`（バインディング `AI`、`remote = true`）で繋ぎ、キーは置きません。モデル ID は `features/daily-reports/client.ts` に固定しています。ローカルにモデルは無いので、`wrangler dev` でも推論は Cloudflare に届きます。`remote = true` が効くのは推論先だけで、D1 と R2 はローカルのままです。`wrangler dev --local` は AI の remote まで切るので、日報の生成を試すときは付けません。
-
 ## Notion
 
-メモは D1 に保存したあと、Notion のデータベースにも書きます（#138）。正本はまだ D1 です。Notion への書き込みは応答のあとに行い、失敗しても `memo.notion`（`status: failed`、`httpStatus`）のログを残すだけで、Web と LINE には成功を返します。`NOTION_TOKEN` か `NOTION_DATA_SOURCE_ID` が無いときは書かず、`status: skipped`、`reason: no_secret` を残します。画像のメモは書きません。作成だけを書き、タグの付け直し、予定の変更、削除は Notion に反映しません。
+メモの保存先は Notion のデータベースだけです（#143 で D1 を外しました）。Web のメモは応答の前に、LINE のメモは webhook に 200 を返したあとに、Notion にページを作ります。
+
+- 書けなかったら、Web は 502 を返します。端末は未送信に残し、あとで同じ ID で送り直します。LINE は「保存できませんでした」と返信します。どちらも `memo.notion`（`status: failed`、`httpStatus`）のログを残します
+- `NOTION_TOKEN` か `NOTION_DATA_SOURCE_ID` が無いときは書かず、保存の失敗として扱います（`status: skipped`、`reason: no_secret`）
+- Notion は 503 を返しても保存していることがあります。書き込みがネットワークの失敗か 5xx のときは、「メモID」で検索して、あれば保存できたとして扱います
+- LINE の画像は保存せず、「この形式は保存できません」と返信します（#136）
+- 作成だけを書きます。種類の付け直し、予定の変更、削除は Notion で行います
 
 準備は手作業です。
 
@@ -174,7 +137,7 @@ pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --local 
 
 ## 重複判定（KV）
 
-LINE の再送と Web のオフライン再送で同じメモを二重に保存しないよう、受け取った記録を Cloudflare KV（バインディング `DEDUP`）に置きます（#137）。D1 を外したあとも重複を防ぐためです。
+LINE の再送と Web のオフライン再送で同じメモを二重に保存しないよう、受け取った記録を Cloudflare KV（バインディング `DEDUP`）に置きます（#137）。
 
 | 記録 | キー | 値 | 保持 |
 |------|------|----|------|
@@ -182,9 +145,11 @@ LINE の再送と Web のオフライン再送で同じメモを二重に保存�
 | Web の保存済み | `web-memo:<端末が付けたメモ ID>` | 保存したメモと持ち主のユーザー ID | 30 日 |
 
 - 保存の前に KV を見て、記録があれば重複として扱います。LINE は何もしません。Web は、持ち主と内容が同じなら 200 で保存済みのメモを返し、違えば 409 を返します
-- 記録が無いときは D1 に保存し、保存できたら KV に書きます。KV はほぼ同時に届いた 2 件を止めきれないので、D1 の一意制約（`memos.id`、`memos.line_message_id`）を #143 まで保険として残します。導入前のメモの再送も D1 が止めます
-- KV の読み書きに失敗しても保存は止めません。`memo.dedup`（`status: failed`、`reason: read` か `write`）のログを残して D1 の判定に進みます
-- Web の記録は保存した時点の写しで、タグの付け直し、予定の変更、グループへの追加、削除では更新しません。そのため、記録がある間の再送は、メモを変えたあとでも 200 になり、消したメモは復活しません（以前は D1 の今の行と比べたので、変えたあとは 409、消したあとは保存し直していました）。Web は 200 の本文を使わず「保存しました」と出すだけなので、古い内容は画面に出ません
+- 記録が無いときは Notion に書き、書けたら KV に記録します
+- Web のメモは、記録が無くても、書く前に Notion を「メモID」で検索し、ページがあれば作らずに 200 を返します。KV の書き込みの失敗や 30 日の期限切れのあとの再送を止めるためです。LINE のメモは Worker が ID を付けるので検索しません
+- KV はほぼ同時に届いた 2 件を止めきれません。Web の同じメモがほぼ同時に 2 回届くと、Notion に 2 ページできることがあります
+- KV の読み書きに失敗しても保存は止めません。`memo.dedup`（`status: failed`、`reason: read` か `write`）のログを残して先へ進みます
+- Web の記録は保存した時点の写しで、Notion で種類や予定を変えたり、ページを消したりしても更新しません。記録がある間の再送は 200 になり、消したページは復活しません。Web は 200 の本文を使わず「保存しました」と出すだけなので、古い内容は画面に出ません
 - Web の記録には本文が入るので、メモを消しても KV に最大 30 日残ります
 - ローカルの `wrangler dev` は、`id` があってもローカルの KV を使います。`remote = true` を付けると本番の KV に繋がるので付けません
 
@@ -212,15 +177,9 @@ Login チャネルと**同じプロバイダー**の下に Messaging API チャ�
 
 パスは `POST /api/line/webhook`。
 
-許可ユーザーは環境変数 `ALLOWED_LINE_USER_IDS` に足す（#142）。友だち追加だけでは Web にも入れず、LINE から送ったメモも保存しない。許可した全員のメモは `APP_USER_ID` の持ち主で保存する。D1 の `users` テーブルは読まない。
+許可ユーザーは環境変数 `ALLOWED_LINE_USER_IDS` に足す（#142）。友だち追加だけでは Web にも入れず、LINE から送ったメモも保存しない。許可した全員は `APP_USER_ID` の 1 人として扱う。
 
-`APP_USER_ID` には、それまで `users` にあった自分の行の `id` を入れる。D1 のメモはこの ID を外部キーで指すので、`users` に無い ID だと保存できない（#143 で D1 を外すまで）。本番の値は次で読める（読むだけで本番は変わらない）。
-
-```bash
-pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --remote --command "SELECT id, line_user_id FROM users"
-```
-
-開発用ログインはこの 2 つを使わず、ローカル D1 の固定ユーザー `usr_dev_local` でログインする。
+開発用ログインはこの 2 つを使わず、固定のユーザー ID `usr_dev_local` でセッションを出す。
 
 ## LINE Login
 
@@ -242,10 +201,10 @@ LINE 通知は 3 つです（#140）。メモは Notion のデータベースか
 | 予定の前日（`schedule.daily`） | `SCHEDULE_DAILY = "20:00"` | 種類が `schedule` で、予定日時の JST の日付が翌日のもの | `schedule-daily:last-target-date` |
 
 - 時刻は JST です。`TECH_WEEKLY` の曜日は `sun` / `mon` / `tue` / `wed` / `thu` / `fri` / `sat` です。空にするとその通知はオフです。形が違うとオフとして扱い、毎分 `reason: invalid` のログを出します。変えたらデプロイします
-- 送り先は `NOTIFY_LINE_USER_ID` の 1 人です。Notion のメモには持ち主の情報が無いからです。`users` テーブルは読みません
-- todo を終えたら、Notion でページを消すか、種類を変えます。Web でタグを付け直したり消したりしても、Notion には反映されません。予定の日時の変更も Notion で行います
-- #138 より前のメモは Notion に無いので、移すまで（#139）通知に入りません
-- 記録が無いとき（初回）は送らず、今を送信済みとして記録します（`reason: baseline`）。D1 から記録を移さないので、切り替えた直後のデプロイで同じ回を送り直さないためです。最初の通知は次の時刻に届きます
+- 送り先は `NOTIFY_LINE_USER_ID` の 1 人です。Notion のメモには持ち主の情報が無いからです
+- todo を終えたら、Notion でページを消すか、種類を変えます。予定の日時の変更も Notion で行います
+- #138 より前のメモは Notion に移していないので（#139 で移さないと決めた）、通知に入りません
+- 記録が無いとき（初回）は送らず、今を送信済みとして記録します（`reason: baseline`）。切り替えた直後のデプロイで同じ回を送り直さないためです。最初の通知は次の時刻に届きます
 - Notion を読むのは送る時刻が来たときだけで、1 回の通知で最大 5 ページ（500 件）です。Notion の日付の絞り込みは広めにかけ、正確な範囲（JST の日付、1 週間の窓）はコードで絞ります
 - 送信済みとして記録するのは、送れたとき、LINE に届かなかったとき（ブロックなど）、メモが 0 件のとき、送り先か Notion の秘密が無いとき、Notion が 400・401・403・404 を返したとき（トークンや ID の誤りで、送り直しても直らない）です。Notion の一時的な失敗（ネットワーク、429、5xx）と LINE の一時的な失敗は記録せず、次の分に送り直します。予定の前日通知は、Notion を読む前に対象日を処理済みにし（先取り）、記録しない失敗のときは元に戻します
 - 5 ページ（500 件）で打ち切ったときは、ログに `truncated: true` を付けます。見出しの件数は読めた分だけです
@@ -257,8 +216,6 @@ Cron は [`apps/api/wrangler.toml`](../apps/api/wrangler.toml) の `* * * * *`�
 
 Push は既存の `LINE_CHANNEL_ACCESS_TOKEN` を使います。Login チャネルの秘密では送れません。溢れたときは「他N件はこちら」のあとに `NOTION_VIEW_URL`（無ければ `APP_URL`）を付けます。
 
-D1 の `tech_weekly_settings`、`todo_daily_settings`、`schedule_daily_settings` は読み書きしなくなりました。テーブルは #143 で消します。
-
 ## リモート（初回のみ）
 
 リソースは作成済みです。別アカウントでやり直すとき用です。
@@ -269,25 +226,12 @@ pnpm --filter @repo/api exec wrangler whoami
 ```
 
 ```bash
-pnpm --filter @repo/api exec wrangler d1 create line-memo-orchestrator
-```
-
-出力の `database_id` を `apps/api/wrangler.toml` に書く。
-
-```bash
-pnpm --filter @repo/api exec wrangler r2 bucket create line-memo-orchestrator-media
-```
-
-`Please enable R2`（code 10042）なら、ダッシュボードの Storage & databases → R2 で初回有効化して再実行する。
-
-```bash
 pnpm --filter @repo/api exec wrangler kv namespace create line-memo-orchestrator-dedup
 ```
 
 出力の `id` を `apps/api/wrangler.toml` の `[[kv_namespaces]]` に書く。
 
 ```bash
-pnpm --filter @repo/api db:migrate:remote
 pnpm run deploy
 ```
 
@@ -305,13 +249,9 @@ https://line-memo-orchestrator.hirohiro-sys.workers.dev/api/health
 
 macOS 付属の `curl` で SSL handshake failure になることがあります。ブラウザで確認してください。
 
-```bash
-pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --remote --command "SELECT id, slug, name FROM tags ORDER BY slug"
-```
-
 ## CI/CD
 
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) が PR と `main` への push で lint、typecheck、API テスト、web build を走らせます。`main` への push だけ、check のあと `pnpm run deploy` します。D1 マイグレーションは CI では走りません。スキーマを変えたら、デプロイより先に手元で `db:migrate:remote` します。
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) が PR と `main` への push で lint、typecheck、API テスト、web build を走らせます。`main` への push だけ、check のあと `pnpm run deploy` します。
 
 GitHub Secrets（Actions）に入れるのは次だけです。LINE 系・`SESSION_SECRET`・`APP_URL` は今どおり Cloudflare の `wrangler secret` です。取り違えると、デプロイは通ってもログインが切れます。
 
@@ -320,10 +260,27 @@ GitHub Secrets（Actions）に入れるのは次だけです。LINE 系・`SESSI
 | `CLOUDFLARE_API_TOKEN` | ダッシュボードの API Tokens で発行。テンプレート「Edit Cloudflare Workers」。手元の wrangler OAuth は使わない |
 | `CLOUDFLARE_ACCOUNT_ID` | `wrangler whoami` の Account ID |
 
-Token に D1 編集は付けない。CI は migrate しない。漏れたときの被害を広げるだけです。デプロイが D1 権限不足で落ちてから足します。
+Token に D1 や R2 の編集は付けない。CI は使わないので、漏れたときの被害を広げるだけです。
 
 ## 再デプロイ
 
 ```bash
 pnpm run deploy
 ```
+
+## D1 と R2 の片づけ（#143、一度だけ）
+
+#143 で D1（`line-memo-orchestrator`）、R2（`line-memo-orchestrator-media`）、Workers AI を Worker から外しました。データベースとバケットは Cloudflare に残っているので、#143 のデプロイが終わってから手で消します。先に消すと、その時点で動いている Worker が壊れます。消す前に、本番の D1 は手元に SQL で書き出してあります（メモ 18 件。Notion には移していません）。
+
+1. 本番の Web にログインでき、Web と LINE から送ったメモが Notion に入ることを確かめる
+2. D1 を消す。元に戻せない
+
+   ```bash
+   pnpm --filter @repo/api exec wrangler d1 delete line-memo-orchestrator
+   ```
+
+3. R2 のバケットを消す。中身（URL のメモの OGP 画像。2026-11-24 の時点で 2 個）が残っていると消せないので、ダッシュボードの R2 で中身を消してから消す
+
+   ```bash
+   pnpm --filter @repo/api exec wrangler r2 bucket delete line-memo-orchestrator-media
+   ```

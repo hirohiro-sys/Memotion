@@ -14,7 +14,7 @@ alwaysApply: true
 
 実装の経緯は渡さない。差分は `git diff main...HEAD` を自分で取る。作業ツリーに未コミットの変更があるときは `git diff HEAD` も取る。指摘は日本語で、変更行のバグ・権限漏れ・契約崩れを優先する。
 
-1. セキュリティ: `.agents/rules/line-security.md`。認可漏れ、署名検証前の解釈、画像の公開、機密（`.dev.vars`）の露出
+1. セキュリティ: `.agents/rules/line-security.md`。認可漏れ、署名検証前の解釈、Notion へ送る項目、機密（`.dev.vars`）の露出
 2. テスト: `.agents/rules/testing.md`。API の振る舞い変更に対応する `*.test.ts` があるか、骨抜きでないか。Web だけの変更はテスト不足にしない
 3. 設計: `.agents/rules/architecture.md`。1ファイル1責務、機能境界、`index.ts` にロジックを書かない
 4. ルール準拠: `.agents/rules/` の該当ルール。見た目は `apps/web/DESIGN.md`、公開契約は `packages/shared` の Zod

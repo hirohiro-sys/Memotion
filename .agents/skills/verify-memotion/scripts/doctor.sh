@@ -14,22 +14,13 @@ fail() {
 kill -0 "$(cat "$RUN/api.pid")" 2>/dev/null || fail "api process is not running"
 kill -0 "$(cat "$RUN/web.pid")" 2>/dev/null || fail "web process is not running"
 
-if awk '
-  /^\[\[d1_databases\]\]/ || /^\[\[r2_buckets\]\]/ { block = 1; next }
-  /^\[/ { block = 0 }
-  block && /^remote = true/ { found = 1 }
-  END { exit found ? 0 : 1 }
-' "$ROOT/apps/api/wrangler.toml"; then
-  fail "wrangler.toml D1 or R2 has remote = true"
+if grep -q '^remote = true' "$ROOT/apps/api/wrangler.toml"; then
+  fail "wrangler.toml has remote = true"
 fi
 
 curl -sf http://127.0.0.1:8787/api/health | grep -q '"status":"ok"' || fail "api health is not ok"
 code="$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:5173/login || true)"
 [[ "$code" == "200" ]] || fail "login page did not return 200"
-grep "D1 Database" "$RUN/api.log" | grep -q "local" || fail "D1 binding is not local"
-if grep "D1 Database" "$RUN/api.log" | grep -q "remote"; then
-  fail "D1 binding is remote"
-fi
 
 api_listen="$(lsof -nP -iTCP:8787 -sTCP:LISTEN -t | tr '\n' ' ')"
 web_listen="$(lsof -nP -iTCP:5173 -sTCP:LISTEN -t | tr '\n' ' ')"
