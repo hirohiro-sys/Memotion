@@ -1,6 +1,6 @@
 ---
 name: verify-memotion
-description: "Drive the Memotion web app in a local browser and prove a user-visible change with a snapshot, a screenshot, and the saved memo row. Use when a change touches login, the memo list, memo creation, groups, or settings."
+description: "Drive the Memotion web app in a local browser and prove a user-visible change with a snapshot, a screenshot, and the saved memo row. Use when a change touches login, the entry screen, memo creation, or the app menu."
 ---
 
 # Verify Memotion
@@ -47,37 +47,31 @@ Stable handles:
 | --- | --- |
 | LINE login | button `LINEでログイン` |
 | Dev login | link `開発用ログイン` |
-| Memo list heading | heading `メモ一覧` |
-| Search | searchbox `メモを検索` |
-| Add memo | button `追加` |
 | Memo body | textbox `メモを入力...` (the placeholder is the name) |
+| Tag | buttons `つぶやき` / `技術` / `やること` / `予定` / `その他` |
 | Save memo | button `送信` |
-| Empty list | text `まだメモがありません` |
-| Memo tab / group tab | tab `メモ` / tab `グループ` |
-| New group | button `新しいグループを作る` |
-| Group name | textbox `グループの名前` |
-| Create group | button `作成` |
-| Settings | link `設定` (sidebar). On a narrow window, button `メニューを開く` reveals it |
-| Logout | button `ログアウト` |
-| Select a memo | checkbox `このメモを選択` |
+| Saved | toast `保存しました` |
+| Unsent memos | heading `未送信のメモ N件`, card label `送信待ち` |
+| App menu | button `メニュー` (top right) |
+| Logout | menu item `ログアウト` |
 
 ## Evidence
 
 Write proof under `.agents/skills/verify-memotion/artifacts/<feature-id>/`. Cleanup must not delete this directory.
 
-For a UI proof, save the ARIA snapshot and a screenshot that shows the Memotion heading and the result of the action. Also save the side effect: `curl -sS -b .agents/skills/verify-memotion/run/cookies.txt http://127.0.0.1:5173/api/memos` into `memos.json`. A local D1 read is the second stored view:
+For a UI proof, save the ARIA snapshot and a screenshot that shows the Memotion header and the result of the action. The entry screen does not list sent memos, so the side effect is a local D1 read:
 
 ```bash
 pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --local --command "SELECT id, content FROM memos WHERE content = 'verify-memotion'"
 ```
 
-Never add `--remote`. A screenshot of the final screen alone is not proof. The snapshot must show the action's result, and `memos.json` must contain the same text.
+Never add `--remote`. A screenshot of the final screen alone is not proof. The snapshot must show the action's result, and the D1 read must contain the same text.
 
-Do not mock the API. Do not prove a create by calling `POST /api/memos` yourself. Offline copy `オフラインのため既存のメモは表示できません` means the list is not the server list; stop.
+Do not mock the API. Do not prove a create by calling `POST /api/memos` yourself. A `送信待ち` card that does not go away while online means the save did not reach the API; stop.
 
 ## Cleanup
 
-After the proof artifacts are on disk, remove only the fixture memo this run created (select it, `削除`, then `削除する`), then:
+After the proof artifacts are on disk, remove only the fixture memos this run created with a local D1 `DELETE` on their exact content and `user_id = 'usr_dev_local'` (the screen has no delete), then:
 
 ```bash
 .agents/skills/verify-memotion/scripts/cleanup.sh

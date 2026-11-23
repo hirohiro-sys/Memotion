@@ -14,13 +14,13 @@ This directory is the maintained source for verifying Memotion's user-facing web
 - Start every recipe from the baseline state unless its preconditions say otherwise.
 - Prefer ARIA roles and accessible names over CSS selectors or screen coordinates.
 - Drive the browser as the user. Use `curl` with `.agents/skills/verify-memotion/run/cookies.txt` only to read back a row the browser saved.
-- Keep proof artifacts. Cleanup removes the fixture memo and the `run/` directory, not `artifacts/`.
+- Keep proof artifacts. Cleanup removes the fixture memos and the `run/` directory, not `artifacts/`.
 
 ## Proof and skip reporting
 
 - Capture the user action and the resulting state, not only the final screen.
 - UI proof includes an ARIA snapshot and a screenshot that shows the Memotion heading.
-- Mutation proof includes `memos.json` from `GET /api/memos` and a local D1 read of the same content.
+- Mutation proof is a local D1 read of the same content. The entry screen has no list to read back.
 - Record the feature ID and the entry point used with every artifact.
 - Report an unreachable path with the attempted step and the unmet precondition.
 - Do not report a skipped entry point as verified through a different path.
@@ -37,10 +37,5 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 ## Features
 
 - [Dev login](./dev-login.md) opens the app as the local dev user.
-- [Memo list](./memo-list.md) shows the signed-in user's memos, filters them by tag, and deletes selected ones.
-- [Memo search](./memo-search.md) narrows the list by text, link, and the date and time on a schedule card.
-- [Create a memo](./create-memo.md) saves a memo from the list and shows it again.
-- [Schedule and calendar](./schedule.md) saves a schedule and shows it on the calendar.
-- [Daily reports](./daily-reports.md) creates a report from selected memos, lists it, edits it, and shows it on the calendar.
-- [Groups](./groups.md) creates, renames, fills, and deletes groups.
-- [Settings](./settings.md) shows notification switches, the install guide, and log out.
+- [Create a memo](./create-memo.md) sends a memo, a schedule, and an offline memo from the entry screen.
+- [App menu](./app-menu.md) switches the theme, shows the install guide, and logs out.
