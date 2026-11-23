@@ -25,7 +25,7 @@ LINEを用いた個人用のインタースティシャルジャーナリング�
 │   └── web/
 │       └── src/
 │           ├── routes/
-│           ├── features/    # auth / daily-reports / groups / memos / pwa / schedule
+│           ├── features/    # auth / memos / pwa / schedule
 │           ├── components/
 │           └── config/
 ├── packages/shared/         # API 契約の Zod
