@@ -14,7 +14,7 @@ fail() {
 kill -0 "$(cat "$RUN/api.pid")" 2>/dev/null || fail "api process is not running"
 kill -0 "$(cat "$RUN/web.pid")" 2>/dev/null || fail "web process is not running"
 
-if grep -q '^remote = true' "$ROOT/apps/api/wrangler.toml"; then
+if grep -Eq '^[[:space:]]*remote[[:space:]]*=[[:space:]]*true' "$ROOT/apps/api/wrangler.toml"; then
   fail "wrangler.toml has remote = true"
 fi
 

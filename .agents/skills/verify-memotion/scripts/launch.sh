@@ -7,7 +7,7 @@ RUN="$SKILL_DIR/run"
 mkdir -p "$RUN"
 
 # remote = true の KV と Durable Object は本番に繋がる。
-if grep -q '^remote = true' "$ROOT/apps/api/wrangler.toml"; then
+if grep -Eq '^[[:space:]]*remote[[:space:]]*=[[:space:]]*true' "$ROOT/apps/api/wrangler.toml"; then
   echo "wrangler.toml has remote = true; refusing to start" >&2
   exit 1
 fi
