@@ -33,9 +33,10 @@ database_id = "52233bb7-9a0f-4385-918d-54616c7338a2"
 migrations_dir = "migrations"
 
 # LINE の受信済みと、Web の再送の重複判定の記録。D1 を外したあとも二重保存を防ぐ。
-# 本番の id は手作業で作って書く（docs/backend-setup.md）。ローカルは id なしで動く。
+# 本番の名前空間は手作業で作った（docs/backend-setup.md）。wrangler dev はローカルの KV を使う。
 [[kv_namespaces]]
 binding = "DEDUP"
+id = "620d745394c74102a6300ef90cdc404d"
 
 [[r2_buckets]]
 binding = "MEDIA"
