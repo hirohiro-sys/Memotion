@@ -1,4 +1,3 @@
-import { createDb } from "../../db";
 import type { Env } from "../../env";
 import { replyFailure } from "../../lib/line/client";
 import { resolveUserIdByLineUserId } from "../auth/service";
@@ -133,10 +132,7 @@ async function handleEvent(env: Env, event: unknown): Promise<void> {
   }
 
   try {
-    const userId = await resolveUserIdByLineUserId(
-      createDb(env.DB),
-      decision.lineUserId,
-    );
+    const userId = resolveUserIdByLineUserId(env, decision.lineUserId);
     if (!userId) {
       logJson({
         event: "line.event",

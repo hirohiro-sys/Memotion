@@ -55,10 +55,7 @@ auth.get("/api/auth/line/callback", async (c) => {
       channelId: c.env.LINE_CHANNEL_ID,
       channelSecret: c.env.LINE_CHANNEL_SECRET,
     });
-    const userId = await resolveUserIdByLineUserId(
-      createDb(c.env.DB),
-      lineUserId,
-    );
+    const userId = resolveUserIdByLineUserId(c.env, lineUserId);
 
     if (!userId) {
       return c.redirect(frontendUrl(appUrl, "/login?error=denied"));

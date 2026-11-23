@@ -11,6 +11,10 @@ export type Env = {
   LINE_CHANNEL_ACCESS_TOKEN: string;
   SESSION_SECRET: string;
   APP_URL: string;
+  // Web のログインと LINE の受信を許す LINE ユーザー ID（カンマ区切り）と、その持ち主のアプリのユーザー ID。
+  // 許可した全員を APP_USER_ID の 1 人として扱う。どちらかが無ければ誰も許さない。
+  ALLOWED_LINE_USER_IDS?: string;
+  APP_USER_ID?: string;
   // Notion のインテグレーションのトークンと、メモを書くデータソースの ID。
   // どちらかが無ければ Notion には書かない（D1 への保存は続ける）。
   NOTION_TOKEN?: string;

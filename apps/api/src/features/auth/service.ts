@@ -1,5 +1,7 @@
 import type { Database } from "../../db";
-import { ensureDevUser, findUserIdByLineUserId } from "./repository";
+import type { Env } from "../../env";
+import { appUserIdFor } from "./allowlist";
+import { ensureDevUser } from "./repository";
 
 const LINE_TOKEN = "https://api.line.me/oauth2/v2.1/token";
 const LINE_VERIFY = "https://api.line.me/oauth2/v2.1/verify";
@@ -59,12 +61,16 @@ export async function exchangeCodeForLineUserId(input: {
   return sub;
 }
 
-// LINE のユーザー ID から、allowlist 済みのアプリのユーザー ID を引く。未登録は null。
+// LINE のユーザー ID から、許可リスト（環境変数）にあればアプリのユーザー ID を返す。無ければ null。
 export function resolveUserIdByLineUserId(
-  db: Database,
+  env: Pick<Env, "ALLOWED_LINE_USER_IDS" | "APP_USER_ID">,
   lineUserId: string,
-): Promise<string | null> {
-  return findUserIdByLineUserId(db, lineUserId);
+): string | null {
+  return appUserIdFor({
+    allowedLineUserIds: env.ALLOWED_LINE_USER_IDS,
+    appUserId: env.APP_USER_ID,
+    lineUserId,
+  });
 }
 
 // 開発用ログインの固定ユーザーを用意し、そのユーザー ID を返す。
