@@ -17,6 +17,13 @@ import {
   isForeignKeyViolation,
   isLineMessageIdConflict,
 } from "./constraint-error";
+import { toWebMemoRecord } from "./dedup-record";
+import {
+  findWebMemo,
+  hasLineMessage,
+  putLineMessage,
+  putWebMemo,
+} from "./dedup-repository";
 import {
   decideCreateResult,
   type ExistingMemoRow,
@@ -133,6 +140,7 @@ export async function listForUser(
 
 export async function createForUser(
   db: Database,
+  kv: KVNamespace,
   userId: string,
   input: CreateMemoRequest,
   options: { groupId?: string } = {},
@@ -156,10 +164,42 @@ export async function createForUser(
   );
   if (scheduleCheck !== "ok") return { ok: false, error: scheduleCheck };
 
+  const memoId = input.id ?? nanoid();
+  const compared = {
+    tag: input.tag,
+    content: input.content,
+    groupId,
+    scheduledDate: input.scheduledDate,
+    scheduledTime: input.scheduledTime,
+  };
+
+  // 端末が付けた id の再送は、先に KV の記録で見分ける。
+  // 記録が無いか読めないときは D1 に保存し、主キーの一意制約で見分ける（#143 まで残す保険）。
+  if (input.id !== undefined) {
+    const recorded = await readWebMemoRecord(kv, memoId);
+    if (recorded) {
+      const decision = decideCreateResult(
+        "primary_key_conflict",
+        recorded,
+        compared,
+        userId,
+      );
+      if (decision.kind === "existing") {
+        logJson({ event: "memo.create", status: "duplicate", memoId });
+        return {
+          ok: true,
+          created: false,
+          memo: toMemoResponse(decision.row),
+        };
+      }
+      logJson({ event: "memo.create", status: "conflict", memoId });
+      return { ok: false, error: "conflict" };
+    }
+  }
+
   const tag = await findTagBySlug(db, input.tag);
   if (!tag) return { ok: false, error: "invalid" };
 
-  const memoId = input.id ?? nanoid();
   const createdAt = resolveCreatedAt(input.createdAt, now);
   const mediaType = detectMediaType(input.content);
   const scheduledDate =
@@ -209,37 +249,27 @@ export async function createForUser(
     }
   }
 
-  const decision = decideCreateResult(
-    saveResult,
-    existing,
-    {
-      tag: input.tag,
-      content: input.content,
-      groupId,
-      scheduledDate: input.scheduledDate,
-      scheduledTime: input.scheduledTime,
-    },
-    userId,
-  );
+  const decision = decideCreateResult(saveResult, existing, compared, userId);
   switch (decision.kind) {
-    case "created":
-      return {
-        ok: true,
-        created: true,
-        memo: toMemoResponse({
-          id: memoId,
-          tag: tag.slug,
-          content: input.content,
-          url: null,
-          imageKey: null,
-          mediaType,
-          source: "web",
-          createdAt,
-          groupId: groupId ?? null,
-          scheduledDate,
-          scheduledTime,
-        }),
+    case "created": {
+      const row: MemoRow = {
+        id: memoId,
+        tag: tag.slug,
+        content: input.content,
+        url: null,
+        imageKey: null,
+        mediaType,
+        source: "web",
+        createdAt,
+        groupId: groupId ?? null,
+        scheduledDate,
+        scheduledTime,
       };
+      if (input.id !== undefined) {
+        await recordWebMemo(kv, toWebMemoRecord(row, userId));
+      }
+      return { ok: true, created: true, memo: toMemoResponse(row) };
+    }
     case "existing":
       logJson({ event: "memo.create", status: "duplicate", memoId });
       return { ok: true, created: false, memo: toMemoResponse(decision.row) };
@@ -363,6 +393,60 @@ export async function getImageForUser(
 
 function logJson(fields: Record<string, unknown>) {
   console.log(JSON.stringify(fields));
+}
+
+// KV の記録の読み書きは、失敗しても保存を止めない。D1 の一意制約が残っているため。
+// 失敗はログに残し、記録なしとして進む。
+async function readWebMemoRecord(
+  kv: KVNamespace,
+  memoId: string,
+): Promise<ExistingMemoRow | null> {
+  try {
+    return await findWebMemo(kv, memoId);
+  } catch {
+    logJson({ event: "memo.dedup", status: "failed", reason: "read", memoId });
+    return null;
+  }
+}
+
+async function recordWebMemo(
+  kv: KVNamespace,
+  row: ExistingMemoRow,
+): Promise<void> {
+  try {
+    await putWebMemo(kv, row);
+  } catch {
+    logJson({
+      event: "memo.dedup",
+      status: "failed",
+      reason: "write",
+      memoId: row.id,
+    });
+  }
+}
+
+async function isRecordedLineMessage(
+  kv: KVNamespace,
+  lineMessageId: string,
+): Promise<boolean> {
+  try {
+    return await hasLineMessage(kv, lineMessageId);
+  } catch {
+    logJson({ event: "memo.dedup", status: "failed", reason: "read" });
+    return false;
+  }
+}
+
+async function recordLineMessage(
+  kv: KVNamespace,
+  lineMessageId: string,
+  memoId: string,
+): Promise<void> {
+  try {
+    await putLineMessage(kv, lineMessageId, memoId);
+  } catch {
+    logJson({ event: "memo.dedup", status: "failed", reason: "write", memoId });
+  }
 }
 
 // D1 に保存したメモを Notion にも書く。正本はまだ D1 なので、失敗してもログだけ残して返す。
@@ -544,6 +628,7 @@ export async function createFromLine(
     Env,
     | "DB"
     | "MEDIA"
+    | "DEDUP"
     | "LINE_CHANNEL_ACCESS_TOKEN"
     | "NOTION_TOKEN"
     | "NOTION_DATA_SOURCE_ID"
@@ -555,6 +640,11 @@ export async function createFromLine(
   },
 ): Promise<PersistResult> {
   try {
+    // LINE の再送は、先に KV の記録で見分ける。記録が無いか読めないときは D1 で見分ける（#143 まで残す保険）。
+    if (await isRecordedLineMessage(env.DEDUP, input.lineMessageId)) {
+      return { status: "duplicate" };
+    }
+
     const db = createDb(env.DB);
     const existing = await findByLineMessageId(db, input.lineMessageId);
     if (existing) return { status: "duplicate" };
@@ -589,6 +679,7 @@ export async function createFromLine(
       lineMessageId: input.lineMessageId,
       createdAt,
     });
+    await recordLineMessage(env.DEDUP, input.lineMessageId, memoId);
     if (input.classified.mediaType === "url") {
       await captureOgpForMemo(env, memoId);
     }

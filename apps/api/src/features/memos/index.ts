@@ -50,7 +50,12 @@ memoRoutes.post("/api/memos", async (c) => {
     return c.json({ message: "invalid request" }, 400);
   }
 
-  const result = await createForUser(createDb(c.env.DB), userId, body);
+  const result = await createForUser(
+    createDb(c.env.DB),
+    c.env.DEDUP,
+    userId,
+    body,
+  );
   if (!result.ok) {
     if (result.error === "invalid") {
       return c.json({ message: "invalid request" }, 400);

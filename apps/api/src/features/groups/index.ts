@@ -155,6 +155,7 @@ groupRoutes.post("/api/groups/:id/memos", async (c) => {
 
   const result = await createMemoForUser(
     createDb(c.env.DB),
+    c.env.DEDUP,
     userId,
     groupId,
     body,

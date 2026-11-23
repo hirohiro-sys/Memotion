@@ -33,8 +33,9 @@ pnpm install
 | Worker | `line-memo-orchestrator` |
 | D1 | `line-memo-orchestrator` |
 | R2 | `line-memo-orchestrator-media` |
+| KV | `line-memo-orchestrator-dedup` |
 
-設定の正は [`apps/api/wrangler.toml`](../apps/api/wrangler.toml) です。`database_id` は秘密情報ではないので git に含めてよいです。`.dev.vars` と `.wrangler/` はコミットしないでください。
+設定の正は [`apps/api/wrangler.toml`](../apps/api/wrangler.toml) です。`database_id` と KV の `id` は秘密情報ではないので git に含めてよいです。`.dev.vars` と `.wrangler/` はコミットしないでください。
 
 ## 環境変数
 
@@ -162,6 +163,32 @@ pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --local 
 
 5. ローカルは `apps/api/.dev.vars`、本番は `wrangler secret put` で2つを入れる
 
+## 重複判定（KV）
+
+LINE の再送と Web のオフライン再送で同じメモを二重に保存しないよう、受け取った記録を Cloudflare KV（バインディング `DEDUP`）に置きます（#137）。D1 を外したあとも重複を防ぐためです。
+
+| 記録 | キー | 値 | 保持 |
+|------|------|----|------|
+| LINE の受信済み | `line-message:<LINE のメッセージ ID>` | 保存したメモの ID | 7 日 |
+| Web の保存済み | `web-memo:<端末が付けたメモ ID>` | 保存したメモと持ち主のユーザー ID | 30 日 |
+
+- 保存の前に KV を見て、記録があれば重複として扱います。LINE は何もしません。Web は、持ち主と内容が同じなら 200 で保存済みのメモを返し、違えば 409 を返します
+- 記録が無いときは D1 に保存し、保存できたら KV に書きます。KV はほぼ同時に届いた 2 件を止めきれないので、D1 の一意制約（`memos.id`、`memos.line_message_id`）を #143 まで保険として残します。導入前のメモの再送も D1 が止めます
+- KV の読み書きに失敗しても保存は止めません。`memo.dedup`（`status: failed`、`reason: read` か `write`）のログを残して D1 の判定に進みます
+- Web の記録は保存した時点の写しで、タグの付け直し、予定の変更、グループへの追加、削除では更新しません。そのため、記録がある間の再送は、メモを変えたあとでも 200 になり、消したメモは復活しません（以前は D1 の今の行と比べたので、変えたあとは 409、消したあとは保存し直していました）。Web は 200 の本文を使わずに一覧を取り直すので、古い内容は画面に出ません
+- Web の記録には本文が入るので、メモを消しても KV に最大 30 日残ります
+- ローカルの `wrangler dev` は、`id` があってもローカルの KV を使います。`remote = true` を付けると本番の KV に繋がるので付けません
+
+### 本番の名前空間を作る（初回のみ、手作業）
+
+`wrangler.toml` に `id` が無いままデプロイすると、wrangler が名前空間を自動で作ります。CI のデプロイで意図せず作られないよう、`#137` をマージする前に手元で作り、`id` を書いてコミットします。
+
+```bash
+pnpm --filter @repo/api exec wrangler kv namespace create line-memo-orchestrator-dedup
+```
+
+出力の `id` を、`apps/api/wrangler.toml` の `[[kv_namespaces]]`（`binding = "DEDUP"`）に `id = "..."` として足します。
+
 ## LINE Messaging
 
 Login チャネルと**同じプロバイダー**の下に Messaging API チャネルを置く。別プロバイダーだと `userId` が変わり、`users.line_user_id` と一致しない。実体が同じチャネルなら、同じ値を Login 用と Messaging 用の変数に入れてよい。名前は必ず分ける。
@@ -217,6 +244,12 @@ pnpm --filter @repo/api exec wrangler r2 bucket create line-memo-orchestrator-me
 ```
 
 `Please enable R2`（code 10042）なら、ダッシュボードの Storage & databases → R2 で初回有効化して再実行する。
+
+```bash
+pnpm --filter @repo/api exec wrangler kv namespace create line-memo-orchestrator-dedup
+```
+
+出力の `id` を `apps/api/wrangler.toml` の `[[kv_namespaces]]` に書く。
 
 ```bash
 pnpm --filter @repo/api db:migrate:remote
