@@ -145,6 +145,7 @@ export async function listMemosForUser(
 
 export async function createMemoForUser(
   db: Database,
+  kv: KVNamespace,
   userId: string,
   groupId: string,
   input: CreateGroupMemoRequest,
@@ -152,7 +153,7 @@ export async function createMemoForUser(
   const group = await findGroupForUser(db, userId, groupId);
   if (!group) return { ok: false as const, error: "group_missing" as const };
 
-  const result = await createMemo(db, userId, input, { groupId });
+  const result = await createMemo(db, kv, userId, input, { groupId });
   if (result.ok) {
     await touchIfNeeded(db, userId, groupId, {
       kind: "create",
