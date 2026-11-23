@@ -6,7 +6,6 @@ import { dailyReportRoutes } from "./features/daily-reports";
 import { groupRoutes } from "./features/groups";
 import { lineWebhook } from "./features/line";
 import { memoRoutes } from "./features/memos";
-import { notificationRoutes } from "./features/notifications";
 import { scheduled } from "./features/notifications/scheduled";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -21,7 +20,6 @@ app.route("/", dailyReportRoutes);
 app.route("/", groupRoutes);
 app.route("/", lineWebhook);
 app.route("/", memoRoutes);
-app.route("/", notificationRoutes);
 
 export default {
   fetch: app.fetch,

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { decideUserDigest, settingsAfterPush } from "./digest";
+import {
+  buildTechWeeklyTexts,
+  buildTodoDailyTexts,
+  decideTechWeekly,
+  decideTodoDaily,
+  shouldRecordAfterPush,
+} from "./digest";
 import type { DigestMemo } from "./message";
-import { DEFAULT_TECH_WEEKLY, UNREACHABLE_DISABLED_REASON } from "./settings";
 
 function jst(
   year: number,
@@ -15,82 +20,135 @@ function jst(
   );
 }
 
-const now = jst(2026, 9, 13, 20, 7);
-const appUrl = "https://memo.example";
+const SUNDAY_20 = { weekday: 0, time: "20:00" };
+const DAILY_08 = { time: "08:00" };
+const linkUrl = "https://www.notion.so/memos";
 
 function memo(createdAt: string, content = "記事"): DigestMemo {
   return { createdAt, content, mediaType: "text", url: null };
 }
 
-describe("decideUserDigest", () => {
-  it("skips a disabled user", () => {
+describe("decideTechWeekly", () => {
+  const now = jst(2026, 9, 13, 20, 7);
+
+  it("records a baseline without sending when nothing was sent before", () => {
     expect(
-      decideUserDigest({
-        settings: { ...DEFAULT_TECH_WEEKLY, enabled: false },
-        now,
-        memos: [memo(jst(2026, 9, 10, 12, 0).toISOString())],
-        appUrl,
-      }),
-    ).toEqual({ action: "skip", reason: "disabled" });
+      decideTechWeekly({ slot: SUNDAY_20, now, lastSentAt: null }),
+    ).toEqual({ action: "baseline" });
   });
 
-  it("skips when the latest slot is already sent", () => {
+  it("waits when the latest slot is already sent", () => {
     expect(
-      decideUserDigest({
-        settings: {
-          ...DEFAULT_TECH_WEEKLY,
-          lastSentAt: jst(2026, 9, 13, 20, 1).toISOString(),
-        },
+      decideTechWeekly({
+        slot: SUNDAY_20,
         now,
-        memos: [memo(jst(2026, 9, 10, 12, 0).toISOString())],
-        appUrl,
+        lastSentAt: jst(2026, 9, 13, 20, 1).toISOString(),
       }),
-    ).toEqual({ action: "skip", reason: "not_due" });
+    ).toEqual({ action: "not_due" });
   });
 
-  it("skips an empty due window without treating it as sent", () => {
+  it("is due with the week ending at the latest slot when sent before it", () => {
     expect(
-      decideUserDigest({
-        settings: DEFAULT_TECH_WEEKLY,
+      decideTechWeekly({
+        slot: SUNDAY_20,
         now,
-        memos: [memo(jst(2026, 9, 13, 20, 0).toISOString())],
-        appUrl,
+        lastSentAt: jst(2026, 9, 13, 19, 59).toISOString(),
       }),
-    ).toEqual({ action: "skip", reason: "empty" });
-  });
-
-  it("builds a push for due tech memos in the current window", () => {
-    const decision = decideUserDigest({
-      settings: DEFAULT_TECH_WEEKLY,
-      now,
-      memos: [memo(jst(2026, 9, 10, 12, 0).toISOString(), "Rust")],
-      appUrl,
+    ).toEqual({
+      action: "due",
+      window: { start: jst(2026, 9, 6, 20, 0), end: jst(2026, 9, 13, 20, 0) },
     });
-    expect(decision.action).toBe("push");
-    if (decision.action !== "push") return;
-    expect(decision.texts).toHaveLength(1);
-    expect(decision.texts[0]).toContain("今週のTech 1件");
-    expect(decision.texts[0]).toContain("Rust");
-    expect(decision.window).toEqual({
-      start: jst(2026, 9, 6, 20, 0),
-      end: jst(2026, 9, 13, 20, 0),
-    });
+  });
+
+  it("is not due one minute before the slot", () => {
+    expect(
+      decideTechWeekly({
+        slot: SUNDAY_20,
+        now: jst(2026, 9, 13, 19, 59),
+        lastSentAt: jst(2026, 9, 6, 20, 0).toISOString(),
+      }),
+    ).toEqual({ action: "not_due" });
   });
 });
 
-describe("settingsAfterPush", () => {
-  it("writes last_sent_at on success and does not write on transient", () => {
+describe("decideTodoDaily", () => {
+  it("records a baseline without sending when nothing was sent before", () => {
     expect(
-      settingsAfterPush(DEFAULT_TECH_WEEKLY, "success", now)?.lastSentAt,
-    ).toBe(now.toISOString());
-    expect(settingsAfterPush(DEFAULT_TECH_WEEKLY, "transient", now)).toBeNull();
+      decideTodoDaily({
+        slot: DAILY_08,
+        now: jst(2026, 9, 14, 8, 0),
+        lastSentAt: null,
+      }),
+    ).toEqual({ action: "baseline" });
   });
 
-  it("turns the toggle off with the fixed reason when the user is unreachable", () => {
-    expect(settingsAfterPush(DEFAULT_TECH_WEEKLY, "unreachable", now)).toEqual({
-      ...DEFAULT_TECH_WEEKLY,
-      enabled: false,
-      disabledReason: UNREACHABLE_DISABLED_REASON,
+  it("is due at 08:00 when the last send was yesterday", () => {
+    expect(
+      decideTodoDaily({
+        slot: DAILY_08,
+        now: jst(2026, 9, 14, 8, 0),
+        lastSentAt: jst(2026, 9, 13, 8, 0).toISOString(),
+      }),
+    ).toEqual({ action: "due" });
+  });
+
+  it("waits when today's 08:00 is already sent", () => {
+    expect(
+      decideTodoDaily({
+        slot: DAILY_08,
+        now: jst(2026, 9, 14, 21, 0),
+        lastSentAt: jst(2026, 9, 14, 8, 0).toISOString(),
+      }),
+    ).toEqual({ action: "not_due" });
+  });
+});
+
+describe("buildTechWeeklyTexts", () => {
+  it("heads the message with the count and the window and links to Notion on overflow", () => {
+    const texts = buildTechWeeklyTexts({
+      memos: [memo(jst(2026, 9, 10, 12, 0).toISOString(), "Rust")],
+      window: { start: jst(2026, 9, 6, 20, 0), end: jst(2026, 9, 13, 20, 0) },
+      linkUrl,
     });
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toContain("今週のTech 1件");
+    expect(texts[0]).toContain("Rust");
+  });
+
+  it("sends nothing for no memos", () => {
+    expect(
+      buildTechWeeklyTexts({
+        memos: [],
+        window: { start: jst(2026, 9, 6, 20, 0), end: jst(2026, 9, 13, 20, 0) },
+        linkUrl,
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("buildTodoDailyTexts", () => {
+  it("lists old and new todos under the count", () => {
+    const text = buildTodoDailyTexts({
+      memos: [
+        memo(jst(2026, 1, 2, 9, 0).toISOString(), "古い"),
+        memo(jst(2026, 9, 14, 21, 0).toISOString(), "新しい"),
+      ],
+      linkUrl,
+    }).join("\n");
+    expect(text).toContain("未完了のTODO 2件");
+    expect(text).toContain("古い");
+    expect(text).toContain("新しい");
+  });
+
+  it("sends nothing for no todos", () => {
+    expect(buildTodoDailyTexts({ memos: [], linkUrl })).toEqual([]);
+  });
+});
+
+describe("shouldRecordAfterPush", () => {
+  it("records a success and an unreachable user, and retries a transient failure", () => {
+    expect(shouldRecordAfterPush("success")).toBe(true);
+    expect(shouldRecordAfterPush("unreachable")).toBe(true);
+    expect(shouldRecordAfterPush("transient")).toBe(false);
   });
 });

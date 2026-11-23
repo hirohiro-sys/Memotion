@@ -400,39 +400,6 @@ export async function updateMemoTag(
   return row ? { ...row, tag: values.tag } : null;
 }
 
-export type ScheduleOnDateRow = {
-  scheduledTime: string | null;
-  content: string;
-  mediaType: string;
-  url: string | null;
-  createdAt: string;
-};
-
-// ある日（JST）の自分の予定。予定はグループに入らないので group_id は見ない。
-export async function listSchedulesOnDate(
-  db: Database,
-  userId: string,
-  date: string,
-): Promise<ScheduleOnDateRow[]> {
-  return db
-    .select({
-      scheduledTime: memos.scheduledTime,
-      content: memos.content,
-      mediaType: memos.mediaType,
-      url: memos.url,
-      createdAt: memos.createdAt,
-    })
-    .from(memos)
-    .innerJoin(tags, eq(memos.tagId, tags.id))
-    .where(
-      and(
-        eq(memos.userId, userId),
-        eq(memos.scheduledDate, date),
-        eq(tags.slug, "schedule"),
-      ),
-    );
-}
-
 export async function countMemosByGroup(
   db: Database,
   userId: string,

@@ -1,21 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { afterSchedulePush, decideScheduleDigest } from "./schedule-digest";
-import {
-  DEFAULT_SCHEDULE_DAILY,
-  type StoredScheduleSettings,
-  UNREACHABLE_DISABLED_REASON,
-} from "./settings";
 
 // JST の時刻を UTC の Date にする。
 function jst(iso: string): Date {
   return new Date(`${iso}+09:00`);
 }
 
-function settings(
-  overrides: Partial<StoredScheduleSettings> = {},
-): StoredScheduleSettings {
-  return { ...DEFAULT_SCHEDULE_DAILY, ...overrides };
-}
+const slot = { time: "20:00" };
 
 describe("decideScheduleDigest at 20:00", () => {
   it.each([
@@ -29,13 +20,21 @@ describe("decideScheduleDigest at 20:00", () => {
       "2026-11-01",
       { action: "skip", reason: "stale", targetDate: "2026-11-02" },
     ],
-    ["2026-11-02T19:59:59", null, { action: "skip", reason: "not_due" }],
+    [
+      "2026-11-02T19:59:59",
+      null,
+      { action: "baseline", targetDate: "2026-11-02" },
+    ],
     [
       "2026-11-02T20:00:00",
       "2026-11-02",
       { action: "send", targetDate: "2026-11-03" },
     ],
-    ["2026-11-02T20:00:00", null, { action: "send", targetDate: "2026-11-03" }],
+    [
+      "2026-11-02T20:00:00",
+      null,
+      { action: "baseline", targetDate: "2026-11-03" },
+    ],
     [
       "2026-11-02T20:00:00",
       "2026-11-03",
@@ -51,7 +50,11 @@ describe("decideScheduleDigest at 20:00", () => {
       "2026-11-02",
       { action: "skip", reason: "stale", targetDate: "2026-11-03" },
     ],
-    ["2026-11-03T00:10:00", null, { action: "skip", reason: "not_due" }],
+    [
+      "2026-11-03T00:10:00",
+      null,
+      { action: "baseline", targetDate: "2026-11-03" },
+    ],
     [
       "2026-11-03T00:11:00",
       "2026-11-03",
@@ -59,28 +62,15 @@ describe("decideScheduleDigest at 20:00", () => {
     ],
   ])("at %s with last_target_date %s", (now, lastTargetDate, expected) => {
     expect(
-      decideScheduleDigest({
-        settings: settings({ lastTargetDate }),
-        now: jst(now),
-      }),
+      decideScheduleDigest({ slot, lastTargetDate, now: jst(now) }),
     ).toEqual(expected);
-  });
-
-  it("skips a disabled setting whatever else holds", () => {
-    for (const lastTargetDate of [null, "2026-11-01", "2026-11-02"]) {
-      expect(
-        decideScheduleDigest({
-          settings: settings({ enabled: false, lastTargetDate }),
-          now: jst("2026-11-02T20:00:00"),
-        }),
-      ).toEqual({ action: "skip", reason: "disabled" });
-    }
   });
 
   it("does not resend the same target date after the time changes", () => {
     expect(
       decideScheduleDigest({
-        settings: settings({ time: "21:00", lastTargetDate: "2026-11-03" }),
+        slot: { time: "21:00" },
+        lastTargetDate: "2026-11-03",
         now: jst("2026-11-02T21:00:00"),
       }),
     ).toEqual({ action: "skip", reason: "already" });
@@ -89,7 +79,8 @@ describe("decideScheduleDigest at 20:00", () => {
   it("sends at 00:00 for the next day", () => {
     expect(
       decideScheduleDigest({
-        settings: settings({ time: "00:00", lastTargetDate: "2026-11-02" }),
+        slot: { time: "00:00" },
+        lastTargetDate: "2026-11-02",
         now: jst("2026-11-02T00:00:00"),
       }),
     ).toEqual({ action: "send", targetDate: "2026-11-03" });
@@ -98,11 +89,8 @@ describe("decideScheduleDigest at 20:00", () => {
   it("looks back to yesterday's 23:59 one minute before it", () => {
     const now = jst("2026-11-02T23:58:00");
     const at = (lastTargetDate: string | null) =>
-      decideScheduleDigest({
-        settings: settings({ time: "23:59", lastTargetDate }),
-        now,
-      });
-    expect(at(null)).toEqual({ action: "skip", reason: "not_due" });
+      decideScheduleDigest({ slot: { time: "23:59" }, lastTargetDate, now });
+    expect(at(null)).toEqual({ action: "baseline", targetDate: "2026-11-02" });
     expect(at("2026-11-02")).toEqual({ action: "skip", reason: "already" });
     expect(at("2026-11-01")).toEqual({
       action: "skip",
@@ -130,10 +118,9 @@ describe("afterSchedulePush", () => {
     });
   });
 
-  it("turns the setting off without reverting when LINE is unreachable", () => {
+  it("keeps the claim when LINE is unreachable so it does not retry every minute", () => {
     expect(afterSchedulePush("unreachable", "2026-11-02")).toEqual({
-      action: "disable",
-      disabledReason: UNREACHABLE_DISABLED_REASON,
+      action: "none",
     });
   });
 });

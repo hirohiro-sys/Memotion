@@ -5,117 +5,77 @@ import {
   type DigestMemo,
 } from "./message";
 import {
-  type StoredDailySettings,
-  type StoredSettings,
-  UNREACHABLE_DISABLED_REASON,
-} from "./settings";
-import {
+  type DailySlot,
   type DigestWindow,
   isDueToSend,
-  isInstantInWindow,
   latestDueAt,
+  type WeeklySlot,
   windowEndingAt,
 } from "./window";
 
-export type DigestDecision =
-  | { action: "skip"; reason: "disabled" | "not_due" | "empty" }
-  | { action: "push"; texts: string[]; window: DigestWindow };
+// 送信済みの記録が無いとき（初回、KV が空）は送らず、今を送信済みとして記録する（baseline）。
+// 記録を移した直後のデプロイで、すでに送った分を送り直さないため。
+export type TechWeeklyDecision =
+  | { action: "baseline" }
+  | { action: "not_due" }
+  | { action: "due"; window: DigestWindow };
 
-export type TodoDailySettings = StoredDailySettings;
+export type TodoDailyDecision =
+  | { action: "baseline" }
+  | { action: "not_due" }
+  | { action: "due" };
 
-export type TodoDigestDecision =
-  | { action: "skip"; reason: "disabled" | "not_due" | "empty" }
-  | { action: "push"; texts: string[] };
-
-export function decideUserDigest(input: {
-  settings: StoredSettings;
+export function decideTechWeekly(input: {
+  slot: WeeklySlot;
   now: Date;
-  memos: DigestMemo[];
-  appUrl: string;
-}): DigestDecision {
-  if (!input.settings.enabled) {
-    return { action: "skip", reason: "disabled" };
-  }
-
-  const slot = {
-    weekday: input.settings.weekday,
-    time: input.settings.time,
-  };
-  if (!isDueToSend(input.now, slot, input.settings.lastSentAt)) {
-    return { action: "skip", reason: "not_due" };
-  }
-
-  const window = windowEndingAt(latestDueAt(input.now, slot));
-  const inWindow = input.memos.filter((memo) =>
-    isInstantInWindow(memo.createdAt, window),
-  );
-  if (inWindow.length === 0) {
-    return { action: "skip", reason: "empty" };
-  }
-
-  const texts = buildDigestMessages({
-    memos: inWindow,
-    windowStart: window.start,
-    windowEnd: window.end,
-    appUrl: input.appUrl,
-  });
-  if (texts.length === 0) {
-    return { action: "skip", reason: "empty" };
-  }
-
-  return { action: "push", texts, window };
-}
-
-export function decideTodoDailyDigest(input: {
-  settings: TodoDailySettings;
-  now: Date;
-  memos: DigestMemo[];
-  appUrl: string;
-}): TodoDigestDecision {
-  if (!input.settings.enabled) {
-    return { action: "skip", reason: "disabled" };
-  }
-
-  const slot = { time: input.settings.time };
-  if (!isDueToSend(input.now, slot, input.settings.lastSentAt)) {
-    return { action: "skip", reason: "not_due" };
-  }
-
-  if (input.memos.length === 0) {
-    return { action: "skip", reason: "empty" };
-  }
-
-  const texts = buildTodoDigestMessages({
-    memos: input.memos,
-    appUrl: input.appUrl,
-  });
-  if (texts.length === 0) {
-    return { action: "skip", reason: "empty" };
-  }
-
-  return { action: "push", texts };
-}
-
-type AfterPushSettings = {
   lastSentAt: string | null;
-  enabled: boolean;
-  disabledReason: string | null;
-};
+}): TechWeeklyDecision {
+  if (input.lastSentAt === null) return { action: "baseline" };
+  if (!isDueToSend(input.now, input.slot, input.lastSentAt)) {
+    return { action: "not_due" };
+  }
+  return {
+    action: "due",
+    window: windowEndingAt(latestDueAt(input.now, input.slot)),
+  };
+}
 
-export function settingsAfterPush<T extends AfterPushSettings>(
-  settings: T,
-  result: PushResult,
-  now: Date,
-): T | null {
-  if (result === "success") {
-    return { ...settings, lastSentAt: now.toISOString() };
-  }
-  if (result === "unreachable") {
-    return {
-      ...settings,
-      enabled: false,
-      disabledReason: UNREACHABLE_DISABLED_REASON,
-    };
-  }
-  return null;
+export function decideTodoDaily(input: {
+  slot: DailySlot;
+  now: Date;
+  lastSentAt: string | null;
+}): TodoDailyDecision {
+  if (input.lastSentAt === null) return { action: "baseline" };
+  return isDueToSend(input.now, input.slot, input.lastSentAt)
+    ? { action: "due" }
+    : { action: "not_due" };
+}
+
+export function buildTechWeeklyTexts(input: {
+  memos: DigestMemo[];
+  window: DigestWindow;
+  linkUrl: string;
+}): string[] {
+  return buildDigestMessages({
+    memos: input.memos,
+    windowStart: input.window.start,
+    windowEnd: input.window.end,
+    appUrl: input.linkUrl,
+  });
+}
+
+export function buildTodoDailyTexts(input: {
+  memos: DigestMemo[];
+  linkUrl: string;
+}): string[] {
+  return buildTodoDigestMessages({
+    memos: input.memos,
+    appUrl: input.linkUrl,
+  });
+}
+
+// 送信のあと、その回を送信済みとして記録するか。
+// 一時的な失敗だけは記録せず、次の分に送り直す。届かない（ブロックなど）ときは記録し、毎分送り直さない。
+export function shouldRecordAfterPush(result: PushResult): boolean {
+  return result !== "transient";
 }
