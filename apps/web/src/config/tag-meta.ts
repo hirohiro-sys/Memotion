@@ -8,8 +8,6 @@ export const TAG_ORDER: MemoTag[] = [
   "other",
 ];
 
-export const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
-
 export const PILL_BASE =
   "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-caption font-medium transition-colors duration-200";
 

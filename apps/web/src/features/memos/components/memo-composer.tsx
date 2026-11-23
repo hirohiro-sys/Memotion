@@ -18,14 +18,13 @@ import { jstToday } from "@/features/schedule/jst";
 import { cn } from "@/utils/cn";
 import { useOnlineStatus } from "../offline/use-online-status";
 
+// メモの入力欄。送って保存か未送信リストへの積み込みができたら（onSubmit が true）、本文を空にする。
 export function MemoComposer({
   busy,
   onSubmit,
-  onCancel,
 }: {
   busy: boolean;
-  onSubmit: (input: CreateMemoRequest) => Promise<void>;
-  onCancel: () => void;
+  onSubmit: (input: CreateMemoRequest) => Promise<boolean>;
 }) {
   const online = useOnlineStatus();
   const [tag, setTag] = useState<MemoTag>("tweet");
@@ -60,7 +59,7 @@ export function MemoComposer({
     }
   }, [online, tag]);
 
-  function submit() {
+  async function submit() {
     if (!canSubmit) return;
     if (isSchedule) {
       // 入力欄を開いたまま日付が変わると、選んだ「今日」が過去になる。送る直前に確かめる。
@@ -75,16 +74,23 @@ export function MemoComposer({
       if (scheduleIdRef.current?.key !== key) {
         scheduleIdRef.current = { key, id: crypto.randomUUID() };
       }
-      return onSubmit({
+      const done = await onSubmit({
         id: scheduleIdRef.current.id,
         tag,
         content,
         scheduledDate: schedule.date,
         scheduledTime,
       });
+      if (done) {
+        scheduleIdRef.current = null;
+        setContent("");
+      }
+      return;
     }
     // オフラインでは分類を選ばせず、すべて「つぶやき」で積む。
-    return onSubmit({ tag: online ? tag : "tweet", content });
+    if (await onSubmit({ tag: online ? tag : "tweet", content })) {
+      setContent("");
+    }
   }
 
   function handleSubmit(event: FormEvent) {
@@ -104,7 +110,7 @@ export function MemoComposer({
   return (
     <form
       onSubmit={handleSubmit}
-      className="mb-6 rounded-xl border border-border bg-card p-6"
+      className="rounded-xl border border-border bg-card p-4 md:p-6"
     >
       {online ? null : (
         <p className="mb-4 text-caption text-stone">
@@ -158,15 +164,14 @@ export function MemoComposer({
         onChange={(event) => setContent(event.target.value)}
         aria-label="メモを入力..."
         placeholder="メモを入力..."
-        rows={3}
+        rows={4}
+        // biome-ignore lint/a11y/noAutofocus: 開いたらすぐ書ける画面にする（この画面の目的は入力だけ）。
+        autoFocus
         onKeyDown={handleKeyDown}
         className="mb-4 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-body-sm text-foreground outline-none transition-colors duration-200 placeholder:text-stone focus:border-primary"
       />
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          キャンセル
-        </Button>
         <Button
           type="submit"
           variant="outline"

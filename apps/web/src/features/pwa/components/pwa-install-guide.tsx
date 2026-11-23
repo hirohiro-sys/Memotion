@@ -30,7 +30,7 @@ const GUIDES = [
 
 export function PwaInstallGuide() {
   return (
-    <section className="rounded-xl border border-border bg-card p-6">
+    <section>
       <h3 className="mb-2 text-subheading font-bold text-foreground">
         アプリとして使う
       </h3>
@@ -58,7 +58,7 @@ export function PwaInstallGuide() {
       <div className="mt-6">
         <p className="text-body-sm text-foreground">オフラインでの追加</p>
         <p className="mt-0.5 text-caption text-stone">
-          電波がないときに追加したメモは、一覧に「送信待ち」として残ります。オンラインに戻ったあと、アプリを開いたときや画面に戻ったときに、自動で送信されます。オフラインで追加したメモは「つぶやき」になります。
+          電波がないときに追加したメモは、この画面に「送信待ち」として残ります。オンラインに戻ったあと、アプリを開いたときや画面に戻ったときに、自動で送信されます。オフラインで追加したメモは「つぶやき」になります。
         </p>
       </div>
     </section>

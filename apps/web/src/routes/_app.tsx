@@ -1,22 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
-import {
-  createFileRoute,
-  Outlet,
-  redirect,
-  useRouterState,
-} from "@tanstack/react-router";
-import { useState } from "react";
-import { Sidebar } from "@/components/layout/sidebar";
-import { TopBar } from "@/components/layout/top-bar";
-import {
-  getStoredSidebarCollapsed,
-  setStoredSidebarCollapsed,
-} from "@/config/sidebar";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { AppHeader } from "@/components/layout/app-header";
 import { fetchMe, SessionCheckNetworkError } from "@/features/auth/api/get-me";
 import { getStoredUserId } from "@/features/auth/stored-user-id";
-import { fetchMemos } from "@/features/memos/api/get-memos";
 import { discardOtherUsersItems } from "@/features/memos/offline/outbox";
-import { useOnlineStatus } from "@/features/memos/offline/use-online-status";
 import { useOutboxSync } from "@/features/memos/offline/use-outbox-sync";
 
 export const Route = createFileRoute("/_app")({
@@ -45,42 +31,13 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppLayout() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(getStoredSidebarCollapsed);
-
-  function toggleCollapsed() {
-    setCollapsed((current) => {
-      const next = !current;
-      setStoredSidebarCollapsed(next);
-      return next;
-    });
-  }
   useOutboxSync();
-  const memos = useQuery({ queryKey: ["memos"], queryFn: fetchMemos });
-  const online = useOnlineStatus();
-  // オフライン（ブラウザが圏外と判断している、またはデータが無いまま取得が止まっている）。
-  // 圏外では、前に取得した古い件数を出さない。
-  const memosOffline =
-    !online || (memos.data === undefined && memos.fetchStatus === "paused");
-
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar
-        collapsed={collapsed}
-        onToggleCollapsed={toggleCollapsed}
-        mobileOpen={mobileOpen}
-        onCloseMobile={() => setMobileOpen(false)}
-        memoCount={memos.data?.items.length ?? 0}
-        memosPending={memos.isPending && !memosOffline}
-        memosOffline={memosOffline}
-      />
-      <div className="min-w-0 flex-1">
-        <TopBar pathname={pathname} onMenuClick={() => setMobileOpen(true)} />
-        <main className="min-h-[calc(100vh-56px)]">
-          <Outlet />
-        </main>
-      </div>
+    <div className="min-h-screen bg-background">
+      <AppHeader />
+      <main>
+        <Outlet />
+      </main>
     </div>
   );
 }
