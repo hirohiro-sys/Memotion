@@ -9,8 +9,8 @@ paths:
 
 # LINE / auth
 
-- LINE Login は allowlist 済みユーザーだけセッションを発行する。未登録は `/login?error=denied`
-- `/api/auth/dev` は、リクエストと `APP_URL` がどちらも http のループバックのときだけ、固定のローカルユーザーにセッションを発行する。それ以外は 404。Cookie の属性は LINE ログインと同じ。`wrangler.toml` の D1 を `remote = true` にすると、このルートは本番の `users` に行を足す
+- LINE Login と LINE の受信は、環境変数 `ALLOWED_LINE_USER_IDS` にある LINE ユーザーだけを許す。持ち主はみな `APP_USER_ID`。どちらかが無ければ誰も許さない（fail closed）。`users` テーブルから許可を引かない。未登録のログインは `/login?error=denied`
+- `/api/auth/dev` は、リクエストと `APP_URL` がどちらも http のループバックのときだけ、固定のローカルユーザーにセッションを発行する。それ以外は 404。Cookie の属性は LINE ログインと同じ。ローカル D1 の `users` に固定ユーザーの行を足すのは、D1 のメモの外部キーのためだけ（#143 まで）。`wrangler.toml` の D1 を `remote = true` にすると、このルートは本番の `users` に行を足す
 - `sid` は httpOnly。OAuth `state` は発行と消費が対になる
 - `/api/me`・`/api/memos*`・`/api/groups*` は `readSessionUserId` 必須。401 を省略しない
 - `/api/groups/:id*` は `groups.user_id = セッションのユーザー ID` で引く。無いグループと他人のグループは区別せず 404（`code: "group_not_found"`）

@@ -52,6 +52,8 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 | `LINE_CHANNEL_ACCESS_TOKEN` | Reply、画像取得、Push（週次・日次・予定の前日） |
 | `SESSION_SECRET` | JWT 署名。十分長いランダム値 |
 | `APP_URL` | ログイン後の戻り先。ローカルは `http://127.0.0.1:5173`。本番は `https://line-memo-orchestrator.hirohiro-sys.workers.dev` |
+| `ALLOWED_LINE_USER_IDS` | Web のログインと LINE からの保存を許す LINE ユーザーID。カンマ区切り。無ければ誰も許さない |
+| `APP_USER_ID` | 許可した人のメモの持ち主として使うアプリのユーザーID（`usr_…`）。許可した全員がこの 1 人になる。無ければ誰も許さない |
 | `NOTION_TOKEN` | Notion のインテグレーションのトークン。任意。無ければ Notion に書かない |
 | `NOTION_DATA_SOURCE_ID` | メモを書く Notion のデータソースの ID。任意。無ければ Notion に書かない |
 | `NOTIFY_LINE_USER_ID` | LINE 通知の送り先の LINE ユーザーID（1人）。任意。無ければ通知しない |
@@ -66,6 +68,8 @@ pnpm --filter @repo/api exec wrangler secret put LINE_MESSAGING_CHANNEL_SECRET
 pnpm --filter @repo/api exec wrangler secret put LINE_CHANNEL_ACCESS_TOKEN
 pnpm --filter @repo/api exec wrangler secret put SESSION_SECRET
 pnpm --filter @repo/api exec wrangler secret put APP_URL
+pnpm --filter @repo/api exec wrangler secret put ALLOWED_LINE_USER_IDS
+pnpm --filter @repo/api exec wrangler secret put APP_USER_ID
 pnpm --filter @repo/api exec wrangler secret put NOTION_TOKEN
 pnpm --filter @repo/api exec wrangler secret put NOTION_DATA_SOURCE_ID
 pnpm --filter @repo/api exec wrangler secret put NOTIFY_LINE_USER_ID
@@ -196,7 +200,7 @@ pnpm --filter @repo/api exec wrangler kv namespace create line-memo-orchestrator
 
 ## LINE Messaging
 
-Login チャネルと**同じプロバイダー**の下に Messaging API チャネルを置く。別プロバイダーだと `userId` が変わり、`users.line_user_id` と一致しない。実体が同じチャネルなら、同じ値を Login 用と Messaging 用の変数に入れてよい。名前は必ず分ける。
+Login チャネルと**同じプロバイダー**の下に Messaging API チャネルを置く。別プロバイダーだと `userId` が変わり、`ALLOWED_LINE_USER_IDS` と一致しない。実体が同じチャネルなら、同じ値を Login 用と Messaging 用の変数に入れてよい。名前は必ず分ける。
 
 1. Basic settings の Channel secret → `LINE_MESSAGING_CHANNEL_SECRET`
 2. Messaging API タブの長期 Channel access token → `LINE_CHANNEL_ACCESS_TOKEN`
@@ -208,7 +212,15 @@ Login チャネルと**同じプロバイダー**の下に Messaging API チャ�
 
 パスは `POST /api/line/webhook`。
 
-許可ユーザーの追加は従来どおり、D1 の `users` への INSERT。友だち追加だけでは Web に入れない。Bot は `users` を自動作成しない。
+許可ユーザーは環境変数 `ALLOWED_LINE_USER_IDS` に足す（#142）。友だち追加だけでは Web にも入れず、LINE から送ったメモも保存しない。許可した全員のメモは `APP_USER_ID` の持ち主で保存する。D1 の `users` テーブルは読まない。
+
+`APP_USER_ID` には、それまで `users` にあった自分の行の `id` を入れる。D1 のメモはこの ID を外部キーで指すので、`users` に無い ID だと保存できない（#143 で D1 を外すまで）。本番の値は次で読める（読むだけで本番は変わらない）。
+
+```bash
+pnpm --filter @repo/api exec wrangler d1 execute line-memo-orchestrator --remote --command "SELECT id, line_user_id FROM users"
+```
+
+開発用ログインはこの 2 つを使わず、ローカル D1 の固定ユーザー `usr_dev_local` でログインする。
 
 ## LINE Login
 
