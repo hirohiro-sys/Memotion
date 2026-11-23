@@ -152,7 +152,7 @@ describe("buildScheduleDigestMessages: limits", () => {
   it("fits exactly five messages and overflows the sixth into a footer", () => {
     const fits = build(Array.from({ length: 25 }, (_, i) => urlSchedule(i)));
     expect(fits).toHaveLength(MAX_DIGEST_MESSAGES);
-    expect(fits.join("\n")).not.toContain("Web で");
+    expect(fits.join("\n")).not.toContain("件はこちら");
 
     const overflow = build(
       Array.from({ length: 26 }, (_, i) => urlSchedule(i)),
@@ -160,7 +160,7 @@ describe("buildScheduleDigestMessages: limits", () => {
     expect(overflow).toHaveLength(MAX_DIGEST_MESSAGES);
     expect(overflow[0]).toMatch(/^明日の予定 26件（11\/3）/);
     expect(overflow[MAX_DIGEST_MESSAGES - 1]).toContain(
-      `他2件は Web で\n${APP_URL}`,
+      `他2件はこちら\n${APP_URL}`,
     );
   });
 });

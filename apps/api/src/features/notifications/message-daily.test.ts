@@ -41,7 +41,7 @@ describe("buildTodoDigestMessages", () => {
       true,
     );
     expect((messages[0] ?? "").startsWith("未完了のTODO 12件")).toBe(true);
-    expect(messages.join("\n")).toContain("他2件は Web で");
+    expect(messages.join("\n")).toContain("他2件はこちら");
     expect(messages[4]).toContain(APP_URL);
     expect(messages.slice(0, 4).join("\n")).not.toContain(APP_URL);
   });

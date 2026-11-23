@@ -1,4 +1,3 @@
-import type { PushResult } from "../../lib/line/client";
 import {
   type DailySlot,
   isSameJstDayAsDue,
@@ -29,20 +28,4 @@ export function decideScheduleDigest(input: {
     return { action: "skip", reason: "stale", targetDate };
   }
   return { action: "send", targetDate };
-}
-
-export type SchedulePushFollowUp =
-  | { action: "none" }
-  | { action: "revert"; lastTargetDate: string | null };
-
-// 送信結果からの後始末。一時的な失敗は先取りを元に戻して次の分に再試行する。
-// 届かない（ブロックなど）ときは先取りを戻さない（毎分送り直さない）。
-export function afterSchedulePush(
-  result: PushResult,
-  previousLastTargetDate: string | null,
-): SchedulePushFollowUp {
-  if (result === "transient") {
-    return { action: "revert", lastTargetDate: previousLastTargetDate };
-  }
-  return { action: "none" };
 }

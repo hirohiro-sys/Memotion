@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { afterSchedulePush, decideScheduleDigest } from "./schedule-digest";
+import { decideScheduleDigest } from "./schedule-digest";
 
 // JST の時刻を UTC の Date にする。
 function jst(iso: string): Date {
@@ -96,31 +96,6 @@ describe("decideScheduleDigest at 20:00", () => {
       action: "skip",
       reason: "stale",
       targetDate: "2026-11-02",
-    });
-  });
-});
-
-describe("afterSchedulePush", () => {
-  it("does nothing after a success", () => {
-    expect(afterSchedulePush("success", "2026-11-02")).toEqual({
-      action: "none",
-    });
-  });
-
-  it("reverts to the previous target date after a transient failure", () => {
-    expect(afterSchedulePush("transient", "2026-11-02")).toEqual({
-      action: "revert",
-      lastTargetDate: "2026-11-02",
-    });
-    expect(afterSchedulePush("transient", null)).toEqual({
-      action: "revert",
-      lastTargetDate: null,
-    });
-  });
-
-  it("keeps the claim when LINE is unreachable so it does not retry every minute", () => {
-    expect(afterSchedulePush("unreachable", "2026-11-02")).toEqual({
-      action: "none",
     });
   });
 });

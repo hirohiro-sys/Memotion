@@ -136,7 +136,7 @@ describe("buildDigestMessages: overflow", () => {
         "今週のTech 12件（9/6 20:00 〜 9/13 20:00）",
       ),
     ).toBe(true);
-    expect(messages.join("\n")).toContain("他2件は Web で");
+    expect(messages.join("\n")).toContain("他2件はこちら");
     expect(messages[4]).toContain(APP_URL);
     expect(messages.slice(0, 4).join("\n")).not.toContain(APP_URL);
   });
@@ -211,7 +211,7 @@ describe("buildDigestMessages: URL preview packing", () => {
         (text) => httpUrls(text).length <= MAX_URL_PREVIEWS_PER_MESSAGE,
       ),
     ).toBe(true);
-    expect(messages.join("\n")).toContain("他2件は Web で");
+    expect(messages.join("\n")).toContain("他2件はこちら");
     expect(messages[4]).toContain(APP_URL);
     expect(messages.slice(0, 4).join("\n")).not.toContain(APP_URL);
     expect(httpUrls(messages[4] ?? "")).toContain(APP_URL);

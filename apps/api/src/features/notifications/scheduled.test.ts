@@ -167,6 +167,54 @@ describe("runTodoDailyDigest", () => {
     ]);
   });
 
+  it("records the run without retrying when Notion rejects the token", async () => {
+    const { kv, store } = memoryKv({ [TODO_KEY]: yesterday });
+    routeFetch({ notion: new Response("{}", { status: 401 }) });
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runTodoDailyDigest(makeEnv(kv), now);
+
+    expect(store.get(TODO_KEY)).toBe(now.toISOString());
+    expect(logs(log)).toEqual([
+      JSON.stringify({
+        event: "todo.daily",
+        action: "failed",
+        reason: "upstream",
+        httpStatus: 401,
+      }),
+    ]);
+  });
+
+  it("logs that it stopped reading after five pages", async () => {
+    const { kv } = memoryKv({ [TODO_KEY]: yesterday });
+    const fetchMock = vi.fn(async (url: string) =>
+      url === NOTION_QUERY
+        ? Response.json({
+            results: [notionPage("牛乳を買う")],
+            has_more: true,
+            next_cursor: "next",
+          })
+        : new Response("{}", { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runTodoDailyDigest(makeEnv(kv), now);
+
+    expect(
+      fetchMock.mock.calls.filter((call) => call[0] === NOTION_QUERY),
+    ).toHaveLength(5);
+    expect(logs(log)).toEqual([
+      JSON.stringify({
+        event: "todo.daily",
+        action: "success",
+        count: 5,
+        messages: 1,
+        truncated: true,
+      }),
+    ]);
+  });
+
   it("records an empty run without sending", async () => {
     const { kv, store } = memoryKv({ [TODO_KEY]: yesterday });
     const fetchMock = routeFetch({ notion: Response.json({ results: [] }) });
@@ -338,6 +386,16 @@ describe("runScheduleDailyDigest", () => {
     await runScheduleDailyDigest(makeEnv(kv), now);
 
     expect(store.get(SCHEDULE_KEY)).toBe("2026-11-23");
+  });
+
+  it("keeps the claimed date when Notion cannot find the data source", async () => {
+    const { kv, store } = memoryKv({ [SCHEDULE_KEY]: "2026-11-23" });
+    routeFetch({ notion: new Response("{}", { status: 404 }) });
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await runScheduleDailyDigest(makeEnv(kv), now);
+
+    expect(store.get(SCHEDULE_KEY)).toBe("2026-11-24");
   });
 
   it("keeps the claimed date when LINE is unreachable", async () => {

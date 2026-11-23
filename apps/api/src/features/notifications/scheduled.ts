@@ -16,7 +16,7 @@ import {
 } from "./digest";
 import { buildScheduleDigestMessages } from "./message";
 import { runIndependently } from "./run-independently";
-import { afterSchedulePush, decideScheduleDigest } from "./schedule-digest";
+import { decideScheduleDigest } from "./schedule-digest";
 import {
   readLastSentAt,
   readScheduleLastTargetDate,
@@ -38,7 +38,12 @@ function linkUrl(env: Env): string {
 }
 
 type Outcome =
-  | { action: PushResult; count: number; messages: number }
+  | {
+      action: PushResult;
+      count: number;
+      messages: number;
+      truncated?: true;
+    }
   | { action: "skipped"; reason: "empty" | "no_recipient" | "no_secret" }
   | { action: "failed"; reason: "upstream"; httpStatus: number };
 
@@ -64,12 +69,24 @@ async function pushMemos(
     to: env.NOTIFY_LINE_USER_ID,
     texts,
   });
-  return { action: result, count: listed.memos.length, messages: texts.length };
+  return {
+    action: result,
+    count: listed.memos.length,
+    messages: texts.length,
+    // 読める上限で打ち切った。見出しの件数は読めた分だけになる。
+    ...(listed.truncated ? { truncated: true as const } : {}),
+  };
 }
 
-// 送信済みとして記録するか。Notion の失敗と一時的な送信の失敗は記録せず、次の分に送り直す。
+// 認証や ID の誤りなど、送り直しても直らない Notion の失敗。
+const PERMANENT_NOTION_FAILURES = new Set([400, 401, 403, 404]);
+
+// 送信済みとして記録するか。一時的な Notion の失敗（ネットワーク、429、5xx）と一時的な送信の失敗は
+// 記録せず、次の分に送り直す。直らない Notion の失敗は記録し、毎分読み直さない（直したあとに古い回を送らない）。
 function shouldRecord(outcome: Outcome): boolean {
-  if (outcome.action === "failed") return false;
+  if (outcome.action === "failed") {
+    return PERMANENT_NOTION_FAILURES.has(outcome.httpStatus);
+  }
   if (outcome.action === "skipped") return true;
   return shouldRecordAfterPush(outcome.action);
 }
@@ -136,7 +153,7 @@ export async function runTodoDailyDigest(env: Env, now: Date): Promise<void> {
 }
 
 // 予定の前日通知。先取り（対象日を処理済みにする）は Notion を読む前と送る前に行い、
-// 同じ対象日の予定が2回届かないようにする。Notion の失敗と一時的な送信の失敗では先取りを戻す。
+// 同じ対象日の予定が2回届かないようにする。記録しない失敗（一時的なもの）では先取りを戻す。
 export async function runScheduleDailyDigest(
   env: Env,
   now: Date,
@@ -184,11 +201,7 @@ export async function runScheduleDailyDigest(
     throw error;
   }
 
-  const revert =
-    outcome.action === "failed" ||
-    (outcome.action !== "skipped" &&
-      afterSchedulePush(outcome.action, lastTargetDate).action === "revert");
-  if (revert) {
+  if (!shouldRecord(outcome)) {
     // 戻せなければ外の catch で failed になり、その日の分は送らない（二重送信より取りこぼしを選ぶ）。
     await restoreScheduleLastTargetDate(env.DEDUP, lastTargetDate);
   }

@@ -377,8 +377,9 @@ export async function changeTagForUser(
 // 通知用に Notion からメモを読む。1回の通知で読むのは最大 5 ページ（500 件）まで。
 const NOTION_MAX_PAGES = 5;
 
+// truncated は、読める上限で打ち切ったとき true。
 export type NotionMemoList =
-  | { ok: true; memos: NotionListedMemo[] }
+  | { ok: true; memos: NotionListedMemo[]; truncated: boolean }
   | { ok: false; reason: "no_secret" }
   | { ok: false; reason: "upstream"; httpStatus: number };
 
@@ -391,6 +392,7 @@ async function queryNotionMemos(
   }
   const memos: NotionListedMemo[] = [];
   let cursor: string | undefined;
+  let truncated = false;
   for (let page = 0; page < NOTION_MAX_PAGES; page += 1) {
     const result = await queryDataSource({
       token: env.NOTION_TOKEN,
@@ -406,8 +408,9 @@ async function queryNotionMemos(
     }
     if (!result.nextCursor) break;
     cursor = result.nextCursor;
+    truncated = page === NOTION_MAX_PAGES - 1;
   }
-  return { ok: true, memos };
+  return { ok: true, memos, truncated };
 }
 
 // 記録日時が窓の中の tech。窓の境界はここで正確に絞る。
@@ -420,7 +423,7 @@ export async function listTechMemosFromNotion(
   );
   if (!listed.ok) return listed;
   return {
-    ok: true,
+    ...listed,
     memos: listed.memos.filter((memo) => {
       const ms = Date.parse(memo.createdAt);
       return ms >= window.start.getTime() && ms < window.end.getTime();
@@ -445,7 +448,7 @@ export async function listSchedulesFromNotion(
   );
   if (!listed.ok) return listed;
   return {
-    ok: true,
+    ...listed,
     memos: listed.memos.filter((memo) => memo.scheduledDate === date),
   };
 }

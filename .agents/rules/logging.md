@@ -33,7 +33,7 @@ Workers のログは `console.log(JSON.stringify(fields))` の1行。各ファ�
 | messages | LINE 通知の通数 |
 | httpStatus | 外部 API の HTTP の状態（`memo.notion`）。ネットワークの失敗は 0 |
 
-LINE 通知（`tech.weekly` / `todo.daily` / `schedule.daily`）は、送ったら `action` に送信の結果（`success` / `unreachable` / `transient`）と `count`、`messages`。送らなかったら `action: skipped` と `reason`（`baseline` / `empty` / `no_recipient` / `no_secret` / `invalid` / `stale`）。Notion を読めなかったら `action: failed`、`reason: upstream`、`httpStatus`。送り先の LINE ユーザーID と本文は出さない。
+LINE 通知（`tech.weekly` / `todo.daily` / `schedule.daily`）は、送ったら `action` に送信の結果（`success` / `unreachable` / `transient`）と `count`、`messages`。Notion を 5 ページで打ち切ったら `truncated: true`。送らなかったら `action: skipped` と `reason`（`baseline` / `empty` / `no_recipient` / `no_secret` / `invalid` / `stale`）。Notion を読めなかったら `action: failed`、`reason: upstream`、`httpStatus`。送り先の LINE ユーザーID と本文は出さない。
 
 重複判定の記録（KV）の失敗は `memo.dedup`（`status: failed`、`reason` は `read` / `write`、`memoId`。LINE の読み込みの失敗はメモがまだ無いので `memoId` を付けない）。本文と LINE のメッセージ ID は出さない。
 
