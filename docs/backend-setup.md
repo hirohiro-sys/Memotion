@@ -10,7 +10,6 @@
 | メモ | `/api/memos`（一覧・作成）、`/api/memos/:id`（更新）、`/api/memos/:id/schedule`、`/api/memos/:id/image`、`/api/memos/bulk-delete` |
 | グループ | `/api/groups`、`/api/groups/:id`、`/api/groups/:id/memos`、`/api/groups/:id/memos/assign` |
 | 日報 | `/api/daily-reports`、`/api/daily-reports/:id`、`/api/daily-reports/:id/append` |
-| 通知 | `GET` / `PATCH /api/notifications` |
 
 正本は各 feature の `index.ts` と `packages/shared` の Zod です。開発時に MSW は使いません。ローカルの `/api` は Vite 経由で Worker に届きます。
 
@@ -55,6 +54,8 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 | `APP_URL` | ログイン後の戻り先。ローカルは `http://127.0.0.1:5173`。本番は `https://line-memo-orchestrator.hirohiro-sys.workers.dev` |
 | `NOTION_TOKEN` | Notion のインテグレーションのトークン。任意。無ければ Notion に書かない |
 | `NOTION_DATA_SOURCE_ID` | メモを書く Notion のデータソースの ID。任意。無ければ Notion に書かない |
+| `NOTIFY_LINE_USER_ID` | LINE 通知の送り先の LINE ユーザーID（1人）。任意。無ければ通知しない |
+| `NOTION_VIEW_URL` | 通知の「他N件」から開く Notion のページの URL。任意。無ければ `APP_URL` |
 
 本番は同じ名前を `wrangler secret` で入れる。開発用バイパス用の変数は作らない。Messaging 用と Login 用を取り違えると、署名がすべて 400 になり何も残らない。
 
@@ -67,7 +68,11 @@ pnpm --filter @repo/api exec wrangler secret put SESSION_SECRET
 pnpm --filter @repo/api exec wrangler secret put APP_URL
 pnpm --filter @repo/api exec wrangler secret put NOTION_TOKEN
 pnpm --filter @repo/api exec wrangler secret put NOTION_DATA_SOURCE_ID
+pnpm --filter @repo/api exec wrangler secret put NOTIFY_LINE_USER_ID
+pnpm --filter @repo/api exec wrangler secret put NOTION_VIEW_URL
 ```
+
+通知の時刻（`TECH_WEEKLY`、`TODO_DAILY`、`SCHEDULE_DAILY`）は秘密ではないので、`wrangler.toml` の `[vars]` に置きます。「通知」の節を見てください。
 
 ## 日常の開発
 
@@ -80,7 +85,7 @@ pnpm dev
 - Web: `http://127.0.0.1:5173`
 - API: `http://127.0.0.1:8787`
 
-`vite.config.ts` は `/api` を `:8787` にプロキシします。メモも通知設定も Worker に届きます。
+`vite.config.ts` は `/api` を `:8787` にプロキシします。メモの API は Worker に届きます。
 
 LINE で残した行をローカル Web で見るには、[`apps/api/wrangler.toml`](../apps/api/wrangler.toml) の `DB` と `MEDIA` に `remote = true` を付ける。`pnpm dev` のコマンドはそのまま（Vite → `:8787`）。秘密は `.dev.vars`（`APP_URL=http://127.0.0.1:5173`）。Cookie は今と同じ `127.0.0.1`。許可ユーザーはリモート D1 に入っていること。
 
@@ -216,13 +221,30 @@ Login チャネルと**同じプロバイダー**の下に Messaging API チャ�
 
 ## 通知
 
-`GET` / `PATCH /api/notifications` はセッション必須です。件数（次の通に入る `#tech`）と自動オフ理由はサーバが返します。MSW で傍受しません。
+LINE 通知は 3 つです（#140）。メモは Notion のデータベースから読み、設定は環境変数、送信済みの記録は KV（`DEDUP`）に置きます。Web の設定画面と `/api/notifications` はありません。
+
+| 通知 | 設定（`[vars]`） | 読むメモ | KV の記録 |
+|------|------------------|----------|-----------|
+| tech の週次（`tech.weekly`） | `TECH_WEEKLY = "sun 20:00"` | 種類が `tech` で、記録日時が直近の通知時刻までの 1 週間のもの | `notify:tech-weekly:last-sent-at` |
+| todo の日次（`todo.daily`） | `TODO_DAILY = "08:00"` | 種類が `todo` のものすべて | `notify:todo-daily:last-sent-at` |
+| 予定の前日（`schedule.daily`） | `SCHEDULE_DAILY = "20:00"` | 種類が `schedule` で、予定日時の JST の日付が翌日のもの | `notify:schedule-daily:last-target-date` |
+
+- 時刻は JST です。`TECH_WEEKLY` の曜日は `sun` / `mon` / `tue` / `wed` / `thu` / `fri` / `sat` です。空にするとその通知はオフです。形が違うとオフとして扱い、毎分 `reason: invalid` のログを出します。変えたらデプロイします
+- 送り先は `NOTIFY_LINE_USER_ID` の 1 人です。Notion のメモには持ち主の情報が無いからです。`users` テーブルは読みません
+- todo を終えたら、Notion でページを消すか、種類を変えます。Web でタグを付け直したり消したりしても、Notion には反映されません。予定の日時の変更も Notion で行います
+- #138 より前のメモは Notion に無いので、移すまで（#139）通知に入りません
+- KV に記録が無いとき（初回）は送らず、今を送信済みとして記録します（`reason: baseline`）。D1 から記録を移さないので、切り替えた直後のデプロイで同じ回を送り直さないためです。最初の通知は次の時刻に届きます
+- Notion を読むのは送る時刻が来たときだけで、1 回の通知で最大 5 ページ（500 件）です。Notion の日付の絞り込みは広めにかけ、正確な範囲（JST の日付、1 週間の窓）はコードで絞ります
+- 送信済みとして記録するのは、送れたとき、LINE に届かなかったとき（ブロックなど）、メモが 0 件のとき、送り先か Notion の秘密が無いときです。Notion の失敗と LINE の一時的な失敗は記録せず、次の分に送り直します。予定の前日通知は、Notion を読む前に対象日を処理済みにし（先取り）、失敗したら元に戻します
+- 時刻を後ろにずらしてデプロイすると、その日の分がもう一度届くことがあります（例: 08:00 に送ったあとで 09:00 に変える）
 
 Cron は [`apps/api/wrangler.toml`](../apps/api/wrangler.toml) の `* * * * *`（毎分、UTC）です。壁時計は `Asia/Tokyo` です。発火はデプロイ済み Worker だけです。ローカルの `wrangler dev` には頼らないでください。
 
-毎分の入口は `apps/api/src/features/notifications/scheduled.ts` です。技術メモの週次ダイジェスト（`tech.weekly`）、TODO の日次（`todo.daily`）、予定の前日（`schedule.daily`）を、互いの失敗で止めないように順に動かします。送る時刻の判定は、設定の行と現在時刻だけで決めます。
+毎分の入口は `apps/api/src/features/notifications/scheduled.ts` です。3 つの通知を、互いの失敗で止めないように順に動かします。送る時刻の判定は、設定と KV の記録と現在時刻だけで決めます。
 
-Push は既存の `LINE_CHANNEL_ACCESS_TOKEN` を使います。Login チャネルの秘密では送れません。溢れ時の逃げ場は `APP_URL` のトップです。
+Push は既存の `LINE_CHANNEL_ACCESS_TOKEN` を使います。Login チャネルの秘密では送れません。溢れ時の逃げ場は `NOTION_VIEW_URL`（無ければ `APP_URL`）です。
+
+D1 の `tech_weekly_settings`、`todo_daily_settings`、`schedule_daily_settings` は読み書きしなくなりました。テーブルは #143 で消します。
 
 ## リモート（初回のみ）
 
