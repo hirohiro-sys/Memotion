@@ -9,6 +9,11 @@ LINE_CHANNEL_ACCESS_TOKEN=
 SESSION_SECRET=
 APP_URL=http://127.0.0.1:5173
 
+# Web のログインと LINE の受信を許す LINE ユーザーID（カンマ区切り）と、メモの持ち主のアプリのユーザーID。
+# どちらかが空なら、LINE ログインと LINE からの保存は誰にも許さない。開発用ログインはこの 2 つを使わない。
+ALLOWED_LINE_USER_IDS=
+APP_USER_ID=
+
 # Notion。任意。空なら Notion には書かず、通知も送らない（D1 への保存は続く）。手順は docs/backend-setup.md の「Notion」。
 NOTION_TOKEN=
 NOTION_DATA_SOURCE_ID=

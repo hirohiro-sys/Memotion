@@ -31,7 +31,7 @@ D1（SQLite）と Drizzle。Prisma はない。スキーマの正本は `apps/ap
 
 | DB（制約で守る） | アプリ（コードで守る） |
 | --- | --- |
-| 一意性。`users.line_user_id`、`tags.slug`、`memos.line_message_id`、設定の `user_id`、日報の `(user_id, report_date, kind)`、日報とメモの `(report_id, memo_id)`、生成回数の `(user_id, used_on)` | 認可。`row.userId === sessionUserId`。LINE は allowlist |
+| 一意性。`users.line_user_id`、`tags.slug`、`memos.line_message_id`、設定の `user_id`、日報の `(user_id, report_date, kind)`、日報とメモの `(report_id, memo_id)`、生成回数の `(user_id, used_on)` | 認可。`row.userId === sessionUserId`。LINE は環境変数の許可リスト（`ALLOWED_LINE_USER_IDS`） |
 | 参照。メモと設定の `user_id`、メモの `tag_id`（`onDelete: restrict`） | 業務フロー。`ogp_state`、JST 窓と `lastSentAt`、タグと `media_type` の妥当性 |
 | 同時に破れる一意性（同じ `line_message_id` の二重挿入） | LINE との整合。署名検証、送信失敗、ダイジェストの二重送信防止 |
 
