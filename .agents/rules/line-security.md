@@ -22,7 +22,8 @@ paths:
 - 無効署名は 400。受理は 200 + `waitUntil`
 - 画像は公開 URL にしない。R2 キーは `{userId}/{memoId}`。配信はセッション付き `/api/memos/:id/image`。取得・削除は `row.userId === sessionUserId`
 - 画像キーと thumbnail に公開オリジンを埋め込まない。thumbnail は `/api/memos/:id/image`
-- `lineMessageId` 重複は挿入せず `duplicate`
+- `lineMessageId` 重複は挿入せず `duplicate`。先に KV（`DEDUP`）の `line-message:<id>` を見て、無ければ D1 の一意制約で見分ける
+- Web の再送（端末が付けた `id`）は KV の `web-memo:<id>` を先に見る。持ち主・タグ・本文・予定が同じときだけ 200 で返し、それ以外は内容を返さず 409。記録が無ければ D1 の主キーで見分ける。KV の値は持ち主の確認に使い、応答やログに `userId` を出さない
 - Notion へは `lib/notion/client.ts` だけが書く。トークンは `NOTION_TOKEN`（`.dev.vars` と `wrangler secret`）に置き、リポジトリ、ログ、応答に出さない。Notion の応答の本文は読まずに捨て、HTTP の状態だけ返す。Notion に送るのはメモの本文、種類、日時、URL、入力元、メモIDだけで、ユーザー ID と画像は送らない
 - LINE 失敗理由を増やしたら `REPLY_TEXT` / `replyTextFor` とテストを同時更新
 - 週次ダイジェストは allowlist。JST 窓と `lastSentAt` を壊さない
