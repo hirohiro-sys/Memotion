@@ -45,7 +45,7 @@ function headline(count: number, start: Date, end: Date): string {
 
 function overflowFooter(count: number, appUrl: string): DigestLine {
   return {
-    text: `他${count}件は Web で\n${appUrl}`,
+    text: `他${count}件はこちら\n${appUrl}`,
     previewCount: 1,
   };
 }

@@ -1,7 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { fetchNotifications } from "@/features/notifications/api/get-notifications";
 import { jstToday } from "../jst";
-import { willBeNotified } from "../schedule-notice";
 
 const INPUT_CLASS =
   "rounded-lg border border-border bg-background px-3 py-2 text-body-sm text-foreground outline-none transition-colors duration-200 focus:border-primary disabled:opacity-50 aria-invalid:border-destructive";
@@ -20,19 +17,7 @@ export function ScheduleFields({
   disabled?: boolean;
   error?: string | null;
 }) {
-  // 取得済みの通知の設定から、通知が届かない日付を知らせる。読めていないときは何も出さない。
-  const notifications = useQuery({
-    queryKey: ["notifications"],
-    queryFn: fetchNotifications,
-  });
-  const now = new Date();
-  const today = jstToday(now);
-  const settings = notifications.data;
-  const silent =
-    value.date !== "" &&
-    value.date >= today &&
-    settings?.scheduleDailyEnabled === true &&
-    !willBeNotified(value.date, now, settings.scheduleDailyTime);
+  const today = jstToday(new Date());
 
   return (
     <div>
@@ -76,14 +61,7 @@ export function ScheduleFields({
         ) : null}
       </div>
       <p className="mt-2 min-h-4 text-caption">
-        {error ? (
-          <span className="text-destructive">{error}</span>
-        ) : silent ? (
-          <span className="text-stone">
-            この予定は LINE に通知されません（通知は前日の{" "}
-            {settings.scheduleDailyTime} に届きます）
-          </span>
-        ) : null}
+        {error ? <span className="text-destructive">{error}</span> : null}
       </p>
     </div>
   );

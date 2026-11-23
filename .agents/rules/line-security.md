@@ -12,7 +12,7 @@ paths:
 - LINE Login は allowlist 済みユーザーだけセッションを発行する。未登録は `/login?error=denied`
 - `/api/auth/dev` は、リクエストと `APP_URL` がどちらも http のループバックのときだけ、固定のローカルユーザーにセッションを発行する。それ以外は 404。Cookie の属性は LINE ログインと同じ。`wrangler.toml` の D1 を `remote = true` にすると、このルートは本番の `users` に行を足す
 - `sid` は httpOnly。OAuth `state` は発行と消費が対になる
-- `/api/me`・`/api/memos*`・`/api/groups*`・`/api/notifications` は `readSessionUserId` 必須。401 を省略しない
+- `/api/me`・`/api/memos*`・`/api/groups*` は `readSessionUserId` 必須。401 を省略しない
 - `/api/groups/:id*` は `groups.user_id = セッションのユーザー ID` で引く。無いグループと他人のグループは区別せず 404（`code: "group_not_found"`）
 - `PUT /api/memos/:id/schedule` は `readSessionUserId` 必須。検査は「401 → `:id` と本文の 400 → 過去の日付の 400（`schedule_date_past`）→ 持ち主と状態」の順。他人のメモと存在しないメモは区別せず 404。更新の SQL は `memos.user_id`・`group_id IS NULL` で絞った1文にする（タグは問わない）。`not_schedulable` はグループに入ったメモのときだけ返す
 - `PATCH /api/memos/:id`（タグの付け直し）は `readSessionUserId` 必須。検査は「401 → `:id` と本文の 400（変更先は `schedule` 以外）→ 持ち主と状態」の順。他人のメモと存在しないメモは区別せず 404。予定のメモとグループに入ったメモは 409（`code: "memo_tag_not_changeable"`）。更新の SQL は `memos.user_id`・`group_id IS NULL`・タグが `schedule` でないことで絞った1文にする
@@ -24,7 +24,8 @@ paths:
 - 画像キーと thumbnail に公開オリジンを埋め込まない。thumbnail は `/api/memos/:id/image`
 - `lineMessageId` 重複は挿入せず `duplicate`。先に KV（`DEDUP`）の `line-message:<id>` を見て、無ければ D1 の一意制約で見分ける
 - Web の再送（端末が付けた `id`）は KV の `web-memo:<id>` を先に見る。持ち主・タグ・本文・予定が同じときだけ 200 で返し、それ以外は内容を返さず 409。記録が無ければ D1 の主キーで見分ける。KV の値は持ち主の確認に使い、応答やログに `userId` を出さない
-- Notion へは `lib/notion/client.ts` だけが書く。トークンは `NOTION_TOKEN`（`.dev.vars` と `wrangler secret`）に置き、リポジトリ、ログ、応答に出さない。Notion の応答の本文は読まずに捨て、HTTP の状態だけ返す。Notion に送るのはメモの本文、種類、日時、URL、入力元、メモIDだけで、ユーザー ID と画像は送らない
+- Notion へは `lib/notion/client.ts` だけが書く。トークンは `NOTION_TOKEN`（`.dev.vars` と `wrangler secret`）に置き、リポジトリ、ログ、応答に出さない。ページの作成の応答の本文は読まずに捨て、HTTP の状態だけ返す。Notion に送るのはメモの本文、種類、日時、URL、入力元、メモIDだけで、ユーザー ID と画像は送らない
 - LINE 失敗理由を増やしたら `REPLY_TEXT` / `replyTextFor` とテストを同時更新
-- 週次ダイジェストは allowlist。JST 窓と `lastSentAt` を壊さない
+- LINE 通知（週次・日次・予定の前日）は `NOTIFY_LINE_USER_ID` の1人だけに送る。`users` から送り先を選ばない。JST 窓と Durable Object（`NOTIFY_STATE`）の送信済みの記録を壊さない
+- Notion の検索（`queryDataSource`）の応答は、通知に要るプロパティ（本文、種類、記録日時、予定日時、URL）だけを読み、ログと応答に出さない
 - Web の新しい API 呼び出しは `apiFetch` する。JSON の入出力は `packages/shared` の Zod で parse する

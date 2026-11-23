@@ -68,10 +68,7 @@ export function CalendarView() {
     mutationFn: (memo: ScheduleMemo) => deleteMemos([memo.id]),
     onSuccess: async () => {
       setDeleting(null);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["memos"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ["memos"] });
     },
     onError: async () => {
       setDeleting(null);

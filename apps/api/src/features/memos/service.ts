@@ -10,7 +10,7 @@ import { nanoid } from "nanoid";
 import { createDb, type Database } from "../../db";
 import type { Env } from "../../env";
 import { fetchMessageContent } from "../../lib/line/client";
-import { createPage } from "../../lib/notion/client";
+import { createPage, queryDataSource } from "../../lib/notion/client";
 import type { ClassifySuccess } from "./classify";
 import { detectMediaType } from "./classify";
 import {
@@ -31,6 +31,13 @@ import {
   type SaveResult,
 } from "./idempotency";
 import { buildNotionPage, type NotionMemo } from "./notion-page";
+import {
+  type NotionListedMemo,
+  scheduleQueryBody,
+  techQueryBody,
+  todoQueryBody,
+  toNotionListedMemo,
+} from "./notion-query";
 import { fetchOgpImage, isHttpsUrl } from "./ogp";
 import {
   assignMemosToGroup,
@@ -49,13 +56,11 @@ import {
   insertMemo,
   listClaimableOgpIds,
   listMemos,
-  listSchedulesOnDate,
   type MemoRow,
   memoImageKey,
   type OgpState,
   type OgpTarget,
   putMedia,
-  type ScheduleOnDateRow,
   updateMemoOgp,
   updateMemoSchedule,
   updateMemoTag,
@@ -369,13 +374,83 @@ export async function changeTagForUser(
   return { ok: false, error: current ? "not_changeable" : "not_found" };
 }
 
-// 通知用。ある日（JST）の自分の予定。
-export async function listSchedulesOnDateForUser(
-  db: Database,
-  userId: string,
+// 通知用に Notion からメモを読む。1回の通知で読むのは最大 5 ページ（500 件）まで。
+const NOTION_MAX_PAGES = 5;
+
+// truncated は、読める上限で打ち切ったとき true。
+export type NotionMemoList =
+  | { ok: true; memos: NotionListedMemo[]; truncated: boolean }
+  | { ok: false; reason: "no_secret" }
+  | { ok: false; reason: "upstream"; httpStatus: number };
+
+async function queryNotionMemos(
+  env: Pick<Env, "NOTION_TOKEN" | "NOTION_DATA_SOURCE_ID">,
+  bodyFor: (cursor?: string) => unknown,
+): Promise<NotionMemoList> {
+  if (!env.NOTION_TOKEN || !env.NOTION_DATA_SOURCE_ID) {
+    return { ok: false, reason: "no_secret" };
+  }
+  const memos: NotionListedMemo[] = [];
+  let cursor: string | undefined;
+  let truncated = false;
+  for (let page = 0; page < NOTION_MAX_PAGES; page += 1) {
+    const result = await queryDataSource({
+      token: env.NOTION_TOKEN,
+      dataSourceId: env.NOTION_DATA_SOURCE_ID,
+      body: bodyFor(cursor),
+    });
+    if (!result.ok) {
+      return { ok: false, reason: "upstream", httpStatus: result.status };
+    }
+    for (const item of result.results) {
+      const memo = toNotionListedMemo(item);
+      if (memo) memos.push(memo);
+    }
+    if (!result.nextCursor) break;
+    cursor = result.nextCursor;
+    truncated = page === NOTION_MAX_PAGES - 1;
+  }
+  return { ok: true, memos, truncated };
+}
+
+// 記録日時が窓の中の tech。窓の境界はここで正確に絞る。
+export async function listTechMemosFromNotion(
+  env: Pick<Env, "NOTION_TOKEN" | "NOTION_DATA_SOURCE_ID">,
+  window: { start: Date; end: Date },
+): Promise<NotionMemoList> {
+  const listed = await queryNotionMemos(env, (cursor) =>
+    techQueryBody(window, cursor),
+  );
+  if (!listed.ok) return listed;
+  return {
+    ...listed,
+    memos: listed.memos.filter((memo) => {
+      const ms = Date.parse(memo.createdAt);
+      return ms >= window.start.getTime() && ms < window.end.getTime();
+    }),
+  };
+}
+
+// 種類が todo のページすべて。完了したものは Notion で消すか種類を変える。
+export async function listTodoMemosFromNotion(
+  env: Pick<Env, "NOTION_TOKEN" | "NOTION_DATA_SOURCE_ID">,
+): Promise<NotionMemoList> {
+  return queryNotionMemos(env, (cursor) => todoQueryBody(cursor));
+}
+
+// 予定日時の JST の日付が date の予定。
+export async function listSchedulesFromNotion(
+  env: Pick<Env, "NOTION_TOKEN" | "NOTION_DATA_SOURCE_ID">,
   date: string,
-): Promise<ScheduleOnDateRow[]> {
-  return listSchedulesOnDate(db, userId, date);
+): Promise<NotionMemoList> {
+  const listed = await queryNotionMemos(env, (cursor) =>
+    scheduleQueryBody(date, cursor),
+  );
+  if (!listed.ok) return listed;
+  return {
+    ...listed,
+    memos: listed.memos.filter((memo) => memo.scheduledDate === date),
+  };
 }
 
 export async function getImageForUser(

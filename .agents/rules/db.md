@@ -21,7 +21,7 @@ D1（SQLite）と Drizzle。Prisma はない。スキーマの正本は `apps/ap
 
 ## 設定
 
-ユーザーごとの通知（有効、曜日、時刻、`lastSentAt`）は `tech_weekly_settings` と `todo_daily_settings` が正。予定の前日通知（有効、時刻、`lastTargetDate`）は `schedule_daily_settings` が正。`DEFAULT_TECH_WEEKLY`・`DEFAULT_TODO_DAILY`・`DEFAULT_SCHEDULE_DAILY` は行が無いときの初期値だけで、保存済みの値を上書きしない。
+通知の設定は `wrangler.toml` の `[vars]`、送信済みの記録は Durable Object（`NOTIFY_STATE`）が正（#140）。KV は書き込みがすぐ全体に届かず二重送信を防げないので、送信済みの記録には使わない。`tech_weekly_settings`・`todo_daily_settings`・`schedule_daily_settings` は読み書きしない。テーブルは #143 で消す。
 
 日報は `daily_reports`（ユーザー、日付、種類 `work` / `personal` の組で1本。本文、構成、状態、作成と更新の時刻）、`daily_report_memos`（日報とメモの対応。行の `id` は `crypto.randomUUID()`）、`daily_report_ai_uses`（ユーザーと JST の日付ごとの生成回数。行の `id` も `crypto.randomUUID()`）が正。日報を消すと対応だけ消え、メモは残る。メモを消すと対応だけ消え、日報の本文は残る。日報を消しても生成回数は戻さない。回数の行を消しても日報は残る。
 

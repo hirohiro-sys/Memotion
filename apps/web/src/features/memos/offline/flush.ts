@@ -60,7 +60,6 @@ async function sendAll(queryClient: QueryClient): Promise<FlushResult> {
     // 再取得はオフラインで止まりうるので、ロックを握ったまま待たない。
     if (saved) {
       void queryClient.invalidateQueries({ queryKey: ["memos"] });
-      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     }
   }
   return result;

@@ -60,10 +60,7 @@ export function TagChangeMenu({
     setSubmitting(true);
     try {
       await changeMemoTag(memo.id, tag);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["memos"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ["memos"] });
     } catch (error) {
       if (error instanceof ChangeMemoTagError) {
         if (error.status === 401) {

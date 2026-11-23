@@ -18,7 +18,6 @@ import { fetchMemos } from "@/features/memos/api/get-memos";
 import { discardOtherUsersItems } from "@/features/memos/offline/outbox";
 import { useOnlineStatus } from "@/features/memos/offline/use-online-status";
 import { useOutboxSync } from "@/features/memos/offline/use-outbox-sync";
-import { fetchNotifications } from "@/features/notifications/api/get-notifications";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async () => {
@@ -59,19 +58,11 @@ function AppLayout() {
   }
   useOutboxSync();
   const memos = useQuery({ queryKey: ["memos"], queryFn: fetchMemos });
-  const notifications = useQuery({
-    queryKey: ["notifications"],
-    queryFn: fetchNotifications,
-  });
   const online = useOnlineStatus();
   // オフライン（ブラウザが圏外と判断している、またはデータが無いまま取得が止まっている）。
   // 圏外では、前に取得した古い件数を出さない。
   const memosOffline =
     !online || (memos.data === undefined && memos.fetchStatus === "paused");
-  const notificationsOffline =
-    !online ||
-    (notifications.data === undefined &&
-      notifications.fetchStatus === "paused");
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -83,9 +74,6 @@ function AppLayout() {
         memoCount={memos.data?.items.length ?? 0}
         memosPending={memos.isPending && !memosOffline}
         memosOffline={memosOffline}
-        notifications={notifications.data}
-        notificationsPending={notifications.isPending && !notificationsOffline}
-        notificationsOffline={notificationsOffline}
       />
       <div className="min-w-0 flex-1">
         <TopBar pathname={pathname} onMenuClick={() => setMobileOpen(true)} />

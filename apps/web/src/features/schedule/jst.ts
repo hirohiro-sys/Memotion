@@ -35,11 +35,6 @@ export function toDateString(year: number, month: number, day: number): string {
   return new Date(Date.UTC(year, month - 1, day)).toISOString().slice(0, 10);
 }
 
-export function addDays(date: string, days: number): string {
-  const { year, month, day } = parseDate(date);
-  return toDateString(year, month, day + days);
-}
-
 function weekdayOf(date: string): string {
   const { year, month, day } = parseDate(date);
   return WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()] ?? "";

@@ -10,9 +10,20 @@ compatibility_date = "2024-09-01"
 # LINE_CHANNEL_ACCESS_TOKEN
 # SESSION_SECRET
 # APP_URL
-# Notion（任意）。無ければ Notion に書かない
+# Notion（任意）。無ければ Notion に書かず、通知も送らない
 # NOTION_TOKEN
 # NOTION_DATA_SOURCE_ID
+# LINE 通知の送り先（任意）。無ければ通知しない
+# NOTIFY_LINE_USER_ID
+# 通知の「他N件」から開く Notion のページ（任意）。無ければ APP_URL
+# NOTION_VIEW_URL
+
+# LINE 通知の時刻（JST）。空にするとその通知はオフ。変えたらデプロイする。
+# TECH_WEEKLY は「曜日 時刻」（曜日は sun / mon / tue / wed / thu / fri / sat）。
+[vars]
+TECH_WEEKLY = "sun 20:00"
+TODO_DAILY = "08:00"
+SCHEDULE_DAILY = "20:00"
 
 [assets]
 directory = "../web/dist"
@@ -37,6 +48,15 @@ migrations_dir = "migrations"
 [[kv_namespaces]]
 binding = "DEDUP"
 id = "620d745394c74102a6300ef90cdc404d"
+
+# LINE 通知の送信済みの記録。書いた値がすぐにどこでも読めるよう、KV ではなく Durable Object に置く。
+[[durable_objects.bindings]]
+name = "NOTIFY_STATE"
+class_name = "NotifySentState"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["NotifySentState"]
 
 [[r2_buckets]]
 binding = "MEDIA"

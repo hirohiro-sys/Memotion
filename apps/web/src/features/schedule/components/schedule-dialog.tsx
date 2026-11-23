@@ -72,10 +72,7 @@ export function ScheduleDialog({
         scheduledDate: draft.date,
         scheduledTime: draft.time === "" ? null : draft.time,
       });
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["memos"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ["memos"] });
       onOpenChange(false);
     } catch (error) {
       if (error instanceof SetScheduleError) {
