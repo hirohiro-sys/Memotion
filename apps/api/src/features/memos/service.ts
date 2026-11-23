@@ -17,6 +17,7 @@ import {
   isForeignKeyViolation,
   isLineMessageIdConflict,
 } from "./constraint-error";
+import { toWebMemoRecord } from "./dedup-record";
 import {
   findWebMemo,
   hasLineMessage,
@@ -264,7 +265,9 @@ export async function createForUser(
         scheduledDate,
         scheduledTime,
       };
-      if (input.id !== undefined) await recordWebMemo(kv, { ...row, userId });
+      if (input.id !== undefined) {
+        await recordWebMemo(kv, toWebMemoRecord(row, userId));
+      }
       return { ok: true, created: true, memo: toMemoResponse(row) };
     }
     case "existing":

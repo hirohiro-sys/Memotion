@@ -3,6 +3,7 @@ import {
   LINE_MESSAGE_TTL_SECONDS,
   lineMessageKey,
   parseWebMemoRecord,
+  toWebMemoRecord,
   WEB_MEMO_TTL_SECONDS,
   webMemoKey,
 } from "./dedup-record";
@@ -31,6 +32,13 @@ describe("dedup keys", () => {
   it("keeps LINE records for 7 days and Web records for 30 days", () => {
     expect(LINE_MESSAGE_TTL_SECONDS).toBe(604_800);
     expect(WEB_MEMO_TTL_SECONDS).toBe(2_592_000);
+  });
+});
+
+describe("toWebMemoRecord", () => {
+  it("adds the owner so the record can be parsed back", () => {
+    const { userId: _userId, ...row } = record;
+    expect(parseWebMemoRecord(toWebMemoRecord(row, "user_1"))).toEqual(record);
   });
 });
 

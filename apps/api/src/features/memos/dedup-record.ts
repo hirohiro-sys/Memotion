@@ -1,4 +1,5 @@
 import type { ExistingMemoRow } from "./idempotency";
+import type { MemoRow } from "./repository";
 
 // KV に置く重複判定の記録の、キーと保持期間と値の形。
 // LINE の再送は Worker が 200 を返せなかったときだけ来るので短く、
@@ -12,6 +13,11 @@ export function lineMessageKey(lineMessageId: string): string {
 
 export function webMemoKey(memoId: string): string {
   return `web-memo:${memoId}`;
+}
+
+// 保存した行に持ち主を足して、Web の記録にする。持ち主が無いと再送の判定に使えない。
+export function toWebMemoRecord(row: MemoRow, userId: string): ExistingMemoRow {
+  return { ...row, userId };
 }
 
 const STRING_KEYS = [
