@@ -53,7 +53,7 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 | `SESSION_SECRET` | JWT 署名。十分長いランダム値 |
 | `APP_URL` | ログイン後の戻り先。ローカルは `http://127.0.0.1:5173`。本番は `https://line-memo-orchestrator.hirohiro-sys.workers.dev` |
 | `ALLOWED_LINE_USER_IDS` | Web のログインと LINE からの保存を許す LINE ユーザーID。カンマ区切り。無ければ誰も許さない |
-| `APP_USER_ID` | 許可した人のメモの持ち主として使うアプリのユーザーID（`usr_…`）。許可した全員がこの 1 人になる。無ければ誰も許さない |
+| `APP_USER_ID` | 許可した人のメモの持ち主として使うアプリのユーザーID。本番の `users` の `id` の値（21 文字の英数字。`usr_` のような決まった接頭辞は無い）。許可した全員がこの 1 人になる。無ければ誰も許さない |
 | `NOTION_TOKEN` | Notion のインテグレーションのトークン。任意。無ければ Notion に書かない |
 | `NOTION_DATA_SOURCE_ID` | メモを書く Notion のデータソースの ID。任意。無ければ Notion に書かない |
 | `NOTIFY_LINE_USER_ID` | LINE 通知の送り先の LINE ユーザーID（1人）。任意。無ければ通知しない |
