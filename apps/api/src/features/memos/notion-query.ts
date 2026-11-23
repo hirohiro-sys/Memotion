@@ -81,6 +81,17 @@ export function scheduleQueryBody(targetDate: string, cursor?: string) {
   };
 }
 
+// メモIDが一致するページを探す。保存済みかを確かめるだけなので1件で足りる。
+export function memoIdQueryBody(memoId: string) {
+  return {
+    filter: {
+      property: NOTION_PROPERTY.memoId,
+      rich_text: { equals: memoId },
+    },
+    page_size: 1,
+  };
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null
     ? (value as Record<string, unknown>)

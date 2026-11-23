@@ -1,54 +1,29 @@
 import type { MemoTag } from "@repo/shared";
-import { hasConstraintCause } from "../../db/constraint-error";
-import type { MemoRow } from "./repository";
+import type { WebMemoRecord } from "./dedup-record";
 
-export type ExistingMemoRow = MemoRow & { userId: string };
+export type ResendDecision =
+  | { kind: "existing"; record: WebMemoRecord }
+  | { kind: "conflict" };
 
-export type SaveResult = "inserted" | "primary_key_conflict" | "failed";
-
-export type CreateDecision =
-  | { kind: "created" }
-  | { kind: "existing"; row: ExistingMemoRow }
-  | { kind: "conflict" }
-  | { kind: "save_failed" };
-
-const PRIMARY_KEY_CONFLICT = /UNIQUE constraint failed: memos\.id(?!\w)/;
-
-// memos.id の一意制約違反（同じ id の再送）かどうか。
-export function isPrimaryKeyConflict(error: unknown): boolean {
-  return hasConstraintCause(error, PRIMARY_KEY_CONFLICT);
-}
-
-// 同じ id の再送は、自分の行で本文とタグが一致するときだけ既存として返す。
-// それ以外は内容を返さず衝突にする（他ユーザーの行の存在や内容を漏らさない）。
-// グループは入力が持つときだけ比べる（グループなしで保存したあと、別の端末で
-// 「グループに追加」されたメモの再送を衝突にしないため）。
+// 同じ id の再送は、自分の記録で本文とタグが一致するときだけ既存として返す。
+// それ以外は内容を返さず衝突にする（他ユーザーの記録の存在や内容を漏らさない）。
 // 予定は日付と時刻も比べる。時刻の省略と null は同じ「時間未定」として扱う。
-export function decideCreateResult(
-  saveResult: SaveResult,
-  existing: ExistingMemoRow | null,
+export function decideResend(
+  record: WebMemoRecord,
   input: {
     tag: MemoTag;
     content: string;
-    groupId?: string;
     scheduledDate?: string;
     scheduledTime?: string | null;
   },
   userId: string,
-): CreateDecision {
-  if (saveResult === "inserted") return { kind: "created" };
-  if (saveResult === "failed") return { kind: "save_failed" };
-  if (!existing) return { kind: "save_failed" };
-
+): ResendDecision {
   const sameRequest =
-    existing.userId === userId &&
-    existing.tag === input.tag &&
-    existing.content === input.content &&
-    (input.groupId === undefined || existing.groupId === input.groupId) &&
+    record.userId === userId &&
+    record.tag === input.tag &&
+    record.content === input.content &&
     (input.tag !== "schedule" ||
-      (existing.scheduledDate === (input.scheduledDate ?? null) &&
-        existing.scheduledTime === (input.scheduledTime ?? null)));
-  return sameRequest
-    ? { kind: "existing", row: existing }
-    : { kind: "conflict" };
+      (record.scheduledDate === (input.scheduledDate ?? null) &&
+        record.scheduledTime === (input.scheduledTime ?? null)));
+  return sameRequest ? { kind: "existing", record } : { kind: "conflict" };
 }

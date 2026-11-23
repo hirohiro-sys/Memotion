@@ -10,7 +10,7 @@ compatibility_date = "2024-09-01"
 # LINE_CHANNEL_ACCESS_TOKEN
 # SESSION_SECRET
 # APP_URL
-# Notion（任意）。無ければ Notion に書かず、通知も送らない
+# Notion。メモの保存先。無ければメモを保存できず、通知も送らない
 # NOTION_TOKEN
 # NOTION_DATA_SOURCE_ID
 # LINE 通知の送り先（任意）。無ければ通知しない
@@ -37,13 +37,7 @@ enabled = true
 [triggers]
 crons = ["* * * * *"]
 
-[[d1_databases]]
-binding = "DB"
-database_name = "line-memo-orchestrator"
-database_id = "52233bb7-9a0f-4385-918d-54616c7338a2"
-migrations_dir = "migrations"
-
-# LINE の受信済みと、Web の再送の重複判定の記録。D1 を外したあとも二重保存を防ぐ。
+# LINE の受信済みと、Web の再送の重複判定の記録。
 # 本番の名前空間は手作業で作った（docs/backend-setup.md）。wrangler dev はローカルの KV を使う。
 [[kv_namespaces]]
 binding = "DEDUP"
@@ -57,13 +51,3 @@ class_name = "NotifySentState"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["NotifySentState"]
-
-[[r2_buckets]]
-binding = "MEDIA"
-bucket_name = "line-memo-orchestrator-media"
-
-# Workers AI。キーは置かない。モデル ID は daily-reports の client に固定する。
-# ローカルにモデルは無い。remote は推論先だけで、D1 と R2 はローカルのまま。
-[ai]
-binding = "AI"
-remote = true

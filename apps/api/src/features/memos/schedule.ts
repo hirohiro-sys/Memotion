@@ -6,31 +6,15 @@ export function isPastScheduleDate(date: string, now: Date): boolean {
   return date < jstDateString(now);
 }
 
-export type ScheduleSetDecision = "ok" | "not_found" | "not_schedulable";
+export type CreateScheduleDecision = "ok" | "past_date";
 
-// 「予定にする」と「日時を変更」ができるのは、グループに入っていないメモだけ。タグは問わない。
-export function decideScheduleSet(input: {
-  memo: { groupId: string | null } | null;
-}): ScheduleSetDecision {
-  const { memo } = input;
-  if (!memo) return "not_found";
-  return memo.groupId === null ? "ok" : "not_schedulable";
-}
-
-export type CreateScheduleDecision = "ok" | "invalid" | "past_date";
-
-// 作成の検査。グループに入った予定は作らせない。過去の日付は DB に触る前に弾く。
+// 作成の検査。過去の日付は Notion に触る前に弾く。予定以外は日付を見ない。
 export function validateCreateSchedule(
-  input: { tag: MemoTag; groupId?: string; scheduledDate?: string },
+  input: { tag: MemoTag; scheduledDate?: string },
   now: Date,
 ): CreateScheduleDecision {
-  if (input.tag !== "schedule") return "ok";
-  if (input.groupId !== undefined) return "invalid";
-  if (
-    input.scheduledDate !== undefined &&
-    isPastScheduleDate(input.scheduledDate, now)
-  ) {
-    return "past_date";
+  if (input.tag !== "schedule" || input.scheduledDate === undefined) {
+    return "ok";
   }
-  return "ok";
+  return isPastScheduleDate(input.scheduledDate, now) ? "past_date" : "ok";
 }

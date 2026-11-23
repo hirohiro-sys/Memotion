@@ -13,7 +13,6 @@
       "!**/public/umami.js",
       "!**/pnpm-lock.yaml",
       "!**/public/*.svg",
-      "!**/migrations/meta",
       "!**/.agents/skills/impeccable",
       "!**/.impeccable",
       "!**/*.md"

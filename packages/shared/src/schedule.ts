@@ -25,10 +25,3 @@ export const scheduleDateSchema = z
 
 // 予定の時刻（JST）。無いときは「時間未定」。
 export const scheduleTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
-
-export const setScheduleRequestSchema = z.object({
-  scheduledDate: scheduleDateSchema,
-  scheduledTime: scheduleTimeSchema.nullable().optional(),
-});
-
-export type SetScheduleRequest = z.infer<typeof setScheduleRequestSchema>;

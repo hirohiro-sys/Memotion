@@ -1,6 +1,5 @@
 import { userSchema } from "@repo/shared";
 import { Hono } from "hono";
-import { createDb } from "../../db";
 import type { Env } from "../../env";
 import {
   clearSession,
@@ -9,12 +8,11 @@ import {
   issueSession,
   readSessionUserId,
 } from "../../lib/session";
-import { devLoginAllowed } from "./dev-login";
+import { DEV_USER_ID, devLoginAllowed } from "./dev-login";
 import {
   callbackUrl,
   exchangeCodeForLineUserId,
   frontendUrl,
-  prepareDevUser,
   resolveUserIdByLineUserId,
 } from "./service";
 
@@ -73,8 +71,7 @@ auth.get("/api/auth/dev", async (c) => {
   if (!devLoginAllowed({ appUrl: c.env.APP_URL, requestUrl: c.req.url })) {
     return c.body(null, 404);
   }
-  const userId = await prepareDevUser(createDb(c.env.DB), new Date());
-  await issueSession(c, userId);
+  await issueSession(c, DEV_USER_ID);
   return c.redirect(frontendUrl(c.env.APP_URL, "/"));
 });
 

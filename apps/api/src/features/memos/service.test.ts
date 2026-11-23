@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ExistingMemoRow } from "./idempotency";
+import type { WebMemoRecord } from "./dedup-record";
 import type { NotionMemo } from "./notion-page";
-import { createForUser, createFromLine, syncMemoToNotion } from "./service";
+import {
+  createForUser,
+  createFromLine,
+  saveMemoToNotion,
+  toMemoResponse,
+} from "./service";
 
 const memo: NotionMemo = {
   id: "memo_1",
@@ -12,7 +17,13 @@ const memo: NotionMemo = {
   createdAt: "2026-11-22T00:00:00.000Z",
 };
 
-const env = { NOTION_TOKEN: "notion-secret", NOTION_DATA_SOURCE_ID: "ds_1" };
+const notionEnv = {
+  NOTION_TOKEN: "notion-secret",
+  NOTION_DATA_SOURCE_ID: "ds_1",
+};
+
+const PAGES_URL = "https://api.notion.com/v1/pages";
+const QUERY_URL = "https://api.notion.com/v1/data_sources/ds_1/query";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -23,19 +34,57 @@ function loggedLines(spy: ReturnType<typeof vi.spyOn>): string[] {
   return spy.mock.calls.map((call) => String(call[0]));
 }
 
-describe("syncMemoToNotion", () => {
-  it("creates a Notion page under the configured data source", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(new Response("{}", { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+function silenceLog() {
+  return vi.spyOn(console, "log").mockImplementation(() => {});
+}
 
-    await syncMemoToNotion(env, memo);
+// Notion の偽物。ページの作成と検索に、決めた状態で答える。
+// query は、検索で見つかるページの数か、失敗の HTTP の状態。
+function stubNotion(options: {
+  create?: number | "network";
+  query?: { found: number } | { status: number };
+}) {
+  const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
+    if (url === PAGES_URL) {
+      if (options.create === "network") throw new Error("network");
+      return new Response("{}", { status: options.create ?? 200 });
+    }
+    if (url === QUERY_URL) {
+      const query = options.query ?? { found: 0 };
+      if ("status" in query)
+        return new Response("{}", { status: query.status });
+      return new Response(
+        JSON.stringify({
+          results: Array.from({ length: query.found }, () => ({})),
+          has_more: false,
+        }),
+        { status: 200 },
+      );
+    }
+    throw new Error(`unexpected fetch: ${url}`);
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return {
+    fetchMock,
+    urls: () => fetchMock.mock.calls.map((call) => call[0]),
+    queryBody: () => {
+      const call = fetchMock.mock.calls.find((item) => item[0] === QUERY_URL);
+      return JSON.parse(String(call?.[1]?.body));
+    },
+  };
+}
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(url).toBe("https://api.notion.com/v1/pages");
+describe("saveMemoToNotion", () => {
+  it("creates a page under the configured data source", async () => {
+    const notion = stubNotion({ create: 200 });
+    const log = silenceLog();
+
+    await expect(
+      saveMemoToNotion(notionEnv, memo, { checkFirst: false }),
+    ).resolves.toEqual({ ok: true, created: true });
+
+    expect(notion.urls()).toEqual([PAGES_URL]);
+    const init = notion.fetchMock.mock.calls[0]?.[1];
     expect(JSON.parse(String(init?.body)).parent).toEqual({
       type: "data_source_id",
       data_source_id: "ds_1",
@@ -43,15 +92,69 @@ describe("syncMemoToNotion", () => {
     expect(log).not.toHaveBeenCalled();
   });
 
-  it("logs the failure with the HTTP status but without the body or token", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response("{}", { status: 503 })),
-    );
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  it("searches by memo id first and does not create when the page exists", async () => {
+    const notion = stubNotion({ query: { found: 1 } });
+    const log = silenceLog();
 
-    await expect(syncMemoToNotion(env, memo)).resolves.toBeUndefined();
+    await expect(
+      saveMemoToNotion(notionEnv, memo, { checkFirst: true }),
+    ).resolves.toEqual({ ok: true, created: false });
 
+    expect(notion.urls()).toEqual([QUERY_URL]);
+    expect(notion.queryBody()).toEqual({
+      filter: { property: "メモID", rich_text: { equals: "memo_1" } },
+      page_size: 1,
+    });
+    expect(loggedLines(log)).toEqual([
+      JSON.stringify({
+        event: "memo.notion",
+        status: "duplicate",
+        memoId: "memo_1",
+      }),
+    ]);
+  });
+
+  it("creates after searching when no page has the memo id", async () => {
+    const notion = stubNotion({ query: { found: 0 }, create: 200 });
+    silenceLog();
+
+    await expect(
+      saveMemoToNotion(notionEnv, memo, { checkFirst: true }),
+    ).resolves.toEqual({ ok: true, created: true });
+    expect(notion.urls()).toEqual([QUERY_URL, PAGES_URL]);
+  });
+
+  it("still creates when the first search fails", async () => {
+    const notion = stubNotion({ query: { status: 503 }, create: 200 });
+    silenceLog();
+
+    await expect(
+      saveMemoToNotion(notionEnv, memo, { checkFirst: true }),
+    ).resolves.toEqual({ ok: true, created: true });
+    expect(notion.urls()).toEqual([QUERY_URL, PAGES_URL]);
+  });
+
+  it.each([503, 500, "network" as const])(
+    "treats an ambiguous failure (%s) as saved when the page is found afterwards",
+    async (create) => {
+      const notion = stubNotion({ create, query: { found: 1 } });
+      const log = silenceLog();
+
+      await expect(
+        saveMemoToNotion(notionEnv, memo, { checkFirst: false }),
+      ).resolves.toEqual({ ok: true, created: true });
+      expect(notion.urls()).toEqual([PAGES_URL, QUERY_URL]);
+      expect(log).not.toHaveBeenCalled();
+    },
+  );
+
+  it("fails and logs the HTTP status when an ambiguous failure left no page", async () => {
+    stubNotion({ create: 503, query: { found: 0 } });
+    const log = silenceLog();
+
+    await expect(
+      saveMemoToNotion(notionEnv, memo, { checkFirst: false }),
+    ).resolves.toEqual({ ok: false });
     expect(loggedLines(log)).toEqual([
       JSON.stringify({
         event: "memo.notion",
@@ -64,14 +167,40 @@ describe("syncMemoToNotion", () => {
     expect(loggedLines(log).join("")).not.toContain("notion-secret");
   });
 
-  it("skips and logs when the Notion secrets are missing", async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  it("logs 0 for a network failure when the check also fails", async () => {
+    stubNotion({ create: "network", query: { status: 503 } });
+    const log = silenceLog();
 
-    await syncMemoToNotion({ NOTION_TOKEN: "notion-secret" }, memo);
+    await expect(
+      saveMemoToNotion(notionEnv, memo, { checkFirst: false }),
+    ).resolves.toEqual({ ok: false });
+    expect(JSON.parse(loggedLines(log)[0] ?? "{}").httpStatus).toBe(0);
+  });
 
-    expect(fetchMock).not.toHaveBeenCalled();
+  it.each([400, 401, 404, 429])(
+    "fails on %s without searching, since the page was not written",
+    async (create) => {
+      const notion = stubNotion({ create });
+      const log = silenceLog();
+
+      await expect(
+        saveMemoToNotion(notionEnv, memo, { checkFirst: false }),
+      ).resolves.toEqual({ ok: false });
+      expect(notion.urls()).toEqual([PAGES_URL]);
+      expect(JSON.parse(loggedLines(log)[0] ?? "{}").httpStatus).toBe(create);
+    },
+  );
+
+  it("fails and logs without calling Notion when the secrets are missing", async () => {
+    const notion = stubNotion({});
+    const log = silenceLog();
+
+    await expect(
+      saveMemoToNotion({ NOTION_TOKEN: "notion-secret" }, memo, {
+        checkFirst: true,
+      }),
+    ).resolves.toEqual({ ok: false });
+    expect(notion.fetchMock).not.toHaveBeenCalled();
     expect(loggedLines(log)).toEqual([
       JSON.stringify({
         event: "memo.notion",
@@ -81,25 +210,47 @@ describe("syncMemoToNotion", () => {
       }),
     ]);
   });
-
-  it("does not write an image memo to Notion", async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
-
-    await syncMemoToNotion(env, {
-      ...memo,
-      mediaType: "image",
-      content: "（画像）",
-    });
-
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(log).not.toHaveBeenCalled();
-  });
 });
 
-// KV の記録が当たる経路は D1 に触らない。触ったら落ちるよう、DB は渡さない。
-const noDb = undefined as never;
+describe("toMemoResponse", () => {
+  it("returns the memo without schedule keys for a tweet", () => {
+    expect(
+      toMemoResponse({
+        ...memo,
+        scheduledDate: "2026-11-03",
+        scheduledTime: "14:00",
+      }),
+    ).toEqual({
+      id: "memo_1",
+      tag: "tweet",
+      content: "秘密の本文",
+      mediaType: "text",
+      source: "web",
+      createdAt: "2026-11-22T00:00:00.000Z",
+    });
+  });
+
+  it("returns the date and time of a schedule", () => {
+    expect(
+      toMemoResponse({
+        ...memo,
+        tag: "schedule",
+        scheduledDate: "2026-11-03",
+        scheduledTime: "14:00",
+      }),
+    ).toMatchObject({ scheduledDate: "2026-11-03", scheduledTime: "14:00" });
+  });
+
+  it("omits the time key of an untimed schedule", () => {
+    const response = toMemoResponse({
+      ...memo,
+      tag: "schedule",
+      scheduledDate: "2026-11-03",
+    });
+    expect(response.scheduledDate).toBe("2026-11-03");
+    expect("scheduledTime" in response).toBe(false);
+  });
+});
 
 function fakeKv(values: Record<string, unknown>) {
   const put = vi.fn().mockResolvedValue(undefined);
@@ -117,33 +268,32 @@ function brokenKv() {
 
 const memoId = "8f2c1d4e-0b6a-4c3e-9d1f-2a7b5c8e9f01";
 
-const recorded: ExistingMemoRow = {
+const recorded: WebMemoRecord = {
   id: memoId,
   userId: "user_1",
   tag: "tweet",
   content: "眠い",
-  url: null,
-  imageKey: null,
   mediaType: "text",
   source: "web",
   createdAt: "2026-11-23T00:00:00.000Z",
-  groupId: null,
   scheduledDate: null,
   scheduledTime: null,
 };
 
-describe("createForUser with a KV record", () => {
-  it("returns the recorded memo for the same request without saving again", async () => {
-    const { kv, get } = fakeKv({ [`web-memo:${memoId}`]: recorded });
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+describe("createForUser", () => {
+  const input = { id: memoId, tag: "tweet" as const, content: "眠い" };
 
-    const result = await createForUser(noDb, kv, "user_1", {
-      id: memoId,
-      tag: "tweet",
-      content: "眠い",
-    });
+  it("returns the recorded memo for the same request without calling Notion", async () => {
+    const { kv, put } = fakeKv({ [`web-memo:${memoId}`]: recorded });
+    const notion = stubNotion({});
+    silenceLog();
 
-    expect(get).toHaveBeenCalledWith(`web-memo:${memoId}`, "json");
+    const result = await createForUser(
+      { ...notionEnv, DEDUP: kv },
+      "user_1",
+      input,
+    );
+
     expect(result).toEqual({
       ok: true,
       created: false,
@@ -156,53 +306,115 @@ describe("createForUser with a KV record", () => {
         createdAt: "2026-11-23T00:00:00.000Z",
       },
     });
-    expect(loggedLines(log)).toEqual([
-      JSON.stringify({ event: "memo.create", status: "duplicate", memoId }),
-    ]);
-  });
-
-  it("returns a conflict when the content differs", async () => {
-    const { kv } = fakeKv({ [`web-memo:${memoId}`]: recorded });
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
-
-    const result = await createForUser(noDb, kv, "user_1", {
-      id: memoId,
-      tag: "tweet",
-      content: "眠くない",
-    });
-
-    expect(result).toEqual({ ok: false, error: "conflict" });
-    expect(loggedLines(log)).toEqual([
-      JSON.stringify({ event: "memo.create", status: "conflict", memoId }),
-    ]);
+    expect(notion.fetchMock).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
   });
 
   it("returns a conflict without the content when another user recorded the id", async () => {
     const { kv } = fakeKv({ [`web-memo:${memoId}`]: recorded });
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    stubNotion({});
+    const log = silenceLog();
 
-    const result = await createForUser(noDb, kv, "user_2", {
-      id: memoId,
-      tag: "tweet",
-      content: "眠い",
-    });
+    const result = await createForUser(
+      { ...notionEnv, DEDUP: kv },
+      "user_2",
+      input,
+    );
 
     expect(result).toEqual({ ok: false, error: "conflict" });
     expect(loggedLines(log).join("")).not.toContain("眠い");
   });
 
-  it("logs a failed KV read without the content and falls back to D1", async () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  it("saves a new memo to Notion and records it in KV with its owner", async () => {
+    const { kv, put } = fakeKv({});
+    const notion = stubNotion({ query: { found: 0 }, create: 200 });
 
-    // D1 を渡していないので、D1 の判定に進んだところで落ちる。
-    await expect(
-      createForUser(noDb, brokenKv(), "user_1", {
+    const result = await createForUser({ ...notionEnv, DEDUP: kv }, "user_1", {
+      ...input,
+      createdAt: "2026-11-23T09:00:00+09:00",
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      created: true,
+      memo: { id: memoId, createdAt: "2026-11-23T00:00:00.000Z" },
+    });
+    expect(notion.urls()).toEqual([QUERY_URL, PAGES_URL]);
+    expect(put).toHaveBeenCalledWith(
+      `web-memo:${memoId}`,
+      JSON.stringify({
         id: memoId,
         tag: "tweet",
         content: "眠い",
+        mediaType: "text",
+        source: "web",
+        createdAt: "2026-11-23T00:00:00.000Z",
+        userId: "user_1",
+        scheduledDate: null,
+        scheduledTime: null,
       }),
-    ).rejects.toThrow();
+      { expirationTtl: 2_592_000 },
+    );
+  });
 
+  it("returns the memo as not created when Notion already has it but KV does not", async () => {
+    const { kv, put } = fakeKv({});
+    const notion = stubNotion({ query: { found: 1 } });
+    silenceLog();
+
+    const result = await createForUser(
+      { ...notionEnv, DEDUP: kv },
+      "user_1",
+      input,
+    );
+
+    expect(result).toMatchObject({ ok: true, created: false });
+    expect(notion.urls()).toEqual([QUERY_URL]);
+    expect(put).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not search Notion first when the request has no id", async () => {
+    const { kv, get, put } = fakeKv({});
+    const notion = stubNotion({ create: 200 });
+
+    const result = await createForUser({ ...notionEnv, DEDUP: kv }, "user_1", {
+      tag: "tweet",
+      content: "眠い",
+    });
+
+    expect(result).toMatchObject({ ok: true, created: true });
+    expect(notion.urls()).toEqual([PAGES_URL]);
+    expect(get).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it("fails without a KV record when Notion could not save", async () => {
+    const { kv, put } = fakeKv({});
+    stubNotion({ query: { found: 0 }, create: 400 });
+    silenceLog();
+
+    const result = await createForUser(
+      { ...notionEnv, DEDUP: kv },
+      "user_1",
+      input,
+    );
+
+    expect(result).toEqual({ ok: false, error: "save_failed" });
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it("logs a failed KV read without the content and searches Notion instead", async () => {
+    const notion = stubNotion({ query: { found: 0 }, create: 200 });
+    const log = silenceLog();
+
+    const result = await createForUser(
+      { ...notionEnv, DEDUP: brokenKv() },
+      "user_1",
+      input,
+    );
+
+    expect(result).toMatchObject({ ok: true, created: true });
+    expect(notion.urls()).toEqual([QUERY_URL, PAGES_URL]);
     expect(loggedLines(log)).toEqual([
       JSON.stringify({
         event: "memo.dedup",
@@ -210,28 +422,63 @@ describe("createForUser with a KV record", () => {
         reason: "read",
         memoId,
       }),
+      JSON.stringify({
+        event: "memo.dedup",
+        status: "failed",
+        reason: "write",
+        memoId,
+      }),
     ]);
   });
 
-  it("does not read KV when the request has no id", async () => {
+  it("rejects a past schedule date before reading KV or Notion", async () => {
     const { kv, get } = fakeKv({});
+    const notion = stubNotion({});
 
-    await expect(
-      createForUser(noDb, kv, "user_1", { tag: "tweet", content: "眠い" }),
-    ).rejects.toThrow();
+    const result = await createForUser({ ...notionEnv, DEDUP: kv }, "user_1", {
+      tag: "schedule",
+      content: "歯医者",
+      scheduledDate: "2000-01-01",
+    });
 
+    expect(result).toEqual({ ok: false, error: "past_date" });
     expect(get).not.toHaveBeenCalled();
+    expect(notion.fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("writes the schedule date and time to Notion and the record", async () => {
+    const { kv, put } = fakeKv({});
+    const notion = stubNotion({ query: { found: 0 }, create: 200 });
+
+    const result = await createForUser({ ...notionEnv, DEDUP: kv }, "user_1", {
+      id: memoId,
+      tag: "schedule",
+      content: "歯医者",
+      scheduledDate: "2099-01-02",
+      scheduledTime: "09:30",
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      memo: { scheduledDate: "2099-01-02", scheduledTime: "09:30" },
+    });
+    const createCall = notion.fetchMock.mock.calls.find(
+      (call) => call[0] === PAGES_URL,
+    );
+    expect(
+      JSON.parse(String(createCall?.[1]?.body)).properties.予定日時,
+    ).toEqual({
+      date: { start: "2099-01-02T09:30:00", time_zone: "Asia/Tokyo" },
+    });
+    expect(JSON.parse(String(put.mock.calls[0]?.[1]))).toMatchObject({
+      scheduledDate: "2099-01-02",
+      scheduledTime: "09:30",
+    });
   });
 });
 
-describe("createFromLine with a KV record", () => {
-  const lineEnv = {
-    DB: noDb,
-    MEDIA: noDb,
-    LINE_CHANNEL_ACCESS_TOKEN: "line-secret",
-  };
+describe("createFromLine", () => {
   const input = {
-    userId: "user_1",
     lineMessageId: "5000",
     classified: {
       save: true as const,
@@ -241,32 +488,59 @@ describe("createFromLine with a KV record", () => {
     },
   };
 
-  it("treats a recorded LINE message as a duplicate without saving again", async () => {
+  it("treats a recorded LINE message as a duplicate without calling Notion", async () => {
     const { kv, get, put } = fakeKv({ "line-message:5000": "{}" });
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
+    const notion = stubNotion({});
 
-    const result = await createFromLine({ ...lineEnv, DEDUP: kv }, input);
+    const result = await createFromLine({ ...notionEnv, DEDUP: kv }, input);
 
     expect(result).toEqual({ status: "duplicate" });
     expect(get).toHaveBeenCalledWith("line-message:5000");
     expect(put).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(notion.fetchMock).not.toHaveBeenCalled();
   });
 
-  it("logs a failed KV read without the message and falls back to D1", async () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  it("saves to Notion without searching first and records the message", async () => {
+    const { kv, put } = fakeKv({});
+    const notion = stubNotion({ create: 200 });
 
-    // D1 を渡していないので、D1 の判定に進むと保存の失敗になる。
+    const result = await createFromLine({ ...notionEnv, DEDUP: kv }, input);
+
+    expect(result).toEqual({ status: "inserted" });
+    expect(notion.urls()).toEqual([PAGES_URL]);
+    const init = notion.fetchMock.mock.calls[0]?.[1];
+    expect(JSON.parse(String(init?.body)).properties.入力元).toEqual({
+      select: { name: "line" },
+    });
+    expect(put).toHaveBeenCalledWith("line-message:5000", expect.any(String), {
+      expirationTtl: 604_800,
+    });
+  });
+
+  it("fails without recording the message when Notion could not save", async () => {
+    const { kv, put } = fakeKv({});
+    stubNotion({ create: 400 });
+    silenceLog();
+
+    const result = await createFromLine({ ...notionEnv, DEDUP: kv }, input);
+
+    expect(result).toEqual({ status: "failed", reason: "save_failed" });
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it("logs a failed KV read without the message and still saves", async () => {
+    stubNotion({ create: 200 });
+    const log = silenceLog();
+
     const result = await createFromLine(
-      { ...lineEnv, DEDUP: brokenKv() },
+      { ...notionEnv, DEDUP: brokenKv() },
       input,
     );
 
-    expect(result).toEqual({ status: "failed", reason: "save_failed" });
-    expect(loggedLines(log)).toEqual([
+    expect(result).toEqual({ status: "inserted" });
+    expect(loggedLines(log)[0]).toBe(
       JSON.stringify({ event: "memo.dedup", status: "failed", reason: "read" }),
-    ]);
+    );
     expect(loggedLines(log).join("")).not.toContain("眠い");
   });
 });

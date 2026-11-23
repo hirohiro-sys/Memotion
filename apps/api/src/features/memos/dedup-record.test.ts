@@ -3,7 +3,6 @@ import {
   LINE_MESSAGE_TTL_SECONDS,
   lineMessageKey,
   parseWebMemoRecord,
-  toWebMemoRecord,
   WEB_MEMO_TTL_SECONDS,
   webMemoKey,
 } from "./dedup-record";
@@ -13,12 +12,9 @@ const record = {
   userId: "user_1",
   tag: "tweet",
   content: "眠い",
-  url: null,
-  imageKey: null,
   mediaType: "text",
   source: "web",
   createdAt: "2026-11-23T00:00:00.000Z",
-  groupId: null,
   scheduledDate: null,
   scheduledTime: null,
 };
@@ -35,30 +31,33 @@ describe("dedup keys", () => {
   });
 });
 
-describe("toWebMemoRecord", () => {
-  it("adds the owner so the record can be parsed back", () => {
-    const { userId: _userId, ...row } = record;
-    expect(parseWebMemoRecord(toWebMemoRecord(row, "user_1"))).toEqual(record);
-  });
-});
-
 describe("parseWebMemoRecord", () => {
-  it("returns the stored row", () => {
+  it("returns the stored record", () => {
     expect(parseWebMemoRecord(record)).toEqual(record);
   });
 
-  it("returns a schedule row with its date and time", () => {
+  it("returns a schedule record with its date and time", () => {
     const schedule = {
       ...record,
       tag: "schedule",
       scheduledDate: "2026-11-24",
       scheduledTime: "09:30",
-      groupId: "group_1",
     };
     expect(parseWebMemoRecord(schedule)).toEqual(schedule);
   });
 
-  it("drops keys that are not part of the row", () => {
+  it("reads a record written while D1 was the store and drops its D1-only keys", () => {
+    expect(
+      parseWebMemoRecord({
+        ...record,
+        url: null,
+        imageKey: null,
+        groupId: "group_1",
+      }),
+    ).toEqual(record);
+  });
+
+  it("drops keys that are not part of the record", () => {
     expect(parseWebMemoRecord({ ...record, extra: "x" })).toEqual(record);
   });
 
@@ -75,8 +74,14 @@ describe("parseWebMemoRecord", () => {
     expect(parseWebMemoRecord(withoutOwner)).toBeNull();
   });
 
+  it("treats an unknown tag, media type or source as no record", () => {
+    expect(parseWebMemoRecord({ ...record, tag: "memo" })).toBeNull();
+    expect(parseWebMemoRecord({ ...record, mediaType: "image" })).toBeNull();
+    expect(parseWebMemoRecord({ ...record, source: "api" })).toBeNull();
+  });
+
   it("treats a nullable field with a wrong type as no record", () => {
-    expect(parseWebMemoRecord({ ...record, groupId: 1 })).toBeNull();
+    expect(parseWebMemoRecord({ ...record, scheduledDate: 1 })).toBeNull();
   });
 
   it("treats a missing nullable field as no record", () => {

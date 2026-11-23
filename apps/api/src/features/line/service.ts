@@ -19,7 +19,7 @@ export type LineEventDecision =
       messageId?: string;
       messageType: string;
       unsupported: boolean;
-      classify?: { text?: string; isImage: boolean };
+      classify?: { text?: string };
     };
 
 function logJson(fields: Record<string, unknown>) {
@@ -74,20 +74,10 @@ export function decideLineEvent(event: unknown): LineEventDecision {
       messageId,
       messageType,
       unsupported: false,
-      classify: { text, isImage: false },
+      classify: { text },
     };
   }
-  if (messageType === "image") {
-    return {
-      action: "process",
-      lineUserId,
-      replyToken,
-      messageId,
-      messageType,
-      unsupported: false,
-      classify: { isImage: true },
-    };
-  }
+  // 画像はメモにしない（#136）。テキスト以外は、どれも保存できないと返す。
   return {
     action: "process",
     lineUserId,
@@ -178,7 +168,6 @@ async function handleEvent(env: Env, event: unknown): Promise<void> {
     }
 
     const persisted = await createFromLine(env, {
-      userId,
       lineMessageId: decision.messageId,
       classified,
     });

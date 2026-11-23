@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  classifyPushFailure,
-  fetchMessageContent,
-  pushTextMessages,
-  replyFailure,
-} from "./client";
+import { classifyPushFailure, pushTextMessages, replyFailure } from "./client";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -22,7 +17,7 @@ describe("replyFailure", () => {
       replyFailure({
         accessToken: "token",
         replyToken: "reply-1",
-        text: "本文が空です。テキスト（URL含む）か画像を送ってください。",
+        text: "本文が空です。テキスト（URL含む）を送ってください。",
       }),
     ).resolves.toBe(true);
 
@@ -39,7 +34,7 @@ describe("replyFailure", () => {
           messages: [
             {
               type: "text",
-              text: "本文が空です。テキスト（URL含む）か画像を送ってください。",
+              text: "本文が空です。テキスト（URL含む）を送ってください。",
             },
           ],
         }),
@@ -60,42 +55,6 @@ describe("replyFailure", () => {
         text: "保存できませんでした。もう一度送ってください。",
       }),
     ).resolves.toBe(false);
-  });
-});
-
-describe("fetchMessageContent", () => {
-  it("gets the binary from the Content API", async () => {
-    const body = new Uint8Array([1, 2, 3]).buffer;
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(body, {
-        status: 200,
-        headers: { "content-type": "image/jpeg" },
-      }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const content = await fetchMessageContent({
-      accessToken: "token",
-      messageId: "mid-1",
-    });
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://api-data.line.me/v2/bot/message/mid-1/content",
-      { headers: { Authorization: "Bearer token" } },
-    );
-    expect(content?.contentType).toBe("image/jpeg");
-    expect(content && [...new Uint8Array(content.body)]).toEqual([1, 2, 3]);
-  });
-
-  it("returns null when Content API fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response(null, { status: 404 })),
-    );
-
-    await expect(
-      fetchMessageContent({ accessToken: "token", messageId: "mid-1" }),
-    ).resolves.toBeNull();
   });
 });
 

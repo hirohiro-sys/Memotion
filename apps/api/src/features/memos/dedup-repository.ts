@@ -3,9 +3,9 @@ import {
   lineMessageKey,
   parseWebMemoRecord,
   WEB_MEMO_TTL_SECONDS,
+  type WebMemoRecord,
   webMemoKey,
 } from "./dedup-record";
-import type { ExistingMemoRow } from "./idempotency";
 
 // KV の重複判定の記録の読み書き。例外はそのまま投げ、扱いは service が決める。
 
@@ -29,15 +29,15 @@ export async function putLineMessage(
 export async function findWebMemo(
   kv: KVNamespace,
   memoId: string,
-): Promise<ExistingMemoRow | null> {
+): Promise<WebMemoRecord | null> {
   return parseWebMemoRecord(await kv.get(webMemoKey(memoId), "json"));
 }
 
 export async function putWebMemo(
   kv: KVNamespace,
-  row: ExistingMemoRow,
+  record: WebMemoRecord,
 ): Promise<void> {
-  await kv.put(webMemoKey(row.id), JSON.stringify(row), {
+  await kv.put(webMemoKey(record.id), JSON.stringify(record), {
     expirationTtl: WEB_MEMO_TTL_SECONDS,
   });
 }

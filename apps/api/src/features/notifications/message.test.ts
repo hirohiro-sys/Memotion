@@ -106,11 +106,6 @@ describe("buildDigestMessages: URL vs text", () => {
     expect(messages[0]).toContain(`9/8 ${"あ".repeat(200)}`);
     expect(messages[0]).not.toContain("あ".repeat(201));
   });
-
-  it("treats an image memo as text excerpt", () => {
-    const messages = build([memo({ content: "（画像）", mediaType: "image" })]);
-    expect(messages[0]).toContain("9/8 （画像）");
-  });
 });
 
 describe("buildDigestMessages: overflow", () => {

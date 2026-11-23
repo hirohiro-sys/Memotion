@@ -7,7 +7,7 @@
 - [ ] Git 管理を敷いた（`git init`、初期コミット、リモート。`.gitignore` に `.env` と `.dev.vars`）
 - [ ] `AGENTS.md` に地図を書いた（技術スタック、ディレクトリ構成、主要コマンド、`.agents/rules/` への誘導）
 - [ ] フォルダ構成を AI と相談して決めた（1ファイル1責務。どこに何があるかわかる構成。正本は `.agents/rules/architecture.md`）
-- [ ] ルールファイルを置いた。中核はテスト・レビュー・アーキテクチャ（`.agents/rules/testing.md`、`review.md`、`architecture.md`）。このリポジトリでは加えて `logging.md`、`db.md`、`line-security.md`（見た目は impeccable と `apps/web/DESIGN.md`）
+- [ ] ルールファイルを置いた。中核はテスト・レビュー・アーキテクチャ（`.agents/rules/testing.md`、`review.md`、`architecture.md`）。このリポジトリでは加えて `logging.md`、`line-security.md`（見た目は impeccable と `apps/web/DESIGN.md`）
 - [ ] テストが1コマンドで走る（`pnpm --filter @repo/api test`。コマンドは `testing.md` と `AGENTS.md` に記載。Playwright はない。Web はブラウザで確認する）
 - [ ] 秘密は自分で管理した（ローカルは `apps/api/.dev.vars`。`.gitignore` に `.env` と `.dev.vars`。鍵の値は AI に渡さない。`.cursorignore` で `.dev.vars` を読ませない）
 
@@ -25,7 +25,7 @@
 
 ## 週次、月次
 
-- [ ] 本番までの X: デプロイ（`pnpm run deploy`。main への push で CI が実行）とログ（`.agents/rules/logging.md` の JSON 1行）までつながっているか。Sentry は入っていない。Workers の設定、D1、R2、Cloudflare の秘密に「コードは問題ないのに動かない」原因が残っていないか
+- [ ] 本番までの X: デプロイ（`pnpm run deploy`。main への push で CI が実行）とログ（`.agents/rules/logging.md` の JSON 1行）までつながっているか。Sentry は入っていない。Workers の設定、KV、Notion、Cloudflare の秘密に「コードは問題ないのに動かない」原因が残っていないか
 - [ ] テストの信頼性: `.only` / `.skip` と、テスト対象を `vi.mock` で差し替えるごまかしをレビューで潰したか（`.agents/rules/testing.md`）。新しいごまかしの型はルールかスキルに書き足したか
 - [ ] 劣化の返済: 同じ失敗の繰り返しが増えたら、コードの劣化を疑う。`docs/dev-flow.md` の step 9（テストを保ったリファクタ。`.agents/rules/architecture.md` に合わせる）を止めていないか
 - [ ] ルールの鮮度: レビューで同じ指摘が繰り返されたら、`.agents/rules/` のルールへ昇格させたか
@@ -44,5 +44,5 @@
 - [ ] モデルの認可リストを決めた（能力に加えて、学習利用の有無と保持期間）
 - [ ] 設定を配布で強制した（Managed Settings。個人の善意に任せない）
 - [ ] 3層レビューを CI で機械化した（テストは全コード、AI レビューは全 PR、人間は重要箇所。必須チェックとブランチ保護）。いまの CI（`.github/workflows/ci.yml`）は lint、typecheck、API の Vitest、Web の build まで。AI レビューは CI に入っていない
-- [ ] コアと非コアの線を引いた。コアは認証、LINE webhook、画像の認可、メモの削除、ダイジェスト送信（`.agents/rules/line-security.md`）。コアは人間のレビューを必須にする
+- [ ] コアと非コアの線を引いた。コアは認証、LINE webhook、Notion への保存、ダイジェスト送信（`.agents/rules/line-security.md`）。コアは人間のレビューを必須にする
 - [ ] パイロットから始めた（一斉に広げない。うまくいったやり方をテンプレートにして横に広げる）

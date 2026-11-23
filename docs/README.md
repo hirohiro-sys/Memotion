@@ -5,7 +5,7 @@
 | 文書 | 内容 |
 |------|------|
 | [background.md](./background.md) | なぜ LINE キープメモを使うか、現状の課題 |
-| [backend-setup.md](./backend-setup.md) | API（Cloudflare Workers / D1 / R2）、同一オリジン公開、CI |
+| [backend-setup.md](./backend-setup.md) | API（Cloudflare Workers / Notion / KV）、同一オリジン公開、CI |
 | [design-doc.md](./design-doc.md) | Design Doc の方針と章立て。DD 本体は `design-docs/` |
 | [dev-flow.md](./dev-flow.md) | 開発フロー 9 step の参考プロンプト |
 | [checklists.md](./checklists.md) | 導入、毎タスク、週次・月次、品質、組織導入のチェックリスト |
