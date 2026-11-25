@@ -18,3 +18,18 @@ export function validateCreateSchedule(
   }
   return isPastScheduleDate(input.scheduledDate, now) ? "past_date" : "ok";
 }
+
+export type ScheduleFields = { scheduledDate?: string; scheduledTime?: string };
+
+// メモが持つ予定の日時。予定のときだけ日付を持ち、時刻は日付があるときだけ持つ。
+// 無いキーは付けない（null や空文字も無いとみなす）。
+export function scheduleFields(memo: {
+  tag: MemoTag;
+  scheduledDate?: string | null;
+  scheduledTime?: string | null;
+}): ScheduleFields {
+  if (memo.tag !== "schedule" || !memo.scheduledDate) return {};
+  return memo.scheduledTime
+    ? { scheduledDate: memo.scheduledDate, scheduledTime: memo.scheduledTime }
+    : { scheduledDate: memo.scheduledDate };
+}
