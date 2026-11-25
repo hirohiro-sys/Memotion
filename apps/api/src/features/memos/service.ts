@@ -1,7 +1,6 @@
 import { type CreateMemoRequest, type Memo, memoSchema } from "@repo/shared";
 import { nanoid } from "nanoid";
 import type { Env } from "../../env";
-import { createPage, queryDataSource } from "../../lib/notion/client";
 import type { ClassifySuccess } from "./classify";
 import { detectMediaType } from "./classify";
 import type { WebMemoRecord } from "./dedup-record";
@@ -12,19 +11,20 @@ import {
   putWebMemo,
 } from "./dedup-repository";
 import { decideResend } from "./idempotency";
-import { buildNotionPage, type NotionMemo } from "./notion-page";
+import type { NotionMemo } from "./notion-page";
 import {
-  memoIdQueryBody,
-  type NotionListedMemo,
   scheduleQueryBody,
   techQueryBody,
   todoQueryBody,
-  toNotionListedMemo,
 } from "./notion-query";
+import {
+  type NotionEnv,
+  type NotionMemoList,
+  queryNotionMemos,
+  saveMemoToNotion,
+} from "./notion-repository";
 import { resolveCreatedAt } from "./resolve-created-at";
 import { scheduleFields, validateCreateSchedule } from "./schedule";
-
-type NotionEnv = Pick<Env, "NOTION_TOKEN" | "NOTION_DATA_SOURCE_ID">;
 
 export type PersistResult =
   | { status: "inserted" }
@@ -57,72 +57,6 @@ function recordToMemo(record: WebMemoRecord): NotionMemo {
     createdAt: record.createdAt,
     ...scheduleFields(record),
   };
-}
-
-// 同じメモIDのページが Notion にあるか。読めなければ null。
-async function findNotionPage(
-  env: NotionEnv & { NOTION_TOKEN: string; NOTION_DATA_SOURCE_ID: string },
-  memoId: string,
-): Promise<boolean | null> {
-  const result = await queryDataSource({
-    token: env.NOTION_TOKEN,
-    dataSourceId: env.NOTION_DATA_SOURCE_ID,
-    body: memoIdQueryBody(memoId),
-  });
-  return result.ok ? result.results.length > 0 : null;
-}
-
-// 書き込みの結果が分からない失敗（ネットワーク、5xx）。Notion は 503 でも保存していることがある。
-function isAmbiguousFailure(status: number): boolean {
-  return status === 0 || status >= 500;
-}
-
-export type NotionSaveResult = { ok: true; created: boolean } | { ok: false };
-
-// メモを Notion のページにする。メモの保存先は Notion だけ。
-// checkFirst のときは、先に同じメモIDのページを探し、あれば作らない（Web の再送）。
-// 結果が分からない失敗のあとも、メモIDで探して保存済みかを確かめる。
-export async function saveMemoToNotion(
-  env: NotionEnv,
-  memo: NotionMemo,
-  options: { checkFirst: boolean },
-): Promise<NotionSaveResult> {
-  const { NOTION_TOKEN, NOTION_DATA_SOURCE_ID } = env;
-  if (!NOTION_TOKEN || !NOTION_DATA_SOURCE_ID) {
-    logJson({
-      event: "memo.notion",
-      status: "skipped",
-      reason: "no_secret",
-      memoId: memo.id,
-    });
-    return { ok: false };
-  }
-  const secrets = { NOTION_TOKEN, NOTION_DATA_SOURCE_ID };
-
-  if (options.checkFirst && (await findNotionPage(secrets, memo.id))) {
-    logJson({ event: "memo.notion", status: "duplicate", memoId: memo.id });
-    return { ok: true, created: false };
-  }
-
-  const result = await createPage({
-    token: NOTION_TOKEN,
-    body: buildNotionPage(memo, NOTION_DATA_SOURCE_ID),
-  });
-  if (result.ok) return { ok: true, created: true };
-
-  if (
-    isAmbiguousFailure(result.status) &&
-    (await findNotionPage(secrets, memo.id))
-  ) {
-    return { ok: true, created: true };
-  }
-  logJson({
-    event: "memo.notion",
-    status: "failed",
-    httpStatus: result.status,
-    memoId: memo.id,
-  });
-  return { ok: false };
 }
 
 export async function createForUser(
@@ -217,44 +151,8 @@ export async function createFromLine(
   }
 }
 
-// 通知用に Notion からメモを読む。1回の通知で読むのは最大 5 ページ（500 件）まで。
-const NOTION_MAX_PAGES = 5;
-
-// truncated は、読める上限で打ち切ったとき true。
-export type NotionMemoList =
-  | { ok: true; memos: NotionListedMemo[]; truncated: boolean }
-  | { ok: false; reason: "no_secret" }
-  | { ok: false; reason: "upstream"; httpStatus: number };
-
-async function queryNotionMemos(
-  env: NotionEnv,
-  bodyFor: (cursor?: string) => unknown,
-): Promise<NotionMemoList> {
-  if (!env.NOTION_TOKEN || !env.NOTION_DATA_SOURCE_ID) {
-    return { ok: false, reason: "no_secret" };
-  }
-  const memos: NotionListedMemo[] = [];
-  let cursor: string | undefined;
-  let truncated = false;
-  for (let page = 0; page < NOTION_MAX_PAGES; page += 1) {
-    const result = await queryDataSource({
-      token: env.NOTION_TOKEN,
-      dataSourceId: env.NOTION_DATA_SOURCE_ID,
-      body: bodyFor(cursor),
-    });
-    if (!result.ok) {
-      return { ok: false, reason: "upstream", httpStatus: result.status };
-    }
-    for (const item of result.results) {
-      const memo = toNotionListedMemo(item);
-      if (memo) memos.push(memo);
-    }
-    if (!result.nextCursor) break;
-    cursor = result.nextCursor;
-    truncated = page === NOTION_MAX_PAGES - 1;
-  }
-  return { ok: true, memos, truncated };
-}
+// 通知用に Notion からメモを読む。読む件数の上限は notion-repository が決める。
+export type { NotionMemoList };
 
 // 記録日時が窓の中の tech。窓の境界はここで正確に絞る。
 export async function listTechMemosFromNotion(
