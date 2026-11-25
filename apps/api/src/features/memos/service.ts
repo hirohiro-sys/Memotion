@@ -22,7 +22,7 @@ import {
   toNotionListedMemo,
 } from "./notion-query";
 import { resolveCreatedAt } from "./resolve-created-at";
-import { validateCreateSchedule } from "./schedule";
+import { scheduleFields, validateCreateSchedule } from "./schedule";
 
 type NotionEnv = Pick<Env, "NOTION_TOKEN" | "NOTION_DATA_SOURCE_ID">;
 
@@ -43,12 +43,7 @@ export function toMemoResponse(memo: NotionMemo): Memo {
     mediaType: memo.mediaType,
     source: memo.source,
     createdAt: memo.createdAt,
-    ...(memo.tag === "schedule" && memo.scheduledDate
-      ? { scheduledDate: memo.scheduledDate }
-      : {}),
-    ...(memo.tag === "schedule" && memo.scheduledDate && memo.scheduledTime
-      ? { scheduledTime: memo.scheduledTime }
-      : {}),
+    ...scheduleFields(memo),
   });
 }
 
@@ -60,8 +55,7 @@ function recordToMemo(record: WebMemoRecord): NotionMemo {
     mediaType: record.mediaType,
     source: record.source,
     createdAt: record.createdAt,
-    ...(record.scheduledDate ? { scheduledDate: record.scheduledDate } : {}),
-    ...(record.scheduledTime ? { scheduledTime: record.scheduledTime } : {}),
+    ...scheduleFields(record),
   };
 }
 
@@ -173,12 +167,7 @@ export async function createForUser(
     mediaType: detectMediaType(input.content),
     source: "web",
     createdAt: resolveCreatedAt(input.createdAt, now),
-    ...(input.tag === "schedule" && input.scheduledDate
-      ? { scheduledDate: input.scheduledDate }
-      : {}),
-    ...(input.tag === "schedule" && input.scheduledDate && input.scheduledTime
-      ? { scheduledTime: input.scheduledTime }
-      : {}),
+    ...scheduleFields(input),
   };
 
   // KV の記録が無い再送（記録の書き込みの失敗、30 日の期限切れ）は、Notion をメモIDで探して見分ける。

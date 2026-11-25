@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isPastScheduleDate, validateCreateSchedule } from "./schedule";
+import {
+  isPastScheduleDate,
+  scheduleFields,
+  validateCreateSchedule,
+} from "./schedule";
 
 describe("isPastScheduleDate", () => {
   it("treats today in JST as not past until JST midnight", () => {
@@ -56,5 +60,53 @@ describe("validateCreateSchedule", () => {
       ),
     ).toBe("ok");
     expect(validateCreateSchedule({ tag: "tweet" }, now)).toBe("ok");
+  });
+});
+
+describe("scheduleFields", () => {
+  it("keeps the date and time of a timed schedule", () => {
+    expect(
+      scheduleFields({
+        tag: "schedule",
+        scheduledDate: "2026-11-03",
+        scheduledTime: "14:00",
+      }),
+    ).toEqual({ scheduledDate: "2026-11-03", scheduledTime: "14:00" });
+  });
+
+  it.each([undefined, null, ""])(
+    "keeps only the date of a schedule whose time is %j",
+    (scheduledTime) => {
+      expect(
+        scheduleFields({
+          tag: "schedule",
+          scheduledDate: "2026-11-03",
+          scheduledTime,
+        }),
+      ).toStrictEqual({ scheduledDate: "2026-11-03" });
+    },
+  );
+
+  it.each([undefined, null, ""])(
+    "drops the time of a schedule whose date is %j",
+    (scheduledDate) => {
+      expect(
+        scheduleFields({
+          tag: "schedule",
+          scheduledDate,
+          scheduledTime: "14:00",
+        }),
+      ).toStrictEqual({});
+    },
+  );
+
+  it("drops the date and time of a memo that is not a schedule", () => {
+    expect(
+      scheduleFields({
+        tag: "todo",
+        scheduledDate: "2026-11-03",
+        scheduledTime: "14:00",
+      }),
+    ).toStrictEqual({});
   });
 });
